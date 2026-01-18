@@ -93,6 +93,6 @@ Quantum-Hybrid-Defect-Detector/
 ├── frontend/               # Vue.js application
 │   ├── src/                # Vue components & views
 │   └── package.json        # Node dependencies
-├── data/                   # Dataset storage (Ignored by Git)
+├── data/                   # Dataset storage
 └── README.md               # Project documentation
 ```
