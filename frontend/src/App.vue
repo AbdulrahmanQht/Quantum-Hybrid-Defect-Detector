@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue';
+
 const msg = ref("");
 const api = async () => {
   try {
@@ -15,10 +16,14 @@ onMounted(api);
 </script>
 
 <template>
-  <div>
-    <h1>
-      {{ msg }}
+  <div class="min-h-screen p-8 bg-gray-100">
+    <h1 class="mb-4 text-3xl font-bold text-green-600">
+      Quantum Defect Detector
     </h1>
+    
+    <button class="px-4 py-2 font-bold text-white bg-green-500 rounded hover:bg-green-700">
+      Click Me
+    </button>
   </div>
 </template>
 
