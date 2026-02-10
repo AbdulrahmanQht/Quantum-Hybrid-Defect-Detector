@@ -1,4 +1,4 @@
-# Quantum-Hybrid-Defect-Detector
+# Quantum Hybrid Defect Detector
 
 A comparative benchmarking tool designed to detect industrial surface defects (such as cracks and corrosion) in oil and gas infrastructure. 
 
