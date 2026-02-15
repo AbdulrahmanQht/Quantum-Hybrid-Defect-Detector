@@ -18,7 +18,7 @@ onMounted(api);
 <template>
   <div class="min-h-screen p-8 bg-gray-100">
     <h1 class="mb-4 text-3xl font-bold text-green-600">
-      Quantum Defect Detector
+      Quantum Defect Detector 5
     </h1>
     
     <button class="px-4 py-2 font-bold text-white bg-green-500 rounded hover:bg-green-700">
