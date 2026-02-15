@@ -4,7 +4,7 @@ import random
 
 raw_images = "backend/data/images/images/train/"
 raw_labels = "backend/data/labels/labels/train/"
-output_base = "Dataset"
+output_base = "data"
 image_ext = ".jpg"
 random.seed(42)
 
