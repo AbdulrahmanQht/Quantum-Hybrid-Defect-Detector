@@ -89,10 +89,10 @@ Quantum-Hybrid-Defect-Detector/
 ├── backend/                # FastAPI application & Model logic
 │   ├── app/                # API source code
 │   ├── models/             # Saved PyTorch (.pth) model weights
+│   ├── data/               # Dataset storage
 │   └── requirements.txt    # Python dependencies
 ├── frontend/               # Vue.js application
 │   ├── src/                # Vue components & views
 │   └── package.json        # Node dependencies
-├── data/                   # Dataset storage
 └── README.md               # Project documentation
 ```
