@@ -25,7 +25,7 @@ class Logger:
         file_handler = TimedRotatingFileHandler(log_file, when = 'midnight', interval = 1, backupCount = 30)
 
         formatter = logging.Formatter(
-            fmt='-' * 75 + '\n' + '%(asctime)s - %(levelname)s - %(message)s\n' ,
+            fmt='-' * 75 + '\n' + '%(asctime)s - %(levelname)s - %(message)s' ,
             datefmt='%d/%m/%Y - %I:%M %p'
         )
 
