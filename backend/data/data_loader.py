@@ -2,6 +2,7 @@ import os
 import torch
 from torch.utils.data import DataLoader
 from backend.data.preprocessing import PreProcessing
+from backend.utils.logger import Logger
 
 class DataLoaderManager:
     def __init__(self, train_dir, val_dir, test_dir, img_width=256, img_height=256, batch_size=32):
