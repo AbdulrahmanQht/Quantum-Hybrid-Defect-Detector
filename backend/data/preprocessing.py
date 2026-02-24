@@ -8,21 +8,9 @@ class PreProcessing(Dataset):
     def __init__( self, root_dir, img_width, img_height, is_training = True, apply_augmentation = True):
         self.data_path = os.path.join(root_dir, 'Images')
 
-        basic_transforms = [
-            torchvision.transforms.Resize((img_width, img_height)),
-            torchvision.transforms.ToTensor()
-        ]
-
-        if is_training and apply_augmentation:
-            augmentation_transforms = [
-                torchvision.transforms.RandomHorizontalFlip(p=0.5),
-                torchvision.transforms.RandomVerticalFlip(p=0.5),
-                torchvision.transforms.RandomRotation(degrees=180),
-                torchvision.transforms.ColorJitter(brightness=0.2, contrast=0.2),
-            ]
-            self.transform = torchvision.transforms.Compose(augmentation_transforms + basic_transforms)
-        else:
-            self.transform = torchvision.transforms.Compose(basic_transforms)
+        self.transform = PreProcessing.get_transforms(
+            img_width, img_height, is_training, apply_augmentation
+        )
 
         self.samples = []
         self.classes = sorted([d for d in os.listdir(self.data_path) if os.path.isdir(os.path.join(self.data_path, d))])
@@ -35,6 +23,24 @@ class PreProcessing(Dataset):
                 # Only add if it's a file, not a directory
                 if os.path.isfile(img_full_path):
                     self.samples.append((img_full_path, self.class_to_idx[target_class]))
+
+    @staticmethod
+    def get_transforms(img_width, img_height, is_training=False, apply_augmentation=False):
+        basic_transforms = [
+            torchvision.transforms.Resize((img_width, img_height)),
+            torchvision.transforms.ToTensor()
+        ]
+
+        if is_training and apply_augmentation:
+            augmentation_transforms = [
+                torchvision.transforms.RandomHorizontalFlip(p=0.5),
+                torchvision.transforms.RandomVerticalFlip(p=0.5),
+                torchvision.transforms.RandomRotation(degrees=180),
+                torchvision.transforms.ColorJitter(brightness=0.2, contrast=0.2),
+            ]
+            return torchvision.transforms.Compose(augmentation_transforms + basic_transforms)
+
+        return torchvision.transforms.Compose(basic_transforms)
 
     def __len__(self):
         return len(self.samples)

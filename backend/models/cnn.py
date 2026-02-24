@@ -4,8 +4,10 @@ import torch.nn as nn
 from torch.optim import Adam
 import torch.nn.functional as F
 from itertools import chain
+from backend.data.preprocessing import PreProcessing
 from backend.data.data_loader import DataLoaderManager
 from backend.utils.logger import Logger
+from PIL import Image
 
 class CnnModule(nn.Module):
     def __init__(self, num_classes):
@@ -96,38 +98,51 @@ class CnnModule(nn.Module):
             result="Validation/Test Phase"
         )
 
-    def predict(self, image: torch.Tensor, device, class_names: list = None) -> dict:
+    def predict(self, image_data, device, class_names: list = None) -> dict:
+        """
+        Predicts the class of a single image.
+        Accepts: A PIL Image object OR a string path to an image.
+        """
         self.eval()
-        image = image.to(device)
         start = time.perf_counter()
 
+        if isinstance(image_data, str):
+            image = Image.open(image_data).convert("RGB")
+        else:
+            image = image_data
+
+        transform = PreProcessing.get_transforms(img_width=256, img_height=256, is_training=False)
+
+        # PIL -> Tensor [3, 256, 256] -> [1, 3, 256, 256]
+        image_tensor = transform(image).unsqueeze(0).to(device)
+
         with torch.no_grad():
-            logits = self(image)                        # raw scores
-            probabilities = F.softmax(logits, dim=1)   # convert to 0–1 range
+            logits = self(image_tensor)
+            probabilities = F.softmax(logits, dim=1)
             confidence, predicted_idx = torch.max(probabilities, dim=1)
 
         latency_ms = (time.perf_counter() - start) * 1000
 
-        predicted_idx = predicted_idx.item()
-        confidence = confidence.item()
-        all_scores = probabilities.squeeze().tolist()   # one score per class
+        idx = predicted_idx.item()
+        conf = confidence.item()
+        all_scores = probabilities.flatten().tolist()
 
         result_dict = {
-            "predicted_index": predicted_idx,
-            "predicted_class": class_names[predicted_idx] if class_names else None,
-            "confidence": round(confidence, 4),
+            "predicted_index": idx,
+            "predicted_class": class_names[idx] if class_names else "Unknown",
+            "confidence": round(conf, 4),
             "all_class_scores": (
                 {class_names[i]: round(s, 4) for i, s in enumerate(all_scores)}
-                if class_names else all_scores
+                if class_names else [round(s, 4) for s in all_scores]
             ),
             "inference_latency_ms": round(latency_ms, 3),
         }
 
         self.logger.log_results(
-            model_name="Baseline_CNN_Inference",
+            model_name="Baseline_CNN_Single_Inference",
             latency=result_dict["inference_latency_ms"],
             confidence=result_dict["confidence"],
-            result=result_dict["predicted_class"]
+            result=str(result_dict["predicted_class"])
         )
 
         return result_dict
