@@ -1,13 +1,15 @@
-import './style.css'
-import App from './App.vue'
-import { createApp } from 'vue'
-import 'primeicons/primeicons.css'
-import Button from 'primevue/button'
-import MenuBar from 'primevue/menubar'
-import PrimeVue from 'primevue/config'
-import Aura from '@primevue/themes/aura'
-import router from './router'
-import Cookies from 'js-cookie'
+import './style.css';
+import App from './App.vue';
+import router from './router';
+import { createApp } from 'vue';
+import Cookies from 'js-cookie';
+import 'primeicons/primeicons.css';
+import Button from 'primevue/button';
+import Message from 'primevue/message';
+import MenuBar from 'primevue/menubar';
+import PrimeVue from 'primevue/config';
+import Aura from '@primevue/themes/aura';
+import FileUpload from 'primevue/fileupload';
 
 const app = createApp(App)
 

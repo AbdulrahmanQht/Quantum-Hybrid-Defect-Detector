@@ -43,7 +43,7 @@ const toggleTheme = () => {
 
 <template>
   <div class="card">
-    <MenuBar :model="items" class="px-6 shadow-md border-none rounded-none">
+    <MenuBar :model="items" class="px-6 border-none rounded-none shadow-md">
       <template #item="{ item, props }">
         <router-link v-if="item.to" :to="item.to" v-bind="props.action" class="flex items-center p-3">
           <span :class="item.icon" class="mr-2" />

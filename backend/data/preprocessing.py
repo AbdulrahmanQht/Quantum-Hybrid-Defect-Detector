@@ -6,10 +6,9 @@ from torch.utils.data import Dataset
 
 class PreProcessing(Dataset):
     def __init__( self, root_dir, img_width, img_height, is_training = True, apply_augmentation = True):
-        self.root_dir = root_dir
+        self.data_path = os.path.join(root_dir, 'Images')
 
         basic_transforms = [
-            torchvision.transforms.Grayscale(num_output_channels=1),
             torchvision.transforms.Resize((img_width, img_height)),
             torchvision.transforms.ToTensor()
         ]
@@ -26,13 +25,16 @@ class PreProcessing(Dataset):
             self.transform = torchvision.transforms.Compose(basic_transforms)
 
         self.samples = []
-        self.classes = sorted(os.listdir(root_dir))
+        self.classes = sorted([d for d in os.listdir(self.data_path) if os.path.isdir(os.path.join(self.data_path, d))])
         self.class_to_idx = {cls_name: i for i, cls_name in enumerate(self.classes)}
 
         for target_class in self.classes:
-            class_path = os.path.join(root_dir, target_class)
+            class_path = os.path.join(self.data_path, target_class)
             for img_name in os.listdir(class_path):
-                self.samples.append((os.path.join(class_path, img_name), self.class_to_idx[target_class]))
+                img_full_path = os.path.join(class_path, img_name)
+                # Only add if it's a file, not a directory
+                if os.path.isfile(img_full_path):
+                    self.samples.append((img_full_path, self.class_to_idx[target_class]))
 
     def __len__(self):
         return len(self.samples)
