@@ -143,6 +143,7 @@ class CnnModule(nn.Module):
         try:
             self.load_state_dict(torch.load(path, map_location=device))
             self.to(device)
+            self.eval()
             self.logger.info(f"Model successfully loaded from {path}")
         except Exception as e:
             self.logger.error(f"Failed to load model: {str(e)}")
