@@ -22,7 +22,31 @@ const pieOptions = {
   plugins: { legend: { position: 'bottom' } }
 }
 
-function onFileChange(event) {
+async function validateImageSignature(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onloadend = function(e) {
+      // Get the first 4 bytes as a hexadecimal string
+      const arr = (new Uint8Array(e.target.result)).subarray(0, 4)
+      let header = ''
+      for(let i = 0; i < arr.length; i++) {
+        header += arr[i].toString(16)
+      }
+
+      // Check against known magic numbers
+      // JPEG starts with ffd8
+      // PNG starts with 89504e47
+      if (header.startsWith('ffd8') || header.startsWith('89504e47')) {
+        resolve(true)
+      } else {
+        resolve(false)
+      }
+    }
+    reader.readAsArrayBuffer(file.slice(0, 4)) // Only read the first 4 bytes
+  })
+}
+
+async function onFileChange(event) {
   error.value = null
   results.value = null
   exportSuccess.value = null
@@ -37,6 +61,12 @@ function onFileChange(event) {
 
   if (file.size > MAX_SIZE_MB * 1024 * 1024) {
     error.value = `File size exceeds ${MAX_SIZE_MB}MB! Please upload a smaller image.`
+    return
+  }
+
+  const isValidSignature = await validateImageSignature(file)
+  if (!isValidSignature) {
+    error.value = 'File extension does not match file content. Suspected spoofing.'
     return
   }
 
@@ -150,11 +180,16 @@ function exportToCSV() {
   exportSuccess.value = 'Results exported to CSV successfully!'
 }
 
+function sanitizeFilename(name) {
+  if (!name) return 'unknown'
+  return name.replace(/[^a-zA-Z0-9.-]/g, '_')
+}
+
 function exportToJSON() {
   if (!results.value) return
   const jsonData = {
     timestamp: new Date().toISOString(),
-    fileName: selectedFile.value?.name,
+    fileName: sanitizeFilename(selectedFile.value?.name),
     topPrediction: topResult.value,
     allResults: results.value
   }
@@ -216,6 +251,7 @@ function exportToJSON() {
           icon="pi pi-play"
           size="large"
           :loading="loading"
+          :disabled="loading"
           @click="uploadImage"
         />
       </template>

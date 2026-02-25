@@ -3,7 +3,11 @@ import numpy as np
 import seaborn as sns
 from PIL import Image
 import matplotlib.pyplot as plt
-
+"""
+Exploratory Data Analysis (EDA) for Industrial Defect Detection Dataset
+This script performs EDA on the industrial defect detection dataset to understand class distribution, 
+visualize sample images, and analyze pixel intensity distributions. 
+"""
 dataset_path = r"data\train\Images"
 classes = os.listdir(dataset_path)
 

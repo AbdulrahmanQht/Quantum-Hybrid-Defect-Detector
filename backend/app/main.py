@@ -65,6 +65,23 @@ async def lifespan(app: FastAPI):
     # qnn_gpu_model.load_model(os.path.join(backend_dir, "models", "qnn_gpu_model.pth"), device_qnn_gpu)
     ml_models["GPU_Hybrid"] = {"model": qnn_gpu_model, "device": device_qnn_gpu}
 
+    """ 
+        Performance warm-up: First time predict is called it might take a long time to allocate GPU memory and load the model.
+        To prevent this from causing a long delay on the first user request, we run a dummy prediction during startup to "warm up" the models.
+    """
+    logger.info("Warming up models to prevent cold-start latency.")
+    dummy_image = Image.new('RGB', (256, 256), color='black')
+    try:
+        # Run a dummy prediction so CUDA allocates memory now, not during the first user request
+        ml_models["Classical_CNN"]["model"].predict(
+            dummy_image,
+            ml_models["Classical_CNN"]["device"],
+            class_names
+        )
+    except Exception as e:
+        logger.warn(f"Model warm-up failed (non-fatal): {str(e)}")
+
+    logger.info("Server is warmed up!")
     yield
 
     logger.info("Shutting down. Clearing memory.")
@@ -100,17 +117,25 @@ def health_check():
 @app.post("/api/classify")
 @limiter.limit("5/minute")
 async def classify_image(request: Request, file: UploadFile = File(...)):
-    # Validate File Size
-    content_length = request.headers.get('content-length')
+    # Fast fail checks for file type and size before processing to save resources
+    allowed_mimes = ["image/jpeg", "image/png", "image/webp", "image/bmp", "image/tiff"]
+    if file.content_type not in allowed_mimes:
+        raise HTTPException(status_code=415, detail="Unsupported media type. Only images are allowed.")
 
-    if content_length and int(content_length) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=400, detail="File size exceeds 5MB limit.")
+    # Validate File Size by reading file in chunks to prevent memory issues with large files
+    real_size = 0
+    chunk_size = 1024 * 1024  # Read 1MB at a time
+    file_bytes = b""
 
-    contents = await file.read()
+    while chunk := await file.read(chunk_size):
+        real_size += len(chunk)
+        if real_size > MAX_FILE_SIZE:
+            raise HTTPException(status_code=413, detail="File size exceeds the 5MB limit.")
+        file_bytes += chunk
 
     try:
         # Validate Image Dimensions and Format
-        image = Image.open(io.BytesIO(contents))
+        image = Image.open(io.BytesIO(file_bytes))
         if image.format not in ALLOWED_FORMATS:
             raise HTTPException(status_code=400, detail="Invalid file format! Please upload a PNG, JPG, or JPEG image.")
 
@@ -118,8 +143,11 @@ async def classify_image(request: Request, file: UploadFile = File(...)):
             raise HTTPException(status_code=400, detail="Image dimensions exceed 4096x4096.")
 
         image = image.convert("RGB")
+    except Image.DecompressionBombError:
+        logger.warn(f"Decompression bomb blocked from IP: {request.client.host}")
+        raise HTTPException(status_code=400, detail="Image exceeds maximum allowed pixels.")
     except Exception:
-        raise HTTPException(status_code=400, detail="Invalid image file.")
+        raise HTTPException(status_code=400, detail="Corrupted or invalid image file.")
 
     class_names = ml_models["class_names"]
 

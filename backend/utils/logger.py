@@ -6,6 +6,9 @@ from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime
 
 class Logger:
+    """
+    A custom logger that creates daily log files and includes unique request IDs for better traceability.
+    """
     def __init__(self):
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.log_dir = os.path.join(base_dir, "logs")

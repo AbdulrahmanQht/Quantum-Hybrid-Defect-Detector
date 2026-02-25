@@ -1,14 +1,10 @@
 import os
 import torch
-from backend.utils.logger import Logger
 from torch.utils.data import DataLoader
 from backend.data.preprocessing import PreProcessing
 
-
 class DataLoaderManager:
-    def __init__(
-        self, train_dir, val_dir, test_dir, img_width=256, img_height=256, batch_size=32
-    ):
+    def __init__(self, train_dir, val_dir, test_dir, img_width=256, img_height=256, batch_size=32):
         self.batch_size = batch_size
         pin_memory = torch.cuda.is_available()
         cpu_count = os.cpu_count() or 1
@@ -18,16 +14,13 @@ class DataLoaderManager:
         if os.name == 'nt' and num_workers > 4:
             num_workers = 4
 
+        # Keep CPU workers alive between epochs to reduce overhead.
+        keep_alive = num_workers > 0
+
         # Initialize the PreProcessing datasets
-        self.train_dataset = PreProcessing(
-            train_dir, img_width, img_height, is_training=True, apply_augmentation=True
-        )
-        self.val_dataset = PreProcessing(
-            val_dir, img_width, img_height, is_training=False, apply_augmentation=False
-        )
-        self.test_dataset = PreProcessing(
-            test_dir, img_width, img_height, is_training=False, apply_augmentation=False
-        )
+        self.train_dataset = PreProcessing(train_dir, img_width, img_height, is_training=True, apply_augmentation=True)
+        self.val_dataset = PreProcessing(val_dir, img_width, img_height, is_training=False, apply_augmentation=False)
+        self.test_dataset = PreProcessing(test_dir, img_width, img_height, is_training=False, apply_augmentation=False)
 
         # Create the DataLoaders
         self.train_loader = DataLoader(
@@ -36,6 +29,7 @@ class DataLoaderManager:
             shuffle=True,
             num_workers = num_workers,
             pin_memory = pin_memory,
+            persistent_workers = keep_alive,
         )
 
         self.val_loader = DataLoader(
@@ -44,6 +38,7 @@ class DataLoaderManager:
             shuffle = False,
             num_workers = num_workers,
             pin_memory = pin_memory,
+            persistent_workers=keep_alive,
         )
 
         self.test_loader = DataLoader(
@@ -52,6 +47,7 @@ class DataLoaderManager:
             shuffle = False,
             num_workers = num_workers,
             pin_memory = pin_memory,
+            persistent_workers=keep_alive,
         )
 
     def get_loaders(self):

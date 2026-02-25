@@ -1,50 +1,79 @@
+import copy
 import time
 import json
 import torch
 import torch.nn as nn
+from tqdm import tqdm
+from PIL import Image
 from torch.optim import Adam
 import torch.nn.functional as F
-from itertools import chain
-from tqdm import tqdm
+from backend.utils.logger import Logger
 from backend.data.preprocessing import PreProcessing
 from backend.data.data_loader import DataLoaderManager
-from backend.utils.logger import Logger
-from PIL import Image
+
+class ResidualBlock(nn.Module):
+    """
+        A standard Residual Block with Depthwise Separable Convolutions.
+
+        This block implements the 'Skip Connection' or 'Shortcut' pattern, which allows
+        gradients to flow through the network more easily, preventing the vanishing
+        gradient problem in deeper architectures.
+
+        Architecture:
+            1. Depthwise Conv: 7x7 spatial filtering per channel.
+            2. Pointwise Conv: 1x1 channel-wise mixing and expansion.
+            3. Shortcut: An identity or 1x1 projection to match dimensions.
+        Uses the formula: Y = F(X) + W(X) || output = Activation(ConvBlock(x) + Shortcut(x))
+        """
+    def __init__(self, in_channels, out_channels, stride=1):
+        super().__init__()
+        self.conv = nn.Sequential(
+            nn.Conv2d(in_channels, in_channels, kernel_size=7, stride=stride, padding=3, groups=in_channels),
+            nn.BatchNorm2d(in_channels),
+            nn.Conv2d(in_channels, out_channels, kernel_size=1),
+            nn.BatchNorm2d(out_channels),
+            nn.GELU()
+        )
+        self.shortcut = nn.Sequential()
+        if stride != 1 or in_channels != out_channels:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride),
+                nn.BatchNorm2d(out_channels)
+            )
+
+    def forward(self, x):
+        return self.conv(x) + self.shortcut(x)
 
 class CnnModule(nn.Module):
+    """
+    Modernized CNN architecture made for Industrial Defect Detection.
+
+    Inspired by:
+        - ConvNeXt: Uses large kernels (7x7) and GELU for a Transformer-like field of view.
+        - MobileNetV2: Employs Depthwise Separable Convolutions for extreme efficiency.
+        - ResNet: Utilizes Skip Connections to maintain training stability over 50+ epochs.
+
+    This model is designed to be lightweight enough for real-time inference via FastAPI
+    while remaining robust enough to handle industrial image noise.
+    """
     def __init__(self, num_classes):
         super(CnnModule, self).__init__()
         self.logger = Logger()
 
+        # Initialize transformers once instead of everytime fastAPI calls predict()
+        self.inference_transform = PreProcessing.get_transforms(img_width=256, img_height=256, is_training=False)
+
         self.model = nn.Sequential(
+            # Input: [3, 256, 256]
             nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3),
             nn.BatchNorm2d(64),
             nn.GELU(),  # Modern, smoother alternative to ReLU
             nn.MaxPool2d(2, 2),  # Input 256 -> 64
 
-            # --- STAGE 1 (Depthwise Separable) ---
-            # Depthwise 7x7: Applies a single filter per input channel (groups=64).
-            # This captures huge spatial relationships with very few parameters.
-            nn.Conv2d(64, 64, kernel_size=7, padding=3, groups=64),
-            nn.BatchNorm2d(64),
-            # Pointwise 1x1: Mixes the channels and expands them.
-            nn.Conv2d(64, 128, kernel_size=1),
-            nn.GELU(),
-            nn.MaxPool2d(2, 2),  # 64 -> 32
-
-            # --- STAGE 2 (Depthwise Separable) ---
-            nn.Conv2d(128, 128, kernel_size=7, padding=3, groups=128),
-            nn.BatchNorm2d(128),
-            nn.Conv2d(128, 256, kernel_size=1),
-            nn.GELU(),
-            nn.MaxPool2d(2, 2),  # 32 -> 16
-
-            # --- STAGE 3 (Depthwise Separable) ---
-            nn.Conv2d(256, 256, kernel_size=7, padding=3, groups=256),
-            nn.BatchNorm2d(256),
-            nn.Conv2d(256, 512, kernel_size=1),
-            nn.GELU(),
-            nn.MaxPool2d(2, 2),  # 16 -> 8
+            # --- BODY (Residual Blocks) ---
+            ResidualBlock(64, 128, stride=2),  # 64 -> 32
+            ResidualBlock(128, 256, stride=2),  # 32 -> 16
+            ResidualBlock(256, 512, stride=2),  # 16 -> 8
 
             # --- HEAD (Modern GAP) ---
             # Averages the remaining 8x8 spatial grids into a 1x1 single value per channel.
@@ -55,11 +84,100 @@ class CnnModule(nn.Module):
             # Skipping the massive middle Linear layer keeps the model fast and robust.
             nn.Linear(512, num_classes)
         )
+        # Compile for faster training and inference
+        # Comment it if you are using Windows
+        # self.model = torch.compile(self.model)
 
     def forward(self, x):
         return self.model(x)
 
-    def train_and_validate(self, device, train_loader, val_loader, test_loader, num_epochs=30, learning_rate=0.001):
+    def train_model(self, train_loader, optimizer, criterion, device, epoch, num_epochs):
+        """Handles a single epoch of training."""
+        self.train()
+        running_loss = 0.0
+        correct_train = 0
+        total_train = 0
+        # Scaler speeds up training and reduce GPU memory usage by using mixed precision (float16) where possible
+        # Only use if device = cuda otherwise it would crash on CPU
+        is_cuda = device.type == 'cuda'
+        scaler = torch.amp.GradScaler(device.type, enabled=is_cuda)
+
+        pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{num_epochs} [Train]", colour='green')
+        for images, labels in pbar:
+            images, labels = images.to(device), labels.to(device)
+
+            optimizer.zero_grad()
+            # Running the forward pass in mixed precision mode to speed up training and reduce memory usage
+            with torch.autocast(device_type=device.type, enabled=is_cuda):
+                outputs = self(images)
+                loss = criterion(outputs, labels)
+
+            # Scale the loss and backward pass
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+
+            running_loss += loss.item()
+            _, predicted = outputs.max(1)
+            total_train += labels.size(0)
+            correct_train += predicted.eq(labels).sum().item()
+
+            pbar.set_postfix(loss=loss.item(), acc=100. * correct_train / total_train)
+
+        train_loss = running_loss / len(train_loader)
+        train_acc = 100. * correct_train / total_train
+        return train_loss, train_acc
+
+    def validate_model(self, val_loader, criterion, device):
+        """Handles a single epoch of validation."""
+        self.eval()
+        val_loss = 0.0
+        correct_val = 0
+        total_val = 0
+
+        with torch.no_grad():
+            for images, labels in val_loader:
+                images, labels = images.to(device), labels.to(device)
+                outputs = self(images)
+                loss = criterion(outputs, labels)
+
+                val_loss += loss.item()
+                _, predicted = outputs.max(1)
+                total_val += labels.size(0)
+                correct_val += predicted.eq(labels).sum().item()
+
+        val_acc = 100. * correct_val / total_val
+        avg_val_loss = val_loss / len(val_loader)
+        return avg_val_loss, val_acc
+
+    def test_model(self, test_loader, criterion, device):
+        """Test best model."""
+        self.eval()
+        test_loss = 0.0
+        correct_test = 0
+        total_test = 0
+
+        print("\n--- Starting Final Evaluation on Unseen Test Set ---")
+        with torch.no_grad():
+            for images, labels in tqdm(test_loader, desc="[Testing]", colour='blue'):
+                images, labels = images.to(device), labels.to(device)
+                outputs = self(images)
+                loss = criterion(outputs, labels)
+
+                test_loss += loss.item()
+                _, predicted = outputs.max(1)
+                total_test += labels.size(0)
+                correct_test += predicted.eq(labels).sum().item()
+
+        test_acc = 100. * correct_test / total_test
+        avg_test_loss = test_loss / len(test_loader)
+        print(f"Final Test Results | Loss: {avg_test_loss:.4f} | Accuracy: {test_acc:.2f}%")
+
+        self.logger.info(f"Test Evaluation - Loss: {avg_test_loss:.4f}, Accuracy: {test_acc:.2f}%")
+        return avg_test_loss, test_acc
+
+    def fit(self, device, train_loader, val_loader, test_loader, num_epochs=50, learning_rate=0.001):
+        """Runs training, validation, testing and saves the best model."""
         self.to(device)
         self.logger.info(f"Starting Training on {device} for {num_epochs} epochs.")
 
@@ -68,80 +186,54 @@ class CnnModule(nn.Module):
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=3, verbose=True)
 
         best_val_acc = 0.0
+        best_model_path = "cnn_model.pth"
+        best_model_weights = None
 
         for epoch in range(num_epochs):
-            # --- TRAINING PHASE ---
-            self.train()
-            running_loss = 0.0
-            correct_train = 0
-            total_train = 0
             epoch_start = time.perf_counter()
 
-            pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{num_epochs} [Train]", colour='green')
-            for images, labels in pbar:
-                images, labels = images.to(device), labels.to(device)
+            # Train
+            train_loss, train_acc = self.train_model(train_loader, optimizer, criterion, device, epoch, num_epochs)
 
-                optimizer.zero_grad()
-                outputs = self(images)
-                loss = criterion(outputs, labels)
-                loss.backward()
-                optimizer.step()
+            # Validate
+            val_loss, val_acc = self.validate_model(val_loader, criterion, device)
 
-                running_loss += loss.item()
-                _, predicted = outputs.max(1)
-                total_train += labels.size(0)
-                correct_train += predicted.eq(labels).sum().item()
-
-                pbar.set_postfix(loss=loss.item(), acc=100. * correct_train / total_train)
-
-            train_loss = running_loss / len(train_loader)
-            train_acc = 100. * correct_train / total_train
-
-            # --- VALIDATION PHASE (Val + Test Combined) ---
-            self.eval()
-            val_loss = 0.0
-            correct_val = 0
-            total_val = 0
-
-            # Recreate the chain iterator EVERY epoch to avoid exhaustion
-            combined_loader = chain(val_loader, test_loader)
-            # Calculate combined length for loss averaging
-            combined_len = len(val_loader) + len(test_loader)
-
-            with torch.no_grad():
-                for images, labels in combined_loader:
-                    images, labels = images.to(device), labels.to(device)
-                    outputs = self(images)
-                    loss = criterion(outputs, labels)
-
-                    val_loss += loss.item()
-                    _, predicted = outputs.max(1)
-                    total_val += labels.size(0)
-                    correct_val += predicted.eq(labels).sum().item()
-
-            val_acc = 100. * correct_val / total_val
-            avg_val_loss = val_loss / combined_len
-            epoch_latency = (time.perf_counter() - epoch_start) * 1000
-
+            # Update scheduler based on validation accuracy
             scheduler.step(val_acc)
+
             latency_sec = (time.perf_counter() - epoch_start)
 
+            # Log results
             log_msg = (f"================ Epoch {epoch + 1}/{num_epochs} ================\n"
                        f" Train | Loss: {train_loss:.4f}  | Accuracy: {train_acc:.2f}%\n"
-                       f" Valid | Loss: {avg_val_loss:.4f}  | Accuracy: {val_acc:.2f}%\n"
+                       f" Valid | Loss: {val_loss:.4f}  | Accuracy: {val_acc:.2f}%\n"
                        f" Time  | {latency_sec:.2f}s\n"
                        f"================================================")
             print(log_msg)
             self.logger.info(log_msg)
 
-            # Save best model based on the combined validation accuracy
+            # Store best weights in memory instead of saving to disk immediately
             if val_acc > best_val_acc:
-                print(
-                    f"Combined Validation accuracy improved from {best_val_acc:.2f}% to {val_acc:.2f}%. Saving model...")
+                print(f"New best validation accuracy: {val_acc:.2f}%. Updating weights in memory...")
                 best_val_acc = val_acc
-                self.save_model("best_cnn_model.pth")
+                best_model_weights = copy.deepcopy(self.state_dict())
 
-        print(f"Training complete. Best Combined Validation Accuracy: {best_val_acc:.2f}%")
+        print(f"\nTraining complete. Best Validation Accuracy: {best_val_acc:.2f}%")
+
+        # Load weights from memory, not from disk, since we haven't saved to disk yet
+        print("Loading best model weights for the final test evaluation...")
+        if best_model_weights is not None:
+            self.load_state_dict(best_model_weights)
+
+        # Test model with the best weights
+        self.test_model(test_loader, criterion, device)
+
+        # After testing, ask user if they want to save the best model to disk
+        save_choice = input(f"\nDo you want to save the best model to '{best_model_path}'? (y/n): ").strip().lower()
+        if save_choice in ['y', 'yes']:
+            self.save_model(best_model_path)
+        else:
+            print("Model saving skipped.")
 
     def predict(self, image_data, device, class_names: list = None) -> dict:
         """
@@ -157,10 +249,8 @@ class CnnModule(nn.Module):
         else:
             image = image_data
 
-        transform = PreProcessing.get_transforms(img_width=256, img_height=256, is_training=False)
-
         # PIL -> Tensor [3, 256, 256] -> [1, 3, 256, 256]
-        image_tensor = transform(image).unsqueeze(0).to(device)
+        image_tensor = self.inference_transform(image).unsqueeze(0).to(device)
 
         with torch.no_grad():
             logits = self(image_tensor)
@@ -209,10 +299,13 @@ class CnnModule(nn.Module):
         except Exception as e:
             self.logger.error(f"Failed to load model: {str(e)}")
 
-if __name__ == "__main__":
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(device)
 
+if __name__ == "__main__":
+    # Setup Device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Initializing on device: {device}")
+
+    # Load Data
     manager = DataLoaderManager(
         train_dir="../data/train",
         val_dir="../data/val",
@@ -221,11 +314,10 @@ if __name__ == "__main__":
         img_height=256,
         batch_size=32,
     )
-
     train_loader, val_loader, test_loader = manager.get_loaders()
 
+    # Extract and Save Class Names
     class_to_idx = manager.train_loader.dataset.class_to_idx
-
     idx_to_class = {v: k for k, v in class_to_idx.items()}
     class_names_list = [idx_to_class[i] for i in range(len(idx_to_class))]
 
@@ -233,8 +325,18 @@ if __name__ == "__main__":
         json.dump(class_names_list, f)
     print(f"Saved {len(class_names_list)} classes to class_names.json: {class_names_list}")
 
+    # InitializeModel
     num_classes = len(class_names_list)
+    model = CnnModule(num_classes=num_classes)
 
-    model = CnnModule(num_classes = num_classes)
-    model.train_and_validate(device, train_loader, val_loader, test_loader, num_epochs = 30, learning_rate = 0.001)
-    model.save_model("cnn_model.pth")
+    model.logger.info(f"--- NEW EXPERIMENT STARTED ---")
+    model.logger.info(f"Model: Classical CNN | Classes: {num_classes} | Device: {device}")
+
+    # Train, Validate, and Test
+    model.fit(
+        device=device,
+        train_loader=train_loader,
+        val_loader=val_loader,
+        test_loader=test_loader,
+        num_epochs=50,
+        learning_rate=0.001)
