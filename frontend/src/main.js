@@ -19,6 +19,16 @@ import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
 import Chart from 'primevue/chart';
+import ProgressBar from 'primevue/progressbar';
+import Divider from 'primevue/divider';
+import Badge from 'primevue/badge';
+import Panel from 'primevue/panel';
+import Image from 'primevue/image';
+import Chip from 'primevue/chip';
+import Toast from 'primevue/toast';
+import ToastService from 'primevue/toastservice';
+import Skeleton from 'primevue/skeleton';
+import InlineMessage from 'primevue/inlinemessage';
 
 const app = createApp(App)
 
@@ -39,6 +49,7 @@ app.use(PrimeVue, {
         }
     }
 })
+app.use(ToastService)
 
 // --- Register Components Globally ---
 app.component('Button', Button)
@@ -50,6 +61,15 @@ app.component('DataTable', DataTable)
 app.component('Column', Column)
 app.component('Tag', Tag)
 app.component('Chart', Chart)
+app.component('ProgressBar', ProgressBar)
+app.component('Divider', Divider)
+app.component('Badge', Badge)
+app.component('Panel', Panel)
+app.component('Image', Image)
+app.component('Chip', Chip)
+app.component('Toast', Toast)
+app.component('Skeleton', Skeleton)
+app.component('InlineMessage', InlineMessage)
 
 app.use(router)
 app.mount('#app')

@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import FileUpload from '../components/MyFileUpload.vue';
+import ClassifyImages from '../components/ClassifyImages.vue';
 </script>
 
 <template>
@@ -8,7 +8,7 @@ import FileUpload from '../components/MyFileUpload.vue';
     <h1 class="mb-4 text-3xl font-bold text-green-600">
       Classify
     </h1>
-    <FileUpload />
+    <ClassifyImages />
     <div class="mb-4 p-2 bg-white rounded shadow-sm">
       This is the classify page.
     </div>

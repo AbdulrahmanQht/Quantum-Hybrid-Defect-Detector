@@ -8,7 +8,8 @@ Exploratory Data Analysis (EDA) for Industrial Defect Detection Dataset
 This script performs EDA on the industrial defect detection dataset to understand class distribution, 
 visualize sample images, and analyze pixel intensity distributions. 
 """
-dataset_path = r"data\train\Images"
+current_dir = os.path.dirname(os.path.abspath(__file__))
+dataset_path = os.path.join(current_dir, "train", "Images")
 classes = os.listdir(dataset_path)
 
 # 1. Class Distribution
@@ -44,4 +45,21 @@ plt.figure(figsize=(8, 4))
 plt.hist(img_array, bins=50, color="blue", alpha=0.7)
 plt.title("Pixel Intensity Histogram (Detecting Contrast/Noise)")
 plt.xlabel("Pixel Value (0-255)")
+plt.show()
+
+# 4. Aspect Ratio and Resolution Check
+widths, heights = [], []
+for cls in classes:
+    path = os.path.join(dataset_path, cls)
+    for img_name in os.listdir(path)[:50]: # Sample 50 per class
+        with Image.open(os.path.join(path, img_name)) as img:
+            w, h = img.size
+            widths.append(w)
+            heights.append(h)
+
+plt.figure(figsize=(8, 6))
+plt.scatter(widths, heights, alpha=0.5)
+plt.title("Native Image Resolutions")
+plt.xlabel("Width")
+plt.ylabel("Height")
 plt.show()

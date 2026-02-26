@@ -49,8 +49,16 @@ async def lifespan(app: FastAPI):
     # Load Classical CNN (PyTorch)
     device_cnn = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     cnn_model = CnnModule(num_classes = num_classes)
-    cnn_model.load_model(os.path.join(backend_dir, "models", "cnn_model.pth"), device_cnn)
-    cnn_model.to(device_cnn)
+    cnn_path = os.path.join(backend_dir, "models", "cnn_model.pth")
+    try:
+        state_dict = torch.load(cnn_path, map_location=device_cnn)
+        cnn_model.load_state_dict(state_dict)
+        cnn_model.eval()
+        cnn_model.to(device_cnn)
+        logger.info(f"Successfully loaded weights from {cnn_path}")
+
+    except Exception as e:
+        logger.error(f"FAILED TO LOAD WEIGHTS: {str(e)}")
     ml_models["Classical_CNN"] = {"model": cnn_model, "device": device_cnn}
 
     # Load Hybrid QNN (PennyLane - CPU)
@@ -70,7 +78,7 @@ async def lifespan(app: FastAPI):
         To prevent this from causing a long delay on the first user request, we run a dummy prediction during startup to "warm up" the models.
     """
     logger.info("Warming up models to prevent cold-start latency.")
-    dummy_image = Image.new('RGB', (256, 256), color='black')
+    dummy_image = Image.new('RGB', (384, 384), color='black')
     try:
         # Run a dummy prediction so CUDA allocates memory now, not during the first user request
         ml_models["Classical_CNN"]["model"].predict(
@@ -113,10 +121,24 @@ def health_check():
         "cuda_version": torch.version.cuda if gpu_available else None,
     }
 
+@app.get("/api/models")
+def list_models():
+    return {name: "loaded" for name in ml_models if name != "class_names"}
 
 @app.post("/api/classify")
 @limiter.limit("5/minute")
 async def classify_image(request: Request, file: UploadFile = File(...)):
+    # Check availability of models and class names
+    required_models = ["Classical_CNN", "Hybrid_QNN", "GPU_Hybrid", "class_names"]
+
+    missing_models = [m for m in required_models if m not in ml_models]
+
+    if missing_models:
+        logger.error(f"Classification failed: Missing models in registry: {missing_models}")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Server is not ready. Missing: {', '.join(missing_models)}"
+        )
     # Fast fail checks for file type and size before processing to save resources
     allowed_mimes = ["image/jpeg", "image/png", "image/webp", "image/bmp", "image/tiff"]
     if file.content_type not in allowed_mimes:
@@ -124,18 +146,19 @@ async def classify_image(request: Request, file: UploadFile = File(...)):
 
     # Validate File Size by reading file in chunks to prevent memory issues with large files
     real_size = 0
-    chunk_size = 1024 * 1024  # Read 1MB at a time
-    file_bytes = b""
+    file_bytes = io.BytesIO()
 
-    while chunk := await file.read(chunk_size):
+    while chunk := await file.read(1024 * 1024):  # 1MB chunks
         real_size += len(chunk)
         if real_size > MAX_FILE_SIZE:
-            raise HTTPException(status_code=413, detail="File size exceeds the 5MB limit.")
-        file_bytes += chunk
+            raise HTTPException(status_code=413, detail="File too large")
+        file_bytes.write(chunk)
+
+    file_bytes.seek(0)
 
     try:
         # Validate Image Dimensions and Format
-        image = Image.open(io.BytesIO(file_bytes))
+        image = Image.open(file_bytes)
         if image.format not in ALLOWED_FORMATS:
             raise HTTPException(status_code=400, detail="Invalid file format! Please upload a PNG, JPG, or JPEG image.")
 
@@ -143,10 +166,12 @@ async def classify_image(request: Request, file: UploadFile = File(...)):
             raise HTTPException(status_code=400, detail="Image dimensions exceed 4096x4096.")
 
         image = image.convert("RGB")
+
     except Image.DecompressionBombError:
         logger.warn(f"Decompression bomb blocked from IP: {request.client.host}")
         raise HTTPException(status_code=400, detail="Image exceeds maximum allowed pixels.")
-    except Exception:
+    except Exception as e:
+        logger.error(f"Image validation error: {str(e)}")
         raise HTTPException(status_code=400, detail="Corrupted or invalid image file.")
 
     class_names = ml_models["class_names"]
@@ -157,13 +182,15 @@ async def classify_image(request: Request, file: UploadFile = File(...)):
     gpu_qnn_setup = ml_models["GPU_Hybrid"]
 
     try:
-        # asyncio.to_thread runs the blocking PyTorch operations in separate background threads
-        cnn_task = asyncio.to_thread(cnn_setup["model"].predict, image.copy(), cnn_setup["device"], class_names)
+        # Start qnn on CPU in a separate thread immediately so it can run in parallel with the others without blocking the main event loop.
         qnn_task = asyncio.to_thread(qnn_setup["model"].predict, image.copy(), qnn_setup["device"], class_names)
-        gpu_qnn_task = asyncio.to_thread(gpu_qnn_setup["model"].predict, image.copy(), gpu_qnn_setup["device"], class_names)
 
-        # Execute all three models simultaneously
-        cnn_res, qnn_res, gpu_res = await asyncio.gather(cnn_task, qnn_task, gpu_qnn_task)
+        # We use asyncio.to_thread for these too so we don't block the main event loop
+        cnn_res = await asyncio.to_thread(cnn_setup["model"].predict, image.copy(), cnn_setup["device"], class_names)
+        gpu_res = await asyncio.to_thread(gpu_qnn_setup["model"].predict, image.copy(), gpu_qnn_setup["device"],class_names)
+
+        # Wait for the CPU task to finish (if it isn't already)
+        qnn_res = await qnn_task
 
         # Aggregate results
         return {
