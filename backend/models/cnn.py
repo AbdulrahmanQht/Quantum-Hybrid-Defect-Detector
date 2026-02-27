@@ -387,6 +387,6 @@ if __name__ == "__main__":
         train_loader=train_loader,
         val_loader=val_loader,
         test_loader=test_loader,
-        num_epochs=30,
+        num_epochs=50,
         learning_rate=0.001
     )
