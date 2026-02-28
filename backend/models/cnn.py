@@ -283,7 +283,7 @@ class CnnModule(nn.Module):
         else:
             print("Model saving skipped.")
 
-    def predict(self, image_data, device, class_names: list = None) -> dict:
+    def predict(self, image_tensor, device, class_names: list = None) -> dict:
         """
         Predicts the class of a single image.
         Accepts: A PIL Image object OR a string path to an image.
@@ -292,13 +292,7 @@ class CnnModule(nn.Module):
         self.eval()
         start = time.perf_counter()
 
-        if isinstance(image_data, str):
-            image = Image.open(image_data).convert("RGB")
-        else:
-            image = image_data
-
-        # PIL -> Tensor [3, 256, 256] -> [1, 3, 256, 256]
-        image_tensor = self.inference_transform(image).unsqueeze(0).to(device)
+        image_tensor = image_tensor.to(device)
 
         with torch.no_grad():
             logits = self(image_tensor)

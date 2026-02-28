@@ -3,6 +3,7 @@ import App from './App.vue';
 import router from './router';
 import { createApp } from 'vue';
 import Cookies from 'js-cookie';
+import { i18n } from './translations';
 import 'primeicons/primeicons.css';
 
 // --- PrimeVue Core & Themes ---
@@ -29,6 +30,8 @@ import Toast from 'primevue/toast';
 import ToastService from 'primevue/toastservice';
 import Skeleton from 'primevue/skeleton';
 import InlineMessage from 'primevue/inlinemessage';
+import InputText from 'primevue/inputtext';
+import Textarea from 'primevue/textarea';
 
 const app = createApp(App)
 
@@ -70,6 +73,9 @@ app.component('Chip', Chip)
 app.component('Toast', Toast)
 app.component('Skeleton', Skeleton)
 app.component('InlineMessage', InlineMessage)
+app.component('InputText', InputText)
+app.component('Textarea', Textarea)
 
 app.use(router)
+app.use(i18n);
 app.mount('#app')

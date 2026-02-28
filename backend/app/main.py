@@ -1,6 +1,7 @@
 import os
 import io
 import json
+import time
 import torch
 import asyncio
 from PIL import Image
@@ -12,9 +13,12 @@ from fastapi import FastAPI, Request, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
+from torchvision.io import decode_image, ImageReadMode
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from backend.models.cnn import CnnModule
+from routers.contact import router as contact_router
+from backend.app.schemas.classification import ModelPrediction, ClassificationResponse
 
 logger = Logger()
 
@@ -78,11 +82,12 @@ async def lifespan(app: FastAPI):
         To prevent this from causing a long delay on the first user request, we run a dummy prediction during startup to "warm up" the models.
     """
     logger.info("Warming up models to prevent cold-start latency.")
-    dummy_image = Image.new('RGB', (384, 384), color='black')
+    dummy_tensor = torch.zeros((1, 3, 384, 384), dtype=torch.float32)
+
     try:
         # Run a dummy prediction so CUDA allocates memory now, not during the first user request
         ml_models["Classical_CNN"]["model"].predict(
-            dummy_image,
+            dummy_tensor,
             ml_models["Classical_CNN"]["device"],
             class_names
         )
@@ -112,6 +117,8 @@ app.add_middleware(
 
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1"])
 
+app.include_router(contact_router)
+
 @app.get("/api/health")
 def health_check():
     gpu_available = torch.cuda.is_available()
@@ -127,7 +134,10 @@ def list_models():
 
 @app.post("/api/classify")
 @limiter.limit("5/minute")
-async def classify_image(request: Request, file: UploadFile = File(...)):
+async def classify_image(request: Request, file: UploadFile = File(...)) -> ClassificationResponse:
+    # Adding a counter to test response time before and after adding pydantic classes
+    request_start = time.perf_counter()
+
     # Check availability of models and class names
     required_models = ["Classical_CNN", "Hybrid_QNN", "GPU_Hybrid", "class_names"]
 
@@ -144,32 +154,22 @@ async def classify_image(request: Request, file: UploadFile = File(...)):
     if file.content_type not in allowed_mimes:
         raise HTTPException(status_code=415, detail="Unsupported media type. Only images are allowed.")
 
-    # Validate File Size by reading file in chunks to prevent memory issues with large files
-    real_size = 0
-    file_bytes = io.BytesIO()
-
-    while chunk := await file.read(1024 * 1024):  # 1MB chunks
-        real_size += len(chunk)
-        if real_size > MAX_FILE_SIZE:
-            raise HTTPException(status_code=413, detail="File too large")
-        file_bytes.write(chunk)
-
-    file_bytes.seek(0)
+    # Reading all bytes at once for performance, reading 1 byte at a time was causing a bottleneck.
+    file_bytes = await file.read()
+    if len(file_bytes) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File too large")
 
     try:
-        # Validate Image Dimensions and Format
-        image = Image.open(file_bytes)
-        if image.format not in ALLOWED_FORMATS:
-            raise HTTPException(status_code=400, detail="Invalid file format! Please upload a PNG, JPG, or JPEG image.")
+        # Decode bytes DIRECTLY to a PyTorch Tensor (Bypasses PIL entirely)
+        # Convert bytes to a 1D uint8 tensor, then decode to an image tensor in RGB format
+        raw_tensor = torch.frombuffer(file_bytes, dtype=torch.uint8)
+        img_tensor = decode_image(raw_tensor, mode=ImageReadMode.RGB)
 
-        if image.width > MAX_DIMENSION or image.height > MAX_DIMENSION:
+        # Validate dimensions manually since we aren't using PIL
+        _, height, width = img_tensor.shape
+        if height > MAX_DIMENSION or width > MAX_DIMENSION:
             raise HTTPException(status_code=400, detail="Image dimensions exceed 4096x4096.")
 
-        image = image.convert("RGB")
-
-    except Image.DecompressionBombError:
-        logger.warn(f"Decompression bomb blocked from IP: {request.client.host}")
-        raise HTTPException(status_code=400, detail="Image exceeds maximum allowed pixels.")
     except Exception as e:
         logger.error(f"Image validation error: {str(e)}")
         raise HTTPException(status_code=400, detail="Corrupted or invalid image file.")
@@ -182,23 +182,34 @@ async def classify_image(request: Request, file: UploadFile = File(...)):
     gpu_qnn_setup = ml_models["GPU_Hybrid"]
 
     try:
+        # Transform into tensor once
+        transform_pipeline = cnn_setup["model"].inference_transform
+        # Apply transform and add the batch dimension -> [1, 3, 384, 384]
+        shared_input_tensor = transform_pipeline(img_tensor).unsqueeze(0)
+
         # Start qnn on CPU in a separate thread immediately so it can run in parallel with the others without blocking the main event loop.
-        qnn_task = asyncio.to_thread(qnn_setup["model"].predict, image.copy(), qnn_setup["device"], class_names)
+        qnn_task = asyncio.to_thread(qnn_setup["model"].predict, shared_input_tensor, qnn_setup["device"], class_names)
 
         # We use asyncio.to_thread for these too so we don't block the main event loop
-        cnn_res = await asyncio.to_thread(cnn_setup["model"].predict, image.copy(), cnn_setup["device"], class_names)
-        gpu_res = await asyncio.to_thread(gpu_qnn_setup["model"].predict, image.copy(), gpu_qnn_setup["device"],class_names)
+        cnn_res = await asyncio.to_thread(cnn_setup["model"].predict, shared_input_tensor, cnn_setup["device"], class_names)
+        gpu_res = await asyncio.to_thread(gpu_qnn_setup["model"].predict, shared_input_tensor, gpu_qnn_setup["device"],class_names)
 
         # Wait for the CPU task to finish (if it isn't already)
         qnn_res = await qnn_task
 
+        # Calculate total time for response
+        total_time_ms = (time.perf_counter() - request_start) * 1000
+        logger.info(f"Full Request Processed: {total_time_ms:.2f}ms | Filename: {file.filename}")
+
         # Aggregate results
-        return {
+        results_data = {
             "filename": file.filename,
             "Classical_CNN": cnn_res,
             "Hybrid_QNN": qnn_res,
             "GPU_Hybrid": gpu_res
         }
+
+        return ClassificationResponse(**results_data)
 
     except Exception as e:
         logger.error(f"Inference error: {str(e)}")

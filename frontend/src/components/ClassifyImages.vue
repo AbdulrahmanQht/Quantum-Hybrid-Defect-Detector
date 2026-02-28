@@ -1,5 +1,9 @@
 <script setup>
 import { ref, computed, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t, locale } = useI18n()
+const dir = computed(() => locale.value === 'AR' ? 'rtl' : 'ltr')
 
 const fileInput = ref(null)
 const selectedFile = ref(null)
@@ -19,6 +23,7 @@ const chartOptions = computed(() => ({
   plugins: { legend: { display: false } },
   scales: {
     y: {
+      position: locale.value === 'AR' ? 'right' : 'left',
       beginAtZero: true,
       grid: { color: 'rgba(128,128,128,0.1)' },
       ticks: { color: '#94a3b8' }
@@ -63,16 +68,16 @@ async function handleFile(file) {
   validating.value = true
   try {
     if (!ALLOWED_TYPES.includes(file.type)) {
-      error.value = 'Invalid format. Please upload a PNG, JPG, JPEG, or WEBP image.'
+      error.value = t('classify.err_format')
       return
     }
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      error.value = `File size exceeds ${MAX_SIZE_MB}MB. Please upload a smaller image.`
+      error.value = t('classify.err_size')
       return
     }
     const isValid = await validateImageSignature(file)
     if (!isValid) {
-      error.value = 'File content does not match its extension. Suspected spoofing attempt.'
+      error.value = t('classify.err_spoof')
       return
     }
     if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
@@ -137,7 +142,7 @@ async function uploadImage() {
       }
     ]
   } catch (err) {
-    error.value = err.message || 'Upload failed. Please try again.'
+    error.value = err.message || t('classify.err_upload')
   } finally {
     loading.value = false
   }
@@ -154,7 +159,7 @@ const confidenceChartData = computed(() => {
   return {
     labels: results.value.map(r => r.modelName),
     datasets: [{
-      label: 'Confidence (%)',
+      label: t('classify.confidence') + ' (%)',
       data: results.value.map(r => parseFloat(r.confidence.toFixed(1))),
       backgroundColor: results.value.map(r => r.color),
       borderRadius: 5,
@@ -168,7 +173,7 @@ const latencyChartData = computed(() => {
   return {
     labels: results.value.map(r => r.modelName),
     datasets: [{
-      label: 'Latency (ms)',
+      label: t('classify.latency') + ' (ms)',
       data: results.value.map(r => parseFloat(r.latency.toFixed(1))),
       backgroundColor: results.value.map(r => r.color),
       borderRadius: 5,
@@ -238,7 +243,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+  <div :dir="dir" class="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
     <div class="max-w-4xl mx-auto px-4 py-10 sm:px-6">
 
       <!-- Page Header -->
@@ -247,10 +252,10 @@ onUnmounted(() => {
           QUANTUM · CLASSICAL · HYBRID
         </span>
         <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-50 tracking-tight mb-2">
-          Defect Detection
+          {{ t('classify.title') }}
         </h1>
         <p class="text-slate-500 dark:text-slate-400 text-sm">
-          Upload an industrial image to run inference across all three models simultaneously
+          {{ t('classify.subtitle') }}
         </p>
       </div>
 
@@ -277,11 +282,11 @@ onUnmounted(() => {
           >
             <i class="pi pi-cloud-upload text-5xl text-slate-300 dark:text-slate-600 mb-4 block" />
             <p class="text-slate-600 dark:text-slate-300 font-medium mb-1">
-              Drop image here or
-              <span class="text-cyan-600 dark:text-cyan-400 underline underline-offset-2">browse files</span>
+              {{ t('classify.dropzone') }}
+              <span class="text-cyan-600 dark:text-cyan-400 underline underline-offset-2">{{ t('classify.choose') }}</span>
             </p>
             <p class="text-xs font-mono text-slate-400 dark:text-slate-500 mt-2">
-              PNG · JPG · WEBP &nbsp;·&nbsp; Max 5MB &nbsp;·&nbsp; Up to 4096×4096px
+              PNG · JPG · WEBP &nbsp;·&nbsp; {{ t('classify.max_size') }} &nbsp;·&nbsp;
             </p>
           </div>
 
@@ -304,7 +309,7 @@ onUnmounted(() => {
             <!-- Action buttons -->
             <div class="flex gap-3 justify-end pt-1">
               <Button
-                label="Reset"
+                :label= "t('classify.reset')"
                 icon="pi pi-refresh"
                 severity="secondary"
                 outlined
@@ -312,7 +317,7 @@ onUnmounted(() => {
                 @click="reset"
               />
               <Button
-                :label="validating ? 'Validating...' : loading ? 'Running Models...' : 'Run Classification'"
+                :label="validating ? t('classify.validating') : loading ? t('classify.running') : t('classify.run')"
                 :icon="loading || validating ? 'pi pi-spin pi-spinner' : 'pi pi-play'"
                 :disabled="loading || validating"
                 @click="uploadImage"
@@ -326,7 +331,7 @@ onUnmounted(() => {
       <!-- Choose File button shown before file is picked -->
       <div v-if="!selectedFile" class="flex justify-center mb-6">
         <Button
-          label="Choose File"
+          :label="t('classify.choose')"
           icon="pi pi-folder-open"
           severity="contrast"
           :loading="validating"
@@ -359,19 +364,19 @@ onUnmounted(() => {
               />
               <div class="flex-1 min-w-0">
                 <p class="text-xs font-mono tracking-widest text-slate-400 dark:text-slate-500 mb-1 uppercase">
-                  Top Prediction
+                  {{ t('classify.top_prediction') }}
                 </p>
                 <p class="text-xl font-bold text-slate-800 dark:text-slate-100 mb-1">
-                  {{ topResult.prediction }}
+                  {{ t('classify.' + topResult.prediction) }}
                 </p>
                 <p class="text-xs font-mono text-slate-400 dark:text-slate-500">
                   {{ topResult.modelName }} &nbsp;·&nbsp;
-                  {{ topResult.confidence.toFixed(1) }}% confidence &nbsp;·&nbsp;
+                  {{ topResult.confidence.toFixed(1) }}% {{ t('classify.confidence').toLowerCase() }} &nbsp;·&nbsp;
                   {{ topResult.latency.toFixed(1) }}ms
                 </p>
               </div>
               <Tag
-                :value="topResult.prediction === 'No Defect' ? 'SAFE' : 'DEFECT'"
+                :value="topResult.prediction === 'No Defect' ? t('classify.safe') : t('classify.defect')"
                 :severity="topResult.prediction === 'No Defect' ? 'success' : 'danger'"
               />
             </div>
@@ -382,13 +387,13 @@ onUnmounted(() => {
         <Card class="shadow-sm">
           <template #title>
             <span class="text-xs font-mono tracking-widest text-slate-400 dark:text-slate-500 uppercase">
-              Model Comparison
+              {{ t('classify.model_comparison') }}
             </span>
           </template>
           <template #content>
             <DataTable :value="results" stripedRows responsiveLayout="scroll">
 
-              <Column field="modelName" header="Model">
+              <Column field="modelName" :header="t('classify.model')">
                 <template #body="{ data }">
                   <div class="flex items-center gap-2">
                     <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" :style="{ background: data.color }" />
@@ -397,16 +402,16 @@ onUnmounted(() => {
                 </template>
               </Column>
 
-              <Column field="prediction" header="Prediction">
+              <Column field="prediction" :header="t('classify.prediction')">
                 <template #body="{ data }">
                   <Tag
-                    :value="data.prediction"
+                    :value="t('classify.' + data.prediction)"
                     :severity="data.prediction === 'No Defect' ? 'success' : 'danger'"
                   />
                 </template>
               </Column>
 
-              <Column field="confidence" header="Confidence">
+              <Column field="confidence" :header="t('classify.confidence')">
                 <template #body="{ data }">
                   <div class="flex items-center gap-3 min-w-40">
                     <!-- PrimeVue ProgressBar with per-model color via passthrough -->
@@ -426,7 +431,7 @@ onUnmounted(() => {
                 </template>
               </Column>
 
-              <Column field="latency" header="Latency">
+              <Column field="latency" :header="t('classify.latency')">
                 <template #body="{ data }">
                   <span class="text-xs font-mono text-slate-500 dark:text-slate-400">
                     {{ data.latency.toFixed(1) }} ms
@@ -443,7 +448,7 @@ onUnmounted(() => {
           <Card class="shadow-sm">
             <template #title>
               <span class="text-xs font-mono tracking-widest text-slate-400 dark:text-slate-500 uppercase">
-                Confidence Scores
+                {{ t('classify.confidence_scores') }}
               </span>
             </template>
             <template #content>
@@ -454,7 +459,7 @@ onUnmounted(() => {
           <Card class="shadow-sm">
             <template #title>
               <span class="text-xs font-mono tracking-widest text-slate-400 dark:text-slate-500 uppercase">
-                Inference Latency
+                {{ t('classify.inference_latency') }}
               </span>
             </template>
             <template #content>
@@ -465,7 +470,7 @@ onUnmounted(() => {
           <Card class="shadow-sm lg:col-span-2">
             <template #title>
               <span class="text-xs font-mono tracking-widest text-slate-400 dark:text-slate-500 uppercase">
-                Confidence Distribution
+                {{ t('classify.distribution') }}
               </span>
             </template>
             <template #content>
@@ -481,9 +486,9 @@ onUnmounted(() => {
           <template #content>
             <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <p class="font-semibold text-slate-800 dark:text-slate-100 mb-0.5">Export Results</p>
+                <p class="font-semibold text-slate-800 dark:text-slate-100 mb-0.5">{{ t('classify.export_title') }}</p>
                 <p class="text-sm text-slate-500 dark:text-slate-400">
-                  Download classification results for further analysis
+                  {{ t('classify.export_subtitle') }}
                 </p>
               </div>
               <div class="flex gap-2 flex-shrink-0">

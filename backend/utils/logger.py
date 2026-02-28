@@ -24,16 +24,20 @@ class Logger:
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
 
-        # Create a file handler that rotates logs daily
-        file_handler = TimedRotatingFileHandler(log_file, when = 'midnight', interval = 1, backupCount = 30)
+        # Prevent duplicate logging
+        if not self.logger.handlers:
+            # Create a file handler that rotates logs daily
+            file_handler = TimedRotatingFileHandler(log_file, when = 'midnight', interval = 1, backupCount = 30, encoding='utf-8')
 
-        formatter = logging.Formatter(
-            fmt='-' * 75 + '\n' + '%(asctime)s - %(levelname)s - %(message)s' ,
-            datefmt='%d/%m/%Y - %I:%M %p'
-        )
+            formatter = logging.Formatter(
+                fmt='-' * 75 + '\n' + '%(asctime)s - %(levelname)s - %(message)s' ,
+                datefmt='%d/%m/%Y - %I:%M %p'
+            )
 
-        file_handler.setFormatter(formatter)
-        self.logger.addHandler(file_handler)
+            file_handler.setFormatter(formatter)
+            self.logger.addHandler(file_handler)
+
+            self.logger.propagate = False
 
     def log_results(self, model_name, latency, confidence, result):
         """Logs specific performance data for the Comparative Analysis"""

@@ -1,34 +1,37 @@
 <script setup>
 import { ref, computed } from "vue";
 import Cookies from 'js-cookie';
+import { useI18n } from 'vue-i18n';
 
-const translations = {
-  EN: { home: 'Home', classify: 'Classify', benchmark: 'Benchmark', about: 'About', contact: 'Contact' },
-  AR: { home: 'الرئيسية', classify: 'تصنيف', benchmark: 'مقارنة', about: 'من نحن', contact: 'اتصل بنا' }
-};
+// Access global i18n instance to get the current locale
+const { t, locale } = useI18n();
 
 const LANG_KEY = 'app_lang';
 const THEME_KEY = 'theme';
 
-const currentLang = ref(Cookies.get(LANG_KEY) || 'EN');
+// Reactive across ALL components
+const currentLang = computed(() => locale.value);
+
 const isDark = ref(Cookies.get(THEME_KEY) === 'dark');
 
 const items = computed(() => [
-  { label: translations[currentLang.value].home, icon: 'pi pi-home', to: '/' },
-  { label: translations[currentLang.value].classify, icon: 'pi pi-search-plus', to: '/classify' },
-  { label: translations[currentLang.value].benchmark, icon: 'pi pi-chart-line', to: '/benchmark' },
-  { label: translations[currentLang.value].about, icon: 'pi pi-info-circle', to: '/about' },
-  { label: translations[currentLang.value].contact, icon: 'pi pi-envelope', to: '/contact' }
+  { label: t('navbar.home'), icon: 'pi pi-home', to: '/' },
+  { label: t('navbar.classify'), icon: 'pi pi-search-plus', to: '/classify' },
+  { label: t('navbar.benchmark'), icon: 'pi pi-chart-line', to: '/benchmark' },
+  { label: t('navbar.about'), icon: 'pi pi-info-circle', to: '/about' },
+  { label: t('navbar.contact'), icon: 'pi pi-envelope', to: '/contact' }
 ]);
 
 const toggleLanguage = () => {
-  const nextLang = currentLang.value === 'EN' ? 'AR' : 'EN';
-  currentLang.value = nextLang;
+  const nextLang = locale.value === 'EN' ? 'AR' : 'EN';
 
-  // Save with the new specific key
+  // 1. Update the global state (This fixes the "all pages" problem)
+  locale.value = nextLang;
+
+  // 2. Persist for next visit
   Cookies.set(LANG_KEY, nextLang, { expires: 365, path: '/' });
 
-  // Clean up the old 'langen' cookie
+  // Clean up old keys
   Cookies.remove('langen');
   Cookies.remove('lang');
 };
