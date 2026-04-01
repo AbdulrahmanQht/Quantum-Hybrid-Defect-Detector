@@ -1,7 +1,17 @@
 import os
 import shutil
 import random
-
+"""
+This script was used to clean and organize the dataset taken from kaggle:
+https://www.kaggle.com/datasets/simplexitypipeline/pipeline-defect-dataset/data
+The dataset is for image detection but we transformed it into classification by keeping only images that had exactly 1 unique class in their label txt file.
+The script performs the following steps:
+1. Reads all label files and checks the corresponding image files.
+2. If a label file contains exactly 1 unique class ID, it is considered valid and the image and label paths are stored for that class.
+3. If a label file contains multiple unique class IDs or is empty, it is considered invalid and is "deleted" (not copied to the output folders).
+4. After processing all files, the valid data is split into train, val, and test sets based on the specified ratios (70% train, 15% val, 15% test).
+5. The valid images and their corresponding label files are copied into a new directory structure organized by split and class name.
+"""
 raw_images = "backend/data/images/images/train/"
 raw_labels = "backend/data/labels/labels/train/"
 output_base = "data"
