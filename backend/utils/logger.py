@@ -2,13 +2,15 @@ import os
 import sys
 import uuid
 import logging
-from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime
+from logging.handlers import TimedRotatingFileHandler
+
 
 class Logger:
     """
     A custom logger that creates daily log files and includes unique request IDs for better traceability.
     """
+
     def __init__(self):
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.log_dir = os.path.join(base_dir, "logs")
@@ -17,7 +19,7 @@ class Logger:
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
 
-        current_date = datetime.now().strftime("%d-%m-%Y")
+        current_date = datetime.now().strftime("%Y-%m-%d")
         log_file = os.path.join(self.log_dir, f"{current_date}.txt")
 
         # Set up logging
@@ -27,11 +29,13 @@ class Logger:
         # Prevent duplicate logging
         if not self.logger.handlers:
             # Create a file handler that rotates logs daily
-            file_handler = TimedRotatingFileHandler(log_file, when = 'midnight', interval = 1, backupCount = 30, encoding='utf-8')
+            file_handler = TimedRotatingFileHandler(
+                log_file, when="midnight", interval=1, backupCount=30, encoding="utf-8"
+            )
 
             formatter = logging.Formatter(
-                fmt='-' * 75 + '\n' + '%(asctime)s - %(levelname)s - %(message)s' ,
-                datefmt='%d/%m/%Y - %I:%M %p'
+                fmt="-" * 75 + "\n" + "%(asctime)s - %(levelname)s - %(message)s",
+                datefmt="%d/%m/%Y - %I:%M %p",
             )
 
             file_handler.setFormatter(formatter)
@@ -59,4 +63,6 @@ class Logger:
 
         rid = str(uuid.uuid4())
         # If there is no exception it doesn't print it to txt file
-        self.logger.error(f"ID: {rid}\n{msg}", exc_info=include_stacktrace and has_active_exception)
+        self.logger.error(
+            f"ID: {rid}\n{msg}", exc_info=include_stacktrace and has_active_exception
+        )

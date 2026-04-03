@@ -17,7 +17,7 @@ from torchvision.io import decode_image, ImageReadMode
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from backend.models.cnn import CnnModule
-from routers.contact import router as contact_router
+from .routers.contact import router as contact_router
 from backend.app.schemas.classification import ModelPrediction, ClassificationResponse
 
 logger = Logger()

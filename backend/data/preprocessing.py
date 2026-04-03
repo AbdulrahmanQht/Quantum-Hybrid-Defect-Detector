@@ -13,11 +13,11 @@ class PreProcessing(Dataset):
             - Implements 'Get-on-the-fly' loading to keep memory usage low.
             - Applies domain-specific augmentations (flips, rotations) to simulate various camera angles on pipes.
         """
-    def __init__( self, root_dir, img_width, img_height, is_training = True, apply_augmentation = True):
+    def __init__( self, root_dir, img_width, img_height, is_training=True, apply_augmentation=True, normalize=False):
         self.data_path = os.path.join(root_dir, 'Images')
 
         self.transform = PreProcessing.get_transforms(
-            img_width, img_height, is_training, apply_augmentation
+            img_width, img_height, is_training, apply_augmentation, normalize
         )
 
         self.samples = []
@@ -33,7 +33,7 @@ class PreProcessing(Dataset):
                     self.samples.append((img_full_path, self.class_to_idx[target_class]))
 
     @staticmethod
-    def get_transforms(img_width, img_height, is_training=False, apply_augmentation=False):
+    def get_transforms(img_width, img_height, is_training=False, apply_augmentation=False, normalize=False):
         """
             Defines the transformation pipeline for images.
 
@@ -46,6 +46,11 @@ class PreProcessing(Dataset):
         resize_transform = v2.Resize((img_width, img_height), antialias=True)
         # Convert to tensor and normalize to [0, 1]
         to_dtype = v2.ToDtype(torch.float32, scale=True)
+        
+        norm_transform = v2.Normalize(
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225]
+        ) if normalize else None
 
         if is_training and apply_augmentation:
             augmentation_transforms = [
@@ -54,9 +59,14 @@ class PreProcessing(Dataset):
                 v2.RandomRotation(degrees=180),
                 v2.ColorJitter(brightness=0.2, contrast=0.2),
             ]
-            return v2.Compose([to_image, resize_transform] + augmentation_transforms + [to_dtype])
+            steps = [to_image, resize_transform] + augmentation_transforms + [to_dtype]
+        else:
+            steps = [to_image, resize_transform, to_dtype]
 
-        return v2.Compose([to_image, resize_transform, to_dtype])
+        if norm_transform:
+            steps.append(norm_transform)
+
+        return v2.Compose(steps)
 
     def __len__(self):
         return len(self.samples)
