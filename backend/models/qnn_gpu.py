@@ -1,4 +1,4 @@
-﻿"""
+"""
 Strong fully hybrid model: same ResidualBlock backbone as CnnModule + VQC on pooled
 512-D features + fusion classifier. Train-time Gaussian noise for robustness.
 """
@@ -29,7 +29,8 @@ from data.data_loader import DataLoaderManager
 def make_vqc_torch_layer(
     dev: qml.Device, n_qubits: int, q_depth: int, *, reupload: bool = True
 ) -> qml.qnn.TorchLayer:
-    @qml.qnode(dev, interface="torch", diff_method="backprop")
+
+    @qml.qnode(dev, interface="torch", diff_method="adjoint")
     def circuit(inputs, weights):
         qml.AngleEmbedding(
             features=inputs * math.pi, wires=range(n_qubits), rotation="Y"
@@ -57,8 +58,9 @@ def make_vqc_torch_layer(
 def _quantum_tensor(
     q_layer: nn.Module, q_input: torch.Tensor, input_device: torch.device
 ) -> torch.Tensor:
-    with torch.amp.autocast(device_type=input_device.type, enabled=False):
-        return q_layer(q_input.to("cpu").float()).to(input_device)
+    # REMOVE .to("cpu"). If q_layer is built on lightning.gpu and q_input is on cuda,
+    # PennyLane handles the transfer or uses the GPU pointer directly.
+    return q_layer(q_input.float())
 
 
 class TrainTimeGaussianNoise(nn.Module):
@@ -85,7 +87,7 @@ class HybridQnnCPU(nn.Module):
         num_classes: int,
         n_qubits: int = 6,
         q_depth: int = 2,
-        q_device_name: str = "default.qubit",
+        q_device_name: str = "lightning.gpu",
         quantum_embed_dim: int = 128,
         train_noise_sigma: Tuple[float, float] = (0.02, 0.08),
         use_train_noise: bool = True,
@@ -113,9 +115,9 @@ class HybridQnnCPU(nn.Module):
             nn.LayerNorm(n_qubits),
             nn.Tanh(),
         )
-        self.q_device = qml.device(q_device_name, wires=n_qubits)
+        self.q_device = qml.device(q_device_name, wires=n_qubits, batch_obs=True)
         self.q_layer = make_vqc_torch_layer(
-            self.q_device, n_qubits, q_depth, reupload=True
+            self.q_device, n_qubits, q_depth, reupload=False
         )
         self.post_quantum = nn.Sequential(
             nn.Linear(n_qubits, quantum_embed_dim),
@@ -131,17 +133,50 @@ class HybridQnnCPU(nn.Module):
             nn.Linear(256, num_classes),
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        dev = x.device
-        x = x.to(dtype=next(self.backbone.parameters()).dtype)
-        if self.use_train_noise:
-            x = self.noise(x)
-        h = self.backbone(x)
-        z = F.adaptive_avg_pool2d(h, (1, 1)).flatten(1)
+    def forward(self, x: torch.Tensor, precomputed_z: bool = False) -> torch.Tensor:
+        if precomputed_z:
+            # x is already pooled backbone features (shape: [B, 512])
+            z = x.to(dtype=next(self.pre_quantum.parameters()).dtype)
+        else:
+            x = x.to(dtype=next(self.backbone.parameters()).dtype)
+            if self.use_train_noise:
+                x = self.noise(x)
+            h = self.backbone(x)
+            z = F.adaptive_avg_pool2d(h, (1, 1)).flatten(1)
+
         q_in = self.pre_quantum(z)
-        q_raw = _quantum_tensor(self.q_layer, q_in, dev)
+        q_raw = _quantum_tensor(self.q_layer, q_in, z.device)
         q_emb = self.post_quantum(q_raw)
         return self.classifier(torch.cat([z, q_emb], dim=1))
+
+    @torch.no_grad()
+    def _extract_features(self, loader, device) -> torch.utils.data.DataLoader:
+        """
+        Run all images through the frozen backbone once and return a DataLoader
+        over (feature_vector, label) pairs. The backbone is NOT updated.
+        """
+        self.backbone.eval()
+        all_z, all_labels = [], []
+        dtype = next(self.backbone.parameters()).dtype
+
+        for images, labels in loader:
+            images = images.to(device=device, dtype=dtype)
+            h = self.backbone(images)
+            z = F.adaptive_avg_pool2d(h, (1, 1)).flatten(1)
+            all_z.append(z.cpu())
+            all_labels.append(labels.cpu())
+
+        z_tensor = torch.cat(all_z)  # [N, 512]
+        y_tensor = torch.cat(all_labels)  # [N]
+
+        dataset = torch.utils.data.TensorDataset(z_tensor, y_tensor)
+        return torch.utils.data.DataLoader(
+            dataset,
+            batch_size=loader.batch_size,
+            shuffle=True,
+            num_workers=0,  # tensors are already in RAM, no disk I/O needed
+            pin_memory=True,
+        )
 
     @staticmethod
     def compute_class_weights(dataset) -> torch.Tensor:
@@ -163,22 +198,24 @@ class HybridQnnCPU(nn.Module):
         num_epochs,
         *,
         grad_clip=5.0,
+        precomputed_z: bool = False,
     ):
         self.train()
         running_loss = 0.0
         correct = 0
         total = 0
-        is_cuda = device.type == "cuda"
-        scaler = torch.amp.GradScaler(device.type, enabled=is_cuda)
+        # AMP is DISABLED — adjoint diff on lightning.gpu is incompatible with float16.
+        # autocast would cast TorchLayer inputs to float16; adjoint NaNs on those.
+        scaler = torch.amp.GradScaler(device.type, enabled=False)
         pbar = tqdm(
             train_loader, desc=f"Epoch {epoch + 1}/{num_epochs}", colour="green"
         )
         for batch_idx, (images, labels) in enumerate(pbar):
             images, labels = images.to(device), labels.to(device)
             optimizer.zero_grad()
-            with torch.autocast(device_type=device.type, enabled=is_cuda):
-                logits = self(images)
-                loss = criterion(logits, labels)
+            # No autocast context — run everything in float32
+            logits = self(images, precomputed_z=precomputed_z)
+            loss = criterion(logits, labels)
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
             if epoch == 0 and batch_idx == 0:
@@ -199,7 +236,9 @@ class HybridQnnCPU(nn.Module):
             pbar.set_postfix(acc=100.0 * correct / total)
         return running_loss / len(train_loader), 100.0 * correct / total
 
-    def validate_model(self, val_loader, criterion, device):
+    def validate_model(
+        self, val_loader, criterion, device, precomputed_z: bool = False
+    ):
         self.eval()
         loss_sum = 0.0
         correct = 0
@@ -209,7 +248,7 @@ class HybridQnnCPU(nn.Module):
         with torch.no_grad():
             for images, labels in val_loader:
                 images, labels = images.to(device), labels.to(device)
-                logits = self(images)
+                logits = self(images, precomputed_z=precomputed_z)  # <-- pass flag
                 loss_sum += criterion(logits, labels).item()
                 _, pred = logits.max(1)
                 total += labels.size(0)
@@ -243,20 +282,14 @@ class HybridQnnCPU(nn.Module):
                 preds.extend(pred.cpu().numpy())
                 y_true.extend(labels.cpu().numpy())
         acc = 100.0 * correct / total
-        loss = loss_sum / len(test_loader)
-        print(f"Clean test | Loss: {loss:.4f} | Acc: {acc:.2f}%")
+        print(f"Clean test | Loss: {loss_sum / len(test_loader):.4f} | Acc: {acc:.2f}%")
         try:
             with open(path, encoding="utf-8") as f:
                 names = json.load(f)
         except FileNotFoundError:
             names = [f"Class {i}" for i in range(self.num_classes)]
-
-        report = classification_report(
-            y_true, preds, target_names=names, zero_division=0
-        )
-        print(report)
-        self.logger.info(f"Clean test | Loss: {loss:.4f} | Acc: {acc:.2f}%")
-        self.logger.info(f"Detailed Metrics:\n{report}")
+        print(classification_report(y_true, preds, target_names=names, zero_division=0))
+        self.logger.info(f"Clean test acc: {acc:.2f}%")
         return acc
 
     def fit(
@@ -270,9 +303,10 @@ class HybridQnnCPU(nn.Module):
         learning_rate: float = 5e-4,
         quantum_lr_mult: float = 8.0,
         label_smoothing: float = 0.05,
-        checkpoint_path: str = "models/qnn_cpu.pth",
+        checkpoint_path: str = "models/qnn_gpu.pth",
         use_class_weights: bool = True,
         skip_prompt: bool = True,
+        cache_backbone_features: bool = True,  # <-- new toggle
     ):
         self.to(device)
         if use_class_weights:
@@ -280,6 +314,7 @@ class HybridQnnCPU(nn.Module):
             crit = nn.CrossEntropyLoss(weight=cw, label_smoothing=label_smoothing)
         else:
             crit = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
+
         q_params = list(self.q_layer.parameters())
         q_ids = {id(p) for p in q_params}
         classical = [p for p in self.parameters() if id(p) not in q_ids]
@@ -290,13 +325,61 @@ class HybridQnnCPU(nn.Module):
             ]
         )
         sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=num_epochs)
+
+        # ── Feature caching ──────────────────────────────────────────────────────
+        # Extract backbone features once before training starts.
+        # Val features never change (no augmentation), so cache once.
+        # Train features are re-extracted each epoch only if use_train_noise=True
+        # (so that noise sees fresh random draws). If noise is off, cache once.
+        if cache_backbone_features:
+            print("Pre-extracting val features (once)...")
+            feat_val_loader = self._extract_features(val_loader, device)
+
+            re_extract_train_each_epoch = self.use_train_noise
+            if not re_extract_train_each_epoch:
+                print("Pre-extracting train features (once, noise is off)...")
+                feat_train_loader = self._extract_features(train_loader, device)
+        # ─────────────────────────────────────────────────────────────────────────
+
         best_acc, best_state = 0.0, None
         for epoch in range(num_epochs):
             t0 = time.perf_counter()
-            tr_loss, tr_acc = self.train_model(
-                train_loader, opt, crit, device, epoch, num_epochs
-            )
-            va_loss, va_acc, per_cls = self.validate_model(val_loader, crit, device)
+
+            # Decide which loaders + mode to use this epoch
+            if cache_backbone_features:
+                if re_extract_train_each_epoch:
+                    # Re-extract every epoch so noise is fresh
+                    feat_train_loader = self._extract_features(train_loader, device)
+                tr_loss, tr_acc = self.train_model(
+                    feat_train_loader,
+                    opt,
+                    crit,
+                    device,
+                    epoch,
+                    num_epochs,
+                    precomputed_z=True,
+                )
+                va_loss, va_acc, per_cls = self.validate_model(
+                    feat_val_loader,
+                    crit,
+                    device,
+                    precomputed_z=True,
+                )
+            else:
+                tr_loss, tr_acc = self.train_model(
+                    train_loader,
+                    opt,
+                    crit,
+                    device,
+                    epoch,
+                    num_epochs,
+                )
+                va_loss, va_acc, per_cls = self.validate_model(
+                    val_loader,
+                    crit,
+                    device,
+                )
+
             sched.step()
             dt = time.perf_counter() - t0
             msg = (
@@ -312,6 +395,7 @@ class HybridQnnCPU(nn.Module):
                 best_state = copy.deepcopy(self.state_dict())
                 torch.save(best_state, checkpoint_path)
                 print(f"Saved best val {va_acc:.2f}% -> {checkpoint_path}")
+
         print(f"\nBest val accuracy: {best_acc:.2f}%")
         if best_state is not None:
             self.load_state_dict(best_state)
@@ -387,13 +471,13 @@ def main():
     parser.add_argument("--n-qubits", type=int, default=6)
     parser.add_argument("--q-depth", type=int, default=2)
     parser.add_argument(
-        "--device-name", type=str, default="default.qubit"
+        "--device-name", type=str, default="lightning.gpu"
     )  # Change to lightning.gpu for GPU training
     parser.add_argument("--no-train-noise", action="store_true")
     parser.add_argument("--noise-min", type=float, default=0.02)
     parser.add_argument("--noise-max", type=float, default=0.08)
     parser.add_argument("--eval-only", action="store_true")
-    parser.add_argument("--checkpoint", type=str, default="models/qnn_cpu.pth")
+    parser.add_argument("--checkpoint", type=str, default="models/qnn_gpu.pth")
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -423,12 +507,6 @@ def main():
         train_noise_sigma=(args.noise_min, args.noise_max),
     )
 
-    if args.eval_only:
-        model.load_model(args.checkpoint, device)
-        print("Noise sweep on test set:")
-        run_noise_sweep(model, test_loader, device, [0.0, 0.05, 0.10, 0.15, 0.20])
-        return
-
     model.fit(
         device=device,
         train_loader=train_loader,
@@ -440,9 +518,12 @@ def main():
         checkpoint_path=args.checkpoint,
         skip_prompt=True,
     )
-    # print("\n--- Noise sweep (test set) ---")
-    # model.eval()
-    # run_noise_sweep(model, test_loader, device, [0.0, 0.05, 0.10, 0.15, 0.20])
+    
+    if args.eval_only:
+        model.load_model(args.checkpoint, device)
+        print("Noise sweep on test set:")
+        run_noise_sweep(model, test_loader, device, [0.0, 0.05, 0.10, 0.15, 0.20])
+        return
 
 
 if __name__ == "__main__":
