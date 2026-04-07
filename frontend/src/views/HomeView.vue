@@ -5,7 +5,7 @@ const msg = ref("");
 
 const api = async () => {
   try {
-    const response = await fetch('http://127.0.0.1:8000/api/health');
+    const response = await fetch('api/v1/health');
     const data = await response.json();
     msg.value = data.message;
   } catch (error) {
@@ -22,7 +22,7 @@ onMounted(api);
       Home Page
     </h1>
 
-    <div v-if="msg" class="mb-4 p-2 bg-white rounded shadow-sm">
+    <div v-if="msg" class="p-2 mb-4 bg-white rounded shadow-sm">
        Backend Status: {{ msg }}
     </div>
 

@@ -1,0 +1,102 @@
+{
+  "generated_at": "2026-04-07T13:15:27.130156+00:00",
+  "device": "cuda",
+  "config": {
+    "n_qubits": 6,
+    "q_depth": 2,
+    "entropy_samples": 128,
+    "grad_var_batches": 20,
+    "class_names": [
+      "Deformation",
+      "Deposition",
+      "Disconnect",
+      "Misalignment",
+      "Obstacle",
+      "Rupture"
+    ],
+    "notes": {
+      "entanglement_entropy": "QNN_GPU uses lightning.gpu with adjoint differentiation which does not expose intermediate statevectors. For this experiment, trained weights are loaded into an equivalent default.qubit circuit (same topology, same weights) to enable statevector extraction.",
+      "branch_ablation": "classical_only: quantum branch replaced with zero tensor. quantum_only: classical backbone branch replaced with zero tensor. quantum_gain = full_accuracy - classical_only_accuracy.",
+      "gradient_variance": "Gradient variance measured over frozen trained weights via forward+backward pass on test batches. No retraining occurs."
+    }
+  },
+  "experiment_1_feature_orthogonality": {
+    "QNN_CPU": 0.025711,
+    "QNN_GPU": 0.057853
+  },
+  "experiment_2_branch_ablation": {
+    "QNN_CPU": {
+      "full_accuracy": 90.1871,
+      "classical_only_accuracy": 87.7162,
+      "quantum_only_accuracy": 22.4144,
+      "quantum_gain_%": 2.4709
+    },
+    "QNN_GPU": {
+      "full_accuracy": 88.881,
+      "classical_only_accuracy": 85.8454,
+      "quantum_only_accuracy": 11.8602,
+      "quantum_gain_%": 3.0356
+    }
+  },
+  "experiment_3_reupload_ablation": {
+    "QNN_CPU": {
+      "with_reupload_accuracy": 90.1871,
+      "without_reupload_accuracy": 89.8341,
+      "reupload_contribution_%": 0.353
+    },
+    "QNN_GPU": {
+      "with_reupload_accuracy": 88.881,
+      "without_reupload_accuracy": 88.7752,
+      "reupload_contribution_%": 0.1058
+    }
+  },
+  "experiment_4_entanglement_entropy": {
+    "QNN_CPU": {
+      "mean_entropy_per_qubit": {
+        "qubit_0": 0.991728,
+        "qubit_1": 0.84987,
+        "qubit_2": 0.92613,
+        "qubit_3": 0.970891,
+        "qubit_4": 0.932372,
+        "qubit_5": 0.91819
+      },
+      "overall_mean_entropy": 0.93153,
+      "interpretation": "0.0 = no entanglement (classical separable state); 1.0 = maximally entangled qubit. Values above 0.3 confirm genuine quantum correlations from the CNOT ring."
+    },
+    "QNN_GPU": {
+      "mean_entropy_per_qubit": {
+        "qubit_0": 0.988028,
+        "qubit_1": 0.896459,
+        "qubit_2": 0.989025,
+        "qubit_3": 0.892507,
+        "qubit_4": 0.839863,
+        "qubit_5": 0.738586
+      },
+      "overall_mean_entropy": 0.890745,
+      "interpretation": "0.0 = no entanglement (classical separable state); 1.0 = maximally entangled qubit. Values above 0.3 confirm genuine quantum correlations from the CNOT ring."
+    }
+  },
+  "experiment_5_gradient_variance": {
+    "QNN_CPU": {
+      "target": "quantum_layer_weights",
+      "mean_grad_variance": 0.00018431,
+      "mean_grad_abs_mean": 0.00698399,
+      "n_batches": 20,
+      "interpretation": "Quantum layer gradient variance across test batches. Near-zero = barren plateau risk. Compare to CNN baseline \u2014 higher QNN variance = stronger quantum signal."
+    },
+    "QNN_GPU": {
+      "target": "quantum_layer_weights",
+      "mean_grad_variance": 8.896e-05,
+      "mean_grad_abs_mean": 0.00425189,
+      "n_batches": 20,
+      "interpretation": "Quantum layer gradient variance across test batches. Near-zero = barren plateau risk. Compare to CNN baseline \u2014 higher QNN variance = stronger quantum signal."
+    },
+    "CNN_baseline": {
+      "target": "final_linear_layer_weights",
+      "mean_grad_variance": 0.00103827,
+      "mean_grad_abs_mean": 0.01691862,
+      "n_batches": 20,
+      "interpretation": "CNN final-layer gradient variance for comparison."
+    }
+  }
+}

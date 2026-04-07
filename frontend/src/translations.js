@@ -8,6 +8,7 @@ const messages = {
       home: 'Home',
       classify: 'Classify',
       benchmark: 'Benchmark',
+      quantum_advantage: "Quantum Advantage",
       about: 'About',
       contact: 'Contact'
     },
@@ -70,6 +71,7 @@ const messages = {
       home: 'الرئيسية',
       classify: 'تصنيف',
       benchmark: 'مقارنة',
+      quantum_advantage: "تفوق الحوسبة الكمّية",
       about: 'من نحن',
       contact: 'اتصل بنا'
     },

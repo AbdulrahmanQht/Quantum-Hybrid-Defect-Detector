@@ -1,0 +1,4 @@
+model,avg_latency_ms
+CNN,7.569
+QNN_CPU,18.435
+QNN_GPU,60.225

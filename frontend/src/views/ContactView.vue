@@ -11,9 +11,8 @@ const toast = useToast();
 const THEME_KEY = 'theme';
 const isDark = ref(Cookies.get(THEME_KEY) === 'dark');
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000';
 
-// ─── Form state ──────────────────────────────────────────────────────────────
+//  Form state 
 const contact = ref({ name: '', subject: '', message: '' });
 const touched = ref({ name: false, subject: false, message: false });
 const isSending = ref(false);
@@ -43,7 +42,7 @@ async function sendEmail() {
   isSending.value = true;
 
   try {
-    const response = await fetch(`${API_BASE}/api/contact`, {
+    const response = await fetch("api/v1/contact", {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -92,7 +91,7 @@ async function sendEmail() {
   <!-- Root wrapper — applies dark class based on isDark -->
   <div :class="['contact-root', { dark: isDark }]">
   <Toast />
-    <!-- ── Page layout ──────────────────────────────────────────────────── -->
+    <!-- Page layout -->
     <div class="contact-layout">
 
       <!-- Left accent panel (decorative) -->
@@ -180,7 +179,7 @@ async function sendEmail() {
 <style scoped>
 
 
-/* ── Design tokens (light) ──────────────────────────────────────────────── */
+/* ── Design tokens (light) */
 .contact-root {
   --bg:          #f5f3ee;
   --bg-card:     #ffffff;
@@ -203,7 +202,7 @@ async function sendEmail() {
   transition: background 0.3s, color 0.3s;
 }
 
-/* ── Dark tokens ────────────────────────────────────────────────────────── */
+/*  Dark tokens  */
 .contact-root.dark {
   --bg:          #0f0f14;
   --bg-card:     #1a1a24;
@@ -216,7 +215,7 @@ async function sendEmail() {
   --shadow:      0 8px 40px rgba(0,0,0,.4);
 }
 
-/* ── Controls bar ───────────────────────────────────────────────────────── */
+/*  Controls bar  */
 .controls-bar {
   position: fixed;
   top: 1.25rem;
@@ -250,7 +249,7 @@ async function sendEmail() {
 .ctrl-btn:hover { background: var(--accent-soft); border-color: var(--accent); transform: scale(1.06); }
 .lang-btn { width: auto; padding: 0 0.9rem; border-radius: 999px; }
 
-/* ── Layout ─────────────────────────────────────────────────────────────── */
+/*  Layout  */
 .contact-layout {
   display: grid;
   grid-template-columns: 1fr 1.6fr;
@@ -271,7 +270,7 @@ async function sendEmail() {
   .accent-panel { display: none; }
 }
 
-/* ── Accent panel ───────────────────────────────────────────────────────── */
+/*  Accent panel  */
 .accent-panel {
   position: relative;
   background: var(--bg-panel);
@@ -314,7 +313,7 @@ async function sendEmail() {
 }
 .tagline-word:last-child { color: var(--accent); font-style: italic; }
 
-/* ── Form card ──────────────────────────────────────────────────────────── */
+/*  Form card  */
 .form-card {
   background: var(--bg-card);
   border-radius: var(--radius);
@@ -343,7 +342,7 @@ async function sendEmail() {
   line-height: 1.6;
 }
 
-/* ── Form fields ────────────────────────────────────────────────────────── */
+/*  Form fields  */
 .form-body { display: flex; flex-direction: column; gap: 1.4rem; }
 
 .field-group { display: flex; flex-direction: column; gap: 0.45rem; }
@@ -409,7 +408,7 @@ async function sendEmail() {
   gap: 0.3rem;
 }
 
-/* ── Submit button ──────────────────────────────────────────────────────── */
+/*  Submit button  */
 :deep(.submit-btn.p-button) {
   background: var(--accent) !important;
   border: none !important;

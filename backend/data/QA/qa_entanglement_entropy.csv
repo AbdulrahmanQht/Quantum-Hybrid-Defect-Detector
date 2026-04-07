@@ -1,0 +1,3 @@
+model,overall_mean_entropy,qubit_0_entropy,qubit_1_entropy,qubit_2_entropy,qubit_3_entropy,qubit_4_entropy,qubit_5_entropy
+QNN_CPU,0.93153,0.991728,0.84987,0.92613,0.970891,0.932372,0.91819
+QNN_GPU,0.890745,0.988028,0.896459,0.989025,0.892507,0.839863,0.738586

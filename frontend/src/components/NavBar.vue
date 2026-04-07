@@ -1,39 +1,36 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, markRaw } from "vue";
 import Cookies from 'js-cookie';
 import { useI18n } from 'vue-i18n';
+import { Atom, Home, Search, ChartColumn, Info, Mail, Languages, Sun, Moon } from 'lucide-vue-next';
 
-// Access global i18n instance to get the current locale
 const { t, locale } = useI18n();
 
 const LANG_KEY = 'app_lang';
 const THEME_KEY = 'theme';
 
-// Reactive across ALL components
 const currentLang = computed(() => locale.value);
-
 const isDark = ref(Cookies.get(THEME_KEY) === 'dark');
 
+// 2. Updated items array to use Component references
 const items = computed(() => [
-  { label: t('navbar.home'), icon: 'pi pi-home', to: '/' },
-  { label: t('navbar.classify'), icon: 'pi pi-search-plus', to: '/classify' },
-  { label: t('navbar.benchmark'), icon: 'pi pi-chart-line', to: '/benchmark' },
-  { label: t('navbar.about'), icon: 'pi pi-info-circle', to: '/about' },
-  { label: t('navbar.contact'), icon: 'pi pi-envelope', to: '/contact' }
+  { label: t('navbar.home'), lucideIcon: markRaw(Home), to: '/' },
+  { label: t('navbar.classify'), lucideIcon: markRaw(Search), to: '/classify' },
+  { label: t('navbar.benchmark'), lucideIcon: markRaw(ChartColumn), to: '/benchmark' },
+  { 
+    label: t('navbar.quantum_advantage'), 
+    lucideIcon: markRaw(Atom), 
+    to: '/quantum-advantage',
+    isQuantum: true 
+  },
+  { label: t('navbar.about'), lucideIcon: markRaw(Info), to: '/about' },
+  { label: t('navbar.contact'), lucideIcon: markRaw(Mail), to: '/contact' }
 ]);
 
 const toggleLanguage = () => {
   const nextLang = locale.value === 'EN' ? 'AR' : 'EN';
-
-  // 1. Update the global state (This fixes the "all pages" problem)
   locale.value = nextLang;
-
-  // 2. Persist for next visit
   Cookies.set(LANG_KEY, nextLang, { expires: 365, path: '/' });
-
-  // Clean up old keys
-  Cookies.remove('langen');
-  Cookies.remove('lang');
 };
 
 const toggleTheme = () => {
@@ -49,7 +46,16 @@ const toggleTheme = () => {
     <MenuBar :model="items" class="px-6 border-none rounded-none shadow-md">
       <template #item="{ item, props }">
         <router-link v-if="item.to" :to="item.to" v-bind="props.action" class="flex items-center p-3">
-          <span :class="item.icon" class="mr-2" />
+          
+          <component 
+            v-if="item.lucideIcon"
+            :is="item.lucideIcon" 
+            :class="[
+              'mr-2 w-4 h-4', 
+              item.isQuantum ? 'text-primary' : 'text-surface-600 dark:text-surface-400'
+            ]" 
+          />
+
           <span class="font-medium">{{ item.label }}</span>
         </router-link>
       </template>
@@ -59,17 +65,24 @@ const toggleTheme = () => {
           <Button
             @click="toggleLanguage"
             :label="currentLang === 'EN' ? 'العربية' : 'English'"
-            icon="pi pi-language"
             text
             severity="secondary"
-          />
+          >
+            <template #icon>
+              <Languages class="w-4 h-4 mr-2" />
+            </template>
+          </Button>
+
           <Button
             @click="toggleTheme"
-            :icon="isDark ? 'pi pi-sun' : 'pi pi-moon'"
             rounded
             text
             severity="secondary"
-          />
+          >
+            <template #icon>
+              <component :is="isDark ? markRaw(Sun) : markRaw(Moon)" class="w-5 h-5" />
+            </template>
+          </Button>
         </div>
       </template>
     </MenuBar>

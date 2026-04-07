@@ -1,0 +1,4 @@
+model,overall_accuracy_%,macro_precision_%,macro_recall_%,macro_f1_%,weighted_precision_%,weighted_recall_%,weighted_f1_%,n_samples
+CNN,89.5164,89.72,90.0,89.84,89.55,89.52,89.52,2833
+QNN_CPU,90.1871,90.03,90.74,90.35,90.22,90.19,90.17,2833
+QNN_GPU,88.881,89.13,89.48,89.25,88.98,88.88,88.88,2833

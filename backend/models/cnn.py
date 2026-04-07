@@ -1,19 +1,21 @@
+﻿from __future__ import annotations
+
+import os
 import copy
-import time
 import json
+import time
+from typing import List, Optional, Sequence, Tuple, Union
+
 import torch
-import colorama
 import torch.nn as nn
 from tqdm import tqdm
-from PIL import Image
 from torch.optim import Adam
 import torch.nn.functional as F
-from utils.logger import Logger
 from sklearn.metrics import classification_report
-from data.preprocessing import PreProcessing
-from data.data_loader import DataLoaderManager
 
-colorama.init()
+from backend.utils.logger import Logger
+from backend.data.preprocessing import PreProcessing
+from backend.data.data_loader import DataLoaderManager
 
 
 class ResidualBlock(nn.Module):
@@ -25,12 +27,13 @@ class ResidualBlock(nn.Module):
     gradient problem in deeper architectures.
 
     Architecture:
-        1. Depthwise Conv: 7x7 spatial filtering per channel.
-        2. Pointwise Conv: 1x1 channel-wise mixing and expansion.
-        3. Shortcut: An identity or 1x1 projection to match dimensions.
-    Uses the formula: Y = F(X) + W(X) || output = Activation(ConvBlock(x) + Shortcut(x))
+        1. Pointwise Expansion: 1x1 convolution expanding channel dimensions.
+        2. Depthwise Conv: 7x7 spatial filtering per channel.
+        3. Pointwise Reduction: 1x1 convolution projecting back to target dimensions.
+        4. SE Attention: Channel-wise attention gating.
+        5. Shortcut: Identity or 1x1 projection to match dimensions.
+    Uses the formula: Y = F(X) + W(X) || output = (ConvBlock(x) * SE(ConvBlock(x))) + Shortcut(x)
     """
-
     def __init__(self, in_channels, out_channels, stride=1, expansion=4):
         super().__init__()
         mid_channels = in_channels * expansion
@@ -77,8 +80,7 @@ class ResidualBlock(nn.Module):
         out = out * self.se(out)
         return out + self.shortcut(x)
 
-
-class CnnModule(nn.Module):
+class CNN(nn.Module):
     """
     Modernized CNN architecture made for Industrial Defect Detection.
 
@@ -90,262 +92,192 @@ class CnnModule(nn.Module):
     This model is designed to be lightweight enough for real-time inference via FastAPI
     while remaining robust enough to handle industrial image noise.
     """
+    backbone_dim = 512
 
-    def __init__(self, num_classes):
-        super(CnnModule, self).__init__()
-        self.logger = Logger()  # Logger preserved
-
-        # Resolution increased to 384x384
-        self.inference_transform = PreProcessing.get_transforms(
-            img_width=384, img_height=384, is_training=False
-        )
-
-        self.model = nn.Sequential(
+    def __init__(self, num_classes: int):
+        super().__init__()
+        self.logger = Logger()
+        self.num_classes = num_classes
+        self.inference_transform = PreProcessing.get_transforms(img_width=384, img_height=384, is_training=False)
+        
+        self.backbone = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3),
             nn.BatchNorm2d(64),
             nn.GELU(),
             ResidualBlock(64, 64, stride=1),
-            # Body
             ResidualBlock(64, 128, stride=2),
             ResidualBlock(128, 256, stride=2),
             ResidualBlock(256, 512, stride=2),
-            # Classification Head
-            nn.AdaptiveAvgPool2d((1, 1)),
-            nn.Flatten(),
-            nn.Linear(512, 512),
-            nn.BatchNorm1d(512),
-            nn.GELU(),
-            nn.Dropout(0.5),
-            nn.Linear(512, num_classes),
         )
 
-    def forward(self, x):
-        return self.model(x)
+        # Input is 512 (backbone only)
+        self.classifier = nn.Sequential(
+            nn.Linear(self.backbone_dim, 256),
+            nn.BatchNorm1d(256),
+            nn.GELU(),
+            nn.Dropout(0.45),
+            nn.Linear(256, num_classes),
+        )
 
-    def train_model(
-        self, train_loader, optimizer, criterion, device, epoch, num_epochs
-    ):
-        """Handles a single epoch of training."""
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = x.to(dtype=next(self.backbone.parameters()).dtype)
+        h = self.backbone(x)
+        z = F.adaptive_avg_pool2d(h, (1, 1)).flatten(1)  # (B, 512)
+        return self.classifier(z)
+
+    @staticmethod
+    def compute_class_weights(dataset) -> torch.Tensor:
+        class_counts: dict = {}
+        for _, label in dataset.samples:
+            class_counts[label] = class_counts.get(label, 0) + 1
+            
+        total = sum(class_counts.values())
+        k = len(class_counts)
+        w = [total / (k * class_counts.get(i, 1)) for i in range(k)]
+        return torch.tensor(w, dtype=torch.float32)
+
+    def train_model(self, train_loader, optimizer, criterion, device, epoch, num_epochs, *, grad_clip=5.0):
         self.train()
         running_loss = 0.0
-        correct_train = 0
-        total_train = 0
-        # Scaler speeds up training and reduce GPU memory usage by using mixed precision (float16) where possible
-        # Only use if device = cuda otherwise it would crash on CPU
+        correct = 0
+        total = 0
         is_cuda = device.type == "cuda"
         scaler = torch.amp.GradScaler(device.type, enabled=is_cuda)
-
-        pbar = tqdm(
-            train_loader, desc=f"Epoch {epoch + 1}/{num_epochs}", colour="green"
-        )
-        for images, labels in pbar:
+        pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{num_epochs}", colour="green")
+        for batch_idx, (images, labels) in enumerate(pbar):
             images, labels = images.to(device), labels.to(device)
             optimizer.zero_grad()
-
             with torch.autocast(device_type=device.type, enabled=is_cuda):
-                outputs = self(images)
-                loss = criterion(outputs, labels)
-
+                logits = self(images)
+                loss = criterion(logits, labels)
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
-            torch.nn.utils.clip_grad_norm_(
-                self.parameters(), max_norm=1.0
-            )  # Clipping restored
+            nn.utils.clip_grad_norm_(self.parameters(), max_norm=grad_clip)
             scaler.step(optimizer)
             scaler.update()
-
             running_loss += loss.item()
-            _, predicted = outputs.max(1)
-            total_train += labels.size(0)
-            correct_train += predicted.eq(labels).sum().item()
-            pbar.set_postfix(acc=100.0 * correct_train / total_train)
-
-        return running_loss / len(train_loader), 100.0 * correct_train / total_train
+            _, pred = logits.max(1)
+            total += labels.size(0)
+            correct += pred.eq(labels).sum().item()
+            pbar.set_postfix(acc=100.0 * correct / total)
+        return running_loss / len(train_loader), 100.0 * correct / total
 
     def validate_model(self, val_loader, criterion, device):
-        """Handles a single epoch of validation."""
         self.eval()
-        val_loss = 0.0
-        correct_val = 0
-        total_val = 0
-
+        loss_sum = 0.0
+        correct = 0
+        total = 0
+        class_correct: dict = {}
+        class_total: dict = {}
         with torch.no_grad():
             for images, labels in val_loader:
                 images, labels = images.to(device), labels.to(device)
-                outputs = self(images)
-                loss = criterion(outputs, labels)
+                logits = self(images)
+                loss_sum += criterion(logits, labels).item()
+                _, pred = logits.max(1)
+                total += labels.size(0)
+                correct += pred.eq(labels).sum().item()
+                for lbl, p in zip(labels, pred):
+                    i = lbl.item()
+                    class_total[i] = class_total.get(i, 0) + 1
+                    if i == p.item():
+                        class_correct[i] = class_correct.get(i, 0) + 1
+        acc = 100.0 * correct / total
+        per_cls = {c: 100.0 * class_correct.get(c, 0) / class_total[c] for c in sorted(class_total.keys())}
+        return loss_sum / len(val_loader), acc, per_cls
 
-                val_loss += loss.item()
-                _, predicted = outputs.max(1)
-                total_val += labels.size(0)
-                correct_val += predicted.eq(labels).sum().item()
-
-        val_acc = 100.0 * correct_val / total_val
-        avg_val_loss = val_loss / len(val_loader)
-        return avg_val_loss, val_acc
-
-    def test_model(self, test_loader, criterion, device):
-        """Test best model."""
+    def test_model(self, test_loader, criterion, device, path="data/class_names.json"):
         self.eval()
-        test_loss = 0.0
-        correct_test = 0
-        total_test = 0
-
-        # For detailed classification report
-        all_preds = []
-        all_labels = []
-
-        print("\n--- Starting Final Evaluation on Unseen Test Set ---")
+        loss_sum = 0.0
+        correct = 0
+        total = 0
+        preds, y_true = [], []
         with torch.no_grad():
-            for images, labels in tqdm(test_loader, desc="[Testing]", colour="blue"):
+            for images, labels in tqdm(test_loader, desc="[Test]", colour="blue"):
                 images, labels = images.to(device), labels.to(device)
-                outputs = self(images)
-                loss = criterion(outputs, labels)
-
-                test_loss += loss.item()
-                _, predicted = outputs.max(1)
-                total_test += labels.size(0)
-                correct_test += predicted.eq(labels).sum().item()
-
-                all_preds.extend(predicted.cpu().numpy())
-                all_labels.extend(labels.cpu().numpy())
-
-        test_acc = 100.0 * correct_test / total_test
-        avg_test_loss = test_loss / len(test_loader)
-        print(
-            f"Final Test Results | Loss: {avg_test_loss:.4f} | Accuracy: {test_acc:.2f}%"
-        )
-
-        # Fetch class names for the classification report
+                logits = self(images)
+                loss_sum += criterion(logits, labels).item()
+                _, pred = logits.max(1)
+                total += labels.size(0)
+                correct += pred.eq(labels).sum().item()
+                preds.extend(pred.cpu().numpy())
+                y_true.extend(labels.cpu().numpy())
+        acc = 100.0 * correct / total
+        print(f"Clean test | Loss: {loss_sum / len(test_loader):.4f} | Acc: {acc:.2f}%")
         try:
-            with open("../data/class_names.json", "r") as f:
-                class_names = json.load(f)
+            with open(path, encoding="utf-8") as f:
+                names = json.load(f)
         except FileNotFoundError:
-            class_names = [f"Class {i}" for i in range(len(set(all_labels)))]
+            names = [f"Class {i}" for i in range(self.num_classes)]
+        print(classification_report(y_true, preds, target_names=names, zero_division=0))
+        self.logger.info(f"Clean test acc: {acc:.2f}%")
+        return acc
 
-            # Generate and print the comprehensive metrics report
-        print("\n" + "=" * 45)
-        print(" FINAL CLASSIFICATION REPORT (PRECISION/RECALL)")
-        print("=" * 45)
-        report = classification_report(
-            all_labels, all_preds, target_names=class_names, zero_division=0
-        )
-        print(report)
-
-        # Log the results
-        self.logger.info(
-            f"Test Evaluation - Loss: {avg_test_loss:.4f}, Accuracy: {test_acc:.2f}%"
-        )
-        self.logger.info(f"Detailed Metrics:\n{report}")
-
-        return avg_test_loss, test_acc
-
-    def fit(
-        self,
-        device,
-        train_loader,
-        val_loader,
-        test_loader,
-        num_epochs=30,
-        learning_rate=0.001,
-    ):
+    def fit(self, device, train_loader, val_loader, test_loader,
+        *, num_epochs: int = 50, learning_rate: float = 5e-4, label_smoothing: float = 0.05,
+        checkpoint_path: str = "models/cpu_new.pth", use_class_weights: bool = True, skip_prompt: bool = True):
         """Runs training, validation, testing and saves the best model."""
         self.to(device)
-        self.logger.info(f"Starting Training on {device} for {num_epochs} epochs.")
-
-        criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
-        optimizer = Adam(self.parameters(), lr=learning_rate)
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            optimizer, T_max=num_epochs
-        )
-
-        best_val_acc = 0.0
-        best_model_path = "cnn_model.pth"
-        checkpoint_path = "cnn_best_checkpoint_50epochs.pth"
-        best_model_weights = None
-
-        for epoch in range(num_epochs):
-            epoch_start = time.perf_counter()
-
-            # Train
-            train_loss, train_acc = self.train_model(
-                train_loader, optimizer, criterion, device, epoch, num_epochs
-            )
-
-            # Validate
-            val_loss, val_acc = self.validate_model(val_loader, criterion, device)
-
-            # Update scheduler
-            scheduler.step()
-
-            latency_sec = time.perf_counter() - epoch_start
-
-            # Log results
-            log_msg = (
-                f"================ Epoch {epoch + 1}/{num_epochs} ================\n"
-                f" Train | Loss: {train_loss:.4f}  | Accuracy: {train_acc:.2f}%\n"
-                f" Valid | Loss: {val_loss:.4f}  | Accuracy: {val_acc:.2f}%\n"
-                f" Time  | {latency_sec:.2f}s\n"
-                f"================================================"
-            )
-            print(log_msg)
-            self.logger.info(log_msg)
-
-            # Store best weights in memory instead of saving to disk immediately
-            if val_acc > best_val_acc:
-                print(
-                    f"New best validation accuracy: {val_acc:.2f}%. Updating weights in memory..."
-                )
-                best_val_acc = val_acc
-                best_model_weights = copy.deepcopy(self.state_dict())
-                torch.save(best_model_weights, checkpoint_path)
-
-        print(f"\nTraining complete. Best Validation Accuracy: {best_val_acc:.2f}%")
-
-        # Load weights from memory, not from disk, since we haven't saved to disk yet
-        print("Loading best model weights for the final test evaluation...")
-        if best_model_weights is not None:
-            self.load_state_dict(best_model_weights)
-
-        # Test model with the best weights
-        self.test_model(test_loader, criterion, device)
-
-        # After testing, ask user if they want to save the best model to disk
-        save_choice = (
-            input(
-                f"\nDo you want to save the best model to '{best_model_path}'? (y/n): "
-            )
-            .strip()
-            .lower()
-        )
-        if save_choice in ["y", "yes"]:
-            self.save_model(best_model_path)
+        if use_class_weights:
+            cw = self.compute_class_weights(train_loader.dataset).to(device)
+            crit = nn.CrossEntropyLoss(weight=cw, label_smoothing=label_smoothing)
         else:
-            print("Model saving skipped.")
+            crit = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
 
-    def predict(self, image_tensor, device, class_names: list = None) -> dict:
+        opt = Adam(self.parameters(), lr=learning_rate)
+        sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=num_epochs)
+        best_acc, best_state = 0.0, None
+        for epoch in range(num_epochs):
+            t0 = time.perf_counter()
+            tr_loss, tr_acc = self.train_model(
+                train_loader, opt, crit, device, epoch, num_epochs
+            )
+            va_loss, va_acc, per_cls = self.validate_model(val_loader, crit, device)
+            sched.step()
+            dt = time.perf_counter() - t0
+            msg = (
+                f"=== Epoch {epoch + 1}/{num_epochs} ===\n"
+                f" Train | Loss: {tr_loss:.4f} | Acc: {tr_acc:.2f}%\n"
+                f" Valid | Loss: {va_loss:.4f} | Acc: {va_acc:.2f}%\n"
+                f" Per-class val: {per_cls}\n Time: {dt:.1f}s\n"
+            )
+            print(msg)
+            self.logger.info(msg)
+            if va_acc > best_acc:
+                best_acc = va_acc
+                best_state = copy.deepcopy(self.state_dict())
+                torch.save(best_state, checkpoint_path)
+                print(f"Saved best val {va_acc:.2f}% -> {checkpoint_path}")
+        print(f"\nBest val accuracy: {best_acc:.2f}%")
+        if best_state is not None:
+            self.load_state_dict(best_state)
+        self.test_model(test_loader, crit, device)
+        if not skip_prompt and input("Save again? (y/n): ").strip().lower() == "y":
+            torch.save(best_state, checkpoint_path)
+
+    def predict(self, image_tensor: torch.Tensor, device: Union[torch.device, str], 
+                class_names: Optional[list[str]] = None,) -> dict[str, Union[int, str, float, dict[str, float], list[float]]]:
         """
         Predicts the class of a single image.
-        Accepts: A PIL Image object OR a string path to an image.
+        Accepts: torch.tensor.
         """
         self.to(device)
         self.eval()
+        
         start = time.perf_counter()
-
         image_tensor = image_tensor.to(device)
-
+        
         with torch.no_grad():
             logits = self(image_tensor)
             probabilities = F.softmax(logits, dim=1)
             confidence, predicted_idx = torch.max(probabilities, dim=1)
-
+            
         latency_ms = (time.perf_counter() - start) * 1000
-
-        idx = predicted_idx.item()
-        conf = confidence.item()
-        all_scores = probabilities.flatten().tolist()
-
-        result_dict = {
+        idx: int = predicted_idx.item()
+        conf: float = confidence.item()
+        all_scores: list[float] = probabilities.flatten().tolist()
+        
+        result_dict: dict = {
             "predicted_index": idx,
             "predicted_class": class_names[idx] if class_names else "Unknown",
             "confidence": round(conf, 4),
@@ -356,75 +288,61 @@ class CnnModule(nn.Module):
             ),
             "inference_latency_ms": round(latency_ms, 3),
         }
-
+        
         self.logger.log_results(
-            model_name="Baseline_CNN_Single_Inference",
+            model_name="CNN_Single_Inference",
             latency=result_dict["inference_latency_ms"],
             confidence=result_dict["confidence"],
-            result=str(result_dict["predicted_class"]),
-        )
-
+            result=str(result_dict["predicted_class"]),)
         return result_dict
 
-    def save_model(self, path):
-        try:
-            torch.save(self.state_dict(), path)
-            self.logger.info(f"Model successfully saved to {path}")
-        except Exception as e:
-            self.logger.error(f"Failed to save model: {str(e)}")
+    def save_model(self, path: str) -> None:
+        torch.save(self.state_dict(), path)
+        self.logger.info(f"Saved {path}")
 
-    def load_model(self, path, device):
+    def load_model(self, path: str, device: torch.device) -> None:
         try:
-            self.load_state_dict(torch.load(path, map_location=device))
-            self.to(device)
-            self.eval()
-            self.logger.info(f"Model successfully loaded from {path}")
-        except Exception as e:
-            self.logger.error(f"Failed to load model: {str(e)}")
-
+            state = torch.load(path, map_location=device, weights_only=True)
+        except TypeError:
+            state = torch.load(path, map_location=device)
+        self.load_state_dict(state)
+        self.to(device)
 
 if __name__ == "__main__":
-    # Setup Device
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Initializing on device: {device}")
+    epochs = 50
+    batch_size = 16
+    lr = 5e-4
+    checkpoint = "models/cnn_new.pth"
 
-    # Load Data
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     manager = DataLoaderManager(
-        train_dir="../data/train",
-        val_dir="../data/val",
-        test_dir="../data/test",
+        train_dir="data/train",
+        val_dir="data/val",
+        test_dir="data/test",
         img_width=384,
         img_height=384,
-        batch_size=16,
+        batch_size=batch_size,
     )
+
     train_loader, val_loader, test_loader = manager.get_loaders()
+    ds = train_loader.dataset
+    idx_to_class = {v: k for k, v in ds.class_to_idx.items()}
+    names = [idx_to_class[i] for i in range(len(idx_to_class))]
+    os.makedirs("data", exist_ok=True)
+    os.makedirs("models", exist_ok=True)
+    with open("data/class_names.json", "w", encoding="utf-8") as f:
+        json.dump(names, f)
 
-    # Extract and Save Class Names
-    class_to_idx = manager.train_loader.dataset.class_to_idx
-    idx_to_class = {v: k for k, v in class_to_idx.items()}
-    class_names_list = [idx_to_class[i] for i in range(len(idx_to_class))]
-
-    with open("../data/class_names.json", "w") as f:
-        json.dump(class_names_list, f)
-    print(
-        f"Saved {len(class_names_list)} classes to class_names.json: {class_names_list}"
-    )
-
-    # InitializeModel
-    num_classes = len(class_names_list)
-    model = CnnModule(num_classes=num_classes)
-
-    model.logger.info(f"--- NEW EXPERIMENT STARTED ---")
-    model.logger.info(
-        f"Model: Classical CNN | Classes: {num_classes} | Device: {device}"
-    )
-
-    # Train, Validate, and Test
+    model = CNN(num_classes=len(names))
     model.fit(
-        device=device,
-        train_loader=train_loader,
-        val_loader=val_loader,
-        test_loader=test_loader,
-        num_epochs=50,
-        learning_rate=0.001,
-    )
+            device=device,
+            train_loader=train_loader,
+            val_loader=val_loader,
+            test_loader=test_loader,
+            num_epochs=epochs,
+            learning_rate=lr,
+            checkpoint_path=checkpoint,
+            skip_prompt=True,
+        )
+        

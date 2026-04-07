@@ -24,14 +24,13 @@ conf = ConnectionConfig(
     VALIDATE_CERTS=True
 )
 
-
 class ContactForm(BaseModel):
     name: str
     subject: str
     message: str
 
 
-@router.post("/api/contact")
+@router.post("/api/v1/contact")
 async def handle_contact_form(form: ContactForm):
     # Log the start of the request
     logger.info(f"Contact form request received from: {form.name} | Subject: {form.subject}")

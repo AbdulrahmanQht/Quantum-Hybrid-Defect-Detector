@@ -1,7 +1,7 @@
 import os
 import torch
 from torch.utils.data import DataLoader
-from data.preprocessing import PreProcessing
+from backend.data.preprocessing import PreProcessing
 
 
 class DataLoaderManager:
