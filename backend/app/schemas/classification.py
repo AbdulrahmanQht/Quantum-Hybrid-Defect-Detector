@@ -13,6 +13,6 @@ class ModelPrediction(BaseModel):
 # The full response for /api/classify endpoint
 class ClassificationResponse(BaseModel):
     filename: str
-    Classical_CNN: ModelPrediction
-    Hybrid_QNN: ModelPrediction
-    GPU_Hybrid: ModelPrediction
+    CNN: ModelPrediction
+    QNN_CPU: ModelPrediction
+    QNN_GPU: ModelPrediction

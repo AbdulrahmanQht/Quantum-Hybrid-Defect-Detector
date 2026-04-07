@@ -1,0 +1,438 @@
+{
+  "generated_at": "2026-04-07T12:40:50.586496+00:00",
+  "device": "cuda",
+  "config": {
+    "test_set_size": 2833,
+    "image_resolution": "384x384",
+    "batch_size": 16,
+    "training_epochs": 50,
+    "n_qubits": 6,
+    "q_depth": 2,
+    "class_names": [
+      "Deformation",
+      "Deposition",
+      "Disconnect",
+      "Misalignment",
+      "Obstacle",
+      "Rupture"
+    ],
+    "noise_sigmas": [
+      0.0,
+      0.05,
+      0.1,
+      0.15,
+      0.2,
+      0.25,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.75
+    ]
+  },
+  "clean_evaluation": {
+    "CNN": {
+      "accuracy": 89.5164,
+      "per_class": {
+        "Deformation": {
+          "accuracy": 88.24,
+          "precision": 90.36,
+          "recall": 88.24,
+          "f1": 89.29,
+          "support": 510
+        },
+        "Deposition": {
+          "accuracy": 89.86,
+          "precision": 89.1,
+          "recall": 89.86,
+          "f1": 89.48,
+          "support": 582
+        },
+        "Disconnect": {
+          "accuracy": 93.45,
+          "precision": 94.01,
+          "recall": 93.45,
+          "f1": 93.73,
+          "support": 336
+        },
+        "Misalignment": {
+          "accuracy": 92.01,
+          "precision": 85.91,
+          "recall": 92.01,
+          "f1": 88.86,
+          "support": 338
+        },
+        "Obstacle": {
+          "accuracy": 86.61,
+          "precision": 87.86,
+          "recall": 86.61,
+          "f1": 87.23,
+          "support": 635
+        },
+        "Rupture": {
+          "accuracy": 89.81,
+          "precision": 91.08,
+          "recall": 89.81,
+          "f1": 90.44,
+          "support": 432
+        }
+      },
+      "averages": {
+        "macro": {
+          "precision": 89.72,
+          "recall": 90.0,
+          "f1": 89.84
+        },
+        "weighted": {
+          "precision": 89.55,
+          "recall": 89.52,
+          "f1": 89.52
+        }
+      },
+      "confusion_matrix": [
+        [
+          450,
+          10,
+          3,
+          13,
+          12,
+          22
+        ],
+        [
+          6,
+          523,
+          0,
+          2,
+          47,
+          4
+        ],
+        [
+          2,
+          1,
+          314,
+          10,
+          5,
+          4
+        ],
+        [
+          13,
+          1,
+          5,
+          311,
+          7,
+          1
+        ],
+        [
+          6,
+          51,
+          7,
+          14,
+          550,
+          7
+        ],
+        [
+          21,
+          1,
+          5,
+          12,
+          5,
+          388
+        ]
+      ],
+      "n_samples": 2833
+    },
+    "QNN_CPU": {
+      "accuracy": 90.1871,
+      "per_class": {
+        "Deformation": {
+          "accuracy": 89.22,
+          "precision": 91.0,
+          "recall": 89.22,
+          "f1": 90.1,
+          "support": 510
+        },
+        "Deposition": {
+          "accuracy": 90.21,
+          "precision": 90.99,
+          "recall": 90.21,
+          "f1": 90.6,
+          "support": 582
+        },
+        "Disconnect": {
+          "accuracy": 96.43,
+          "precision": 88.28,
+          "recall": 96.43,
+          "f1": 92.18,
+          "support": 336
+        },
+        "Misalignment": {
+          "accuracy": 90.83,
+          "precision": 88.22,
+          "recall": 90.83,
+          "f1": 89.5,
+          "support": 338
+        },
+        "Obstacle": {
+          "accuracy": 86.77,
+          "precision": 89.89,
+          "recall": 86.77,
+          "f1": 88.3,
+          "support": 635
+        },
+        "Rupture": {
+          "accuracy": 90.97,
+          "precision": 91.82,
+          "recall": 90.97,
+          "f1": 91.4,
+          "support": 432
+        }
+      },
+      "averages": {
+        "macro": {
+          "precision": 90.03,
+          "recall": 90.74,
+          "f1": 90.35
+        },
+        "weighted": {
+          "precision": 90.22,
+          "recall": 90.19,
+          "f1": 90.17
+        }
+      },
+      "confusion_matrix": [
+        [
+          455,
+          8,
+          8,
+          19,
+          2,
+          18
+        ],
+        [
+          4,
+          525,
+          1,
+          1,
+          45,
+          6
+        ],
+        [
+          2,
+          0,
+          324,
+          4,
+          4,
+          2
+        ],
+        [
+          13,
+          1,
+          14,
+          307,
+          2,
+          1
+        ],
+        [
+          13,
+          41,
+          10,
+          12,
+          551,
+          8
+        ],
+        [
+          13,
+          2,
+          10,
+          5,
+          9,
+          393
+        ]
+      ],
+      "n_samples": 2833
+    },
+    "QNN_GPU": {
+      "accuracy": 88.881,
+      "per_class": {
+        "Deformation": {
+          "accuracy": 87.65,
+          "precision": 92.93,
+          "recall": 87.65,
+          "f1": 90.21,
+          "support": 510
+        },
+        "Deposition": {
+          "accuracy": 89.18,
+          "precision": 87.97,
+          "recall": 89.18,
+          "f1": 88.57,
+          "support": 582
+        },
+        "Disconnect": {
+          "accuracy": 91.67,
+          "precision": 94.19,
+          "recall": 91.67,
+          "f1": 92.91,
+          "support": 336
+        },
+        "Misalignment": {
+          "accuracy": 91.72,
+          "precision": 85.87,
+          "recall": 91.72,
+          "f1": 88.7,
+          "support": 338
+        },
+        "Obstacle": {
+          "accuracy": 84.09,
+          "precision": 87.25,
+          "recall": 84.09,
+          "f1": 85.65,
+          "support": 635
+        },
+        "Rupture": {
+          "accuracy": 92.59,
+          "precision": 86.58,
+          "recall": 92.59,
+          "f1": 89.49,
+          "support": 432
+        }
+      },
+      "averages": {
+        "macro": {
+          "precision": 89.13,
+          "recall": 89.48,
+          "f1": 89.25
+        },
+        "weighted": {
+          "precision": 88.98,
+          "recall": 88.88,
+          "f1": 88.88
+        }
+      },
+      "confusion_matrix": [
+        [
+          447,
+          6,
+          1,
+          15,
+          8,
+          33
+        ],
+        [
+          2,
+          519,
+          0,
+          1,
+          55,
+          5
+        ],
+        [
+          5,
+          3,
+          308,
+          10,
+          5,
+          5
+        ],
+        [
+          7,
+          1,
+          7,
+          310,
+          5,
+          8
+        ],
+        [
+          7,
+          59,
+          7,
+          17,
+          534,
+          11
+        ],
+        [
+          13,
+          2,
+          4,
+          8,
+          5,
+          400
+        ]
+      ],
+      "n_samples": 2833
+    }
+  },
+  "noise_robustness": [
+    {
+      "sigma": 0.0,
+      "CNN": 89.5164,
+      "QNN_CPU": 90.1871,
+      "QNN_GPU": 88.881
+    },
+    {
+      "sigma": 0.05,
+      "CNN": 85.563,
+      "QNN_CPU": 86.2337,
+      "QNN_GPU": 85.9513
+    },
+    {
+      "sigma": 0.1,
+      "CNN": 66.9255,
+      "QNN_CPU": 69.8553,
+      "QNN_GPU": 71.0554
+    },
+    {
+      "sigma": 0.15,
+      "CNN": 52.7356,
+      "QNN_CPU": 56.0537,
+      "QNN_GPU": 54.5711
+    },
+    {
+      "sigma": 0.2,
+      "CNN": 41.5814,
+      "QNN_CPU": 48.0762,
+      "QNN_GPU": 43.7699
+    },
+    {
+      "sigma": 0.25,
+      "CNN": 28.5916,
+      "QNN_CPU": 42.8521,
+      "QNN_GPU": 36.1807
+    },
+    {
+      "sigma": 0.3,
+      "CNN": 20.826,
+      "QNN_CPU": 39.887,
+      "QNN_GPU": 30.9919
+    },
+    {
+      "sigma": 0.4,
+      "CNN": 15.0018,
+      "QNN_CPU": 35.8983,
+      "QNN_GPU": 22.3085
+    },
+    {
+      "sigma": 0.5,
+      "CNN": 13.6251,
+      "QNN_CPU": 29.2976,
+      "QNN_GPU": 13.8369
+    },
+    {
+      "sigma": 0.6,
+      "CNN": 12.9192,
+      "QNN_CPU": 24.7088,
+      "QNN_GPU": 12.0014
+    },
+    {
+      "sigma": 0.75,
+      "CNN": 11.7896,
+      "QNN_CPU": 20.0141,
+      "QNN_GPU": 11.7543
+    }
+  ],
+  "inference_latency_ms": {
+    "CNN": 7.569,
+    "QNN_CPU": 18.435,
+    "QNN_GPU": 60.225
+  }
+}

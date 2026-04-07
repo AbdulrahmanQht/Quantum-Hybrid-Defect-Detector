@@ -5,6 +5,7 @@ import { createApp } from 'vue';
 import Cookies from 'js-cookie';
 import { i18n } from './translations';
 import 'primeicons/primeicons.css';
+import Tooltip from 'primevue/tooltip';
 
 // --- PrimeVue Core & Themes ---
 import PrimeVue from 'primevue/config';
@@ -32,6 +33,9 @@ import Skeleton from 'primevue/skeleton';
 import InlineMessage from 'primevue/inlinemessage';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
+import Accordion from 'primevue/accordion';
+import AccordionTab from 'primevue/accordiontab';
+import ProgressSpinner from 'primevue/progressspinner';
 
 const app = createApp(App)
 
@@ -53,6 +57,7 @@ app.use(PrimeVue, {
     }
 })
 app.use(ToastService)
+app.directive('tooltip', Tooltip);
 
 // --- Register Components Globally ---
 app.component('Button', Button)
@@ -75,6 +80,9 @@ app.component('Skeleton', Skeleton)
 app.component('InlineMessage', InlineMessage)
 app.component('InputText', InputText)
 app.component('Textarea', Textarea)
+app.component('Accordion', Accordion);
+app.component('AccordionTab', AccordionTab);
+app.component('ProgressSpinner', ProgressSpinner);
 
 app.use(router)
 app.use(i18n);

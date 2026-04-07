@@ -1,42 +1,52 @@
 import os
-import io
 import json
 import time
 import torch
 import asyncio
 from PIL import Image
 from contextlib import asynccontextmanager
-from backend.utils.logger import Logger
+from torchvision.io import decode_image, ImageReadMode
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, Request, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from torchvision.io import decode_image, ImageReadMode
+from fastapi import FastAPI, Request, UploadFile, File, HTTPException
+
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from backend.models.cnn import CnnModule
-from routers.contact import router as contact_router
-from backend.app.schemas.classification import ModelPrediction, ClassificationResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+
+from .routers.contact import router as contact_router
+from .routers.benchmark import router as benchmark_router
+from .routers.quantum_advantage import router as quantum_advantage
+from .schemas.classification import ClassificationResponse
+
+from backend.utils.logger import Logger
+from backend.models.cnn import CNN
+from backend.models.qnn_cpu import HybridQnnCPU
+from backend.models.qnn_gpu import HybridQnnGPU
+
 
 logger = Logger()
 
-# Global dictionary to hold models and configurations
+inference_executor = ThreadPoolExecutor(max_workers=3)
+
+# Global dictionary to hold models
 ml_models = {}
 
 # Constraints for images
 Image.MAX_IMAGE_PIXELS = 16777216
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 MAX_DIMENSION = 4096  # 4096x4096px
-ALLOWED_FORMATS = ['JPEG', 'PNG', 'WEBP', 'BMP', 'TIFF']
+ALLOWED_FORMATS = ["JPEG", "PNG", "WEBP", "BMP", "TIFF"]
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting up. Loading datasets and models...")
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    # backend/api/main.py
     backend_dir = os.path.dirname(current_dir)
     class_names_path = os.path.join(backend_dir, "data", "class_names.json")
 
@@ -48,62 +58,77 @@ async def lifespan(app: FastAPI):
     except FileNotFoundError:
         raise RuntimeError(f"Missing {class_names_path}. Please run training to generate it.")
 
-    num_classes = len(class_names)
-
-    # Load Classical CNN (PyTorch)
-    device_cnn = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    cnn_model = CnnModule(num_classes = num_classes)
-    cnn_path = os.path.join(backend_dir, "models", "cnn_model.pth")
-    try:
-        state_dict = torch.load(cnn_path, map_location=device_cnn)
-        cnn_model.load_state_dict(state_dict)
-        cnn_model.eval()
-        cnn_model.to(device_cnn)
-        logger.info(f"Successfully loaded weights from {cnn_path}")
-
-    except Exception as e:
-        logger.error(f"FAILED TO LOAD WEIGHTS: {str(e)}")
-    ml_models["Classical_CNN"] = {"model": cnn_model, "device": device_cnn}
-
-    # Load Hybrid QNN (PennyLane - CPU)
-    device_qnn_cpu = torch.device("cpu")
-    qnn_cpu_model = CnnModule(num_classes = num_classes)  # Placeholder: Replace with QnnModule
-    # qnn_cpu_model.load_model(os.path.join(backend_dir, "models", "qnn_model.pth"), device_qnn_cpu)
-    ml_models["Hybrid_QNN"] = {"model": qnn_cpu_model, "device": device_qnn_cpu}
-
-    # 4. Load GPU-Accelerated Hybrid QNN (cuQuantum)
-    device_qnn_gpu = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    qnn_gpu_model = CnnModule(num_classes = num_classes)  # Placeholder: Replace with QnnModule
-    # qnn_gpu_model.load_model(os.path.join(backend_dir, "models", "qnn_gpu_model.pth"), device_qnn_gpu)
-    ml_models["GPU_Hybrid"] = {"model": qnn_gpu_model, "device": device_qnn_gpu}
-
     """ 
         Performance warm-up: First time predict is called it might take a long time to allocate GPU memory and load the model.
         To prevent this from causing a long delay on the first user request, we run a dummy prediction during startup to "warm up" the models.
     """
+    
+    num_classes = len(class_names)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    models_dir = os.path.join(backend_dir, "models")
+
+    # Load CNN
+    cnn_path = os.path.join(models_dir, "cnn.pth")
+    if not os.path.exists(cnn_path):
+        raise RuntimeError(f"CNN checkpoint not found: {cnn_path}")
+    try:
+        cnn_model = CNN(num_classes=num_classes)
+        cnn_model.load_model(cnn_path, device)
+        ml_models["CNN"] = {"model": cnn_model, "device": device}
+        logger.info("CNN loaded successfully.")
+    except Exception as e:
+        raise RuntimeError(f"Failed to load CNN: {e}")
+
+    # Load Hybrid QNN-CPU
+    qnn_cpu_path = os.path.join(models_dir, "qnn_cpu.pth")
+    if not os.path.exists(qnn_cpu_path):
+        raise RuntimeError(f"QNN-CPU checkpoint not found: {qnn_cpu_path}")
+    try:
+        qnn_cpu_model = HybridQnnCPU(num_classes=num_classes)
+        qnn_cpu_model.load_model(qnn_cpu_path, device)
+        ml_models["QNN_CPU"] = {"model": qnn_cpu_model, "device": device}
+        logger.info("QNN-CPU loaded successfully.")
+    except Exception as e:
+        raise RuntimeError(f"Failed to load QNN-CPU: {e}")
+
+    # Load Hybrid QNN-GPU (CUDA required)
+    if torch.cuda.is_available():
+        qnn_gpu_path = os.path.join(models_dir, "qnn_gpu_6_qubits.pth")
+        if not os.path.exists(qnn_gpu_path):
+            raise RuntimeError(f"QNN-GPU checkpoint not found: {qnn_gpu_path}")
+        try:
+            qnn_gpu_model = HybridQnnGPU(num_classes=num_classes)
+            qnn_gpu_model.load_model(qnn_gpu_path, device)
+            ml_models["QNN_GPU"] = {"model": qnn_gpu_model, "device": device}
+            logger.info("QNN-GPU loaded successfully.")
+        except Exception as e:
+            raise RuntimeError(f"Failed to load QNN-GPU: {e}")
+    else:
+        logger.warning("CUDA not available. QNN-GPU will not be loaded.")
+
     logger.info("Warming up models to prevent cold-start latency.")
     dummy_tensor = torch.zeros((1, 3, 384, 384), dtype=torch.float32)
 
-    try:
-        # Run a dummy prediction so CUDA allocates memory now, not during the first user request
-        ml_models["Classical_CNN"]["model"].predict(
-            dummy_tensor,
-            ml_models["Classical_CNN"]["device"],
-            class_names
-        )
-    except Exception as e:
-        logger.warn(f"Model warm-up failed (non-fatal): {str(e)}")
+    for key in ["CNN", "QNN_CPU", "QNN_GPU"]:
+        try:
+            ml_models[key]["model"].predict(dummy_tensor, ml_models[key]["device"], class_names)
+            logger.info(f"{key} warmed up.")
+        except Exception as e:
+            logger.warning(f"{key} warm-up failed (non-fatal): {str(e)}")
 
     logger.info("Server is warmed up!")
     yield
 
     logger.info("Shutting down. Clearing memory.")
+    inference_executor.shutdown(wait=True)
     ml_models.clear()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
-app = FastAPI(lifespan = lifespan)
 
-limiter = Limiter(key_func = get_remote_address)
+
+app = FastAPI(lifespan=lifespan)
+limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -118,8 +143,11 @@ app.add_middleware(
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1"])
 
 app.include_router(contact_router)
+app.include_router(benchmark_router)
+app.include_router(quantum_advantage)
 
-@app.get("/api/health")
+
+@app.get("/api/v1/health")
 def health_check():
     gpu_available = torch.cuda.is_available()
     return {
@@ -128,27 +156,29 @@ def health_check():
         "cuda_version": torch.version.cuda if gpu_available else None,
     }
 
-@app.get("/api/models")
+
+@app.get("/api/v1/models")
 def list_models():
     return {name: "loaded" for name in ml_models if name != "class_names"}
 
-@app.post("/api/classify")
+
+@app.post("/api/v1/classify")
 @limiter.limit("5/minute")
 async def classify_image(request: Request, file: UploadFile = File(...)) -> ClassificationResponse:
     # Adding a counter to test response time before and after adding pydantic classes
     request_start = time.perf_counter()
 
     # Check availability of models and class names
-    required_models = ["Classical_CNN", "Hybrid_QNN", "GPU_Hybrid", "class_names"]
+    required_models = ["CNN", "QNN_CPU", "class_names"]
+    if torch.cuda.is_available():
+        required_models.append("QNN_GPU")
 
     missing_models = [m for m in required_models if m not in ml_models]
 
     if missing_models:
         logger.error(f"Classification failed: Missing models in registry: {missing_models}")
-        raise HTTPException(
-            status_code=503,
-            detail=f"Server is not ready. Missing: {', '.join(missing_models)}"
-        )
+        raise HTTPException(status_code=503, detail=f"Server is not ready. Missing: {', '.join(missing_models)}",
+                            )
     # Fast fail checks for file type and size before processing to save resources
     allowed_mimes = ["image/jpeg", "image/png", "image/webp", "image/bmp", "image/tiff"]
     if file.content_type not in allowed_mimes:
@@ -177,38 +207,46 @@ async def classify_image(request: Request, file: UploadFile = File(...)) -> Clas
     class_names = ml_models["class_names"]
 
     # Parallel Inference Setup
-    cnn_setup = ml_models["Classical_CNN"]
-    qnn_setup = ml_models["Hybrid_QNN"]
-    gpu_qnn_setup = ml_models["GPU_Hybrid"]
+    cnn_setup = ml_models["CNN"]
+    qnn_cpu_setup = ml_models["QNN_CPU"]
+    qnn_gpu_setup = ml_models["QNN_GPU"]
 
     try:
-        # Transform into tensor once
+        # Reuse CNN's transform — all models share the same preprocessing
         transform_pipeline = cnn_setup["model"].inference_transform
-        # Apply transform and add the batch dimension -> [1, 3, 384, 384]
-        shared_input_tensor = transform_pipeline(img_tensor).unsqueeze(0)
+        shared_input_tensor = transform_pipeline(img_tensor).unsqueeze(0)  # [1, 3, 384, 384]
 
-        # Start qnn on CPU in a separate thread immediately so it can run in parallel with the others without blocking the main event loop.
-        qnn_task = asyncio.to_thread(qnn_setup["model"].predict, shared_input_tensor, qnn_setup["device"], class_names)
+        # Submit all inference jobs to the thread pool simultaneously.
+        # PyTorch releases the GIL during C++/CUDA ops, so these genuinely run in parallel.
+        futures = {
+            "CNN": inference_executor.submit(
+                cnn_setup["model"].predict, shared_input_tensor, cnn_setup["device"], class_names
+            ),
+            "QNN_CPU": inference_executor.submit(
+                qnn_cpu_setup["model"].predict, shared_input_tensor, qnn_cpu_setup["device"], class_names
+            ),
+        }
+        if "QNN_GPU" in ml_models:
+            futures["QNN_GPU"] = inference_executor.submit(
+                qnn_gpu_setup["model"].predict, shared_input_tensor, qnn_gpu_setup["device"], class_names
+            )
 
-        # We use asyncio.to_thread for these too so we don't block the main event loop
-        cnn_res = await asyncio.to_thread(cnn_setup["model"].predict, shared_input_tensor, cnn_setup["device"], class_names)
-        gpu_res = await asyncio.to_thread(gpu_qnn_setup["model"].predict, shared_input_tensor, gpu_qnn_setup["device"],class_names)
+        # Collect results — .result() blocks until that future is done
+        loop = asyncio.get_event_loop()
+        results = {
+            key: await loop.run_in_executor(None, future.result)
+            for key, future in futures.items()
+        }
 
-        # Wait for the CPU task to finish (if it isn't already)
-        qnn_res = await qnn_task
-
-        # Calculate total time for response
         total_time_ms = (time.perf_counter() - request_start) * 1000
         logger.info(f"Full Request Processed: {total_time_ms:.2f}ms | Filename: {file.filename}")
 
-        # Aggregate results
         results_data = {
             "filename": file.filename,
-            "Classical_CNN": cnn_res,
-            "Hybrid_QNN": qnn_res,
-            "GPU_Hybrid": gpu_res
+            "CNN": results["CNN"],
+            "QNN_CPU": results["QNN_CPU"],
+            "QNN_GPU": results.get("QNN_GPU"),  # None if CUDA unavailable
         }
-
         return ClassificationResponse(**results_data)
 
     except Exception as e:
@@ -228,12 +266,13 @@ if os.path.exists(frontend_path):
 
     @app.get("/{full_path:path}")
     async def serve_frontend(full_path: str, request: Request):
-        if full_path.startswith("api/"):
+        if full_path.startswith("api/v1/"):
             return JSONResponse(status_code=404, content={"message": "API route not found"})
         file_path = os.path.join(frontend_path, full_path)
         if os.path.isfile(file_path):
             return FileResponse(file_path)
         return FileResponse(os.path.join(frontend_path, "index.html"))
+
 else:
     logger.error("Frontend dist not found. Static serving will not work.")
 

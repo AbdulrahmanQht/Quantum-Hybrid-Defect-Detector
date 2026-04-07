@@ -1,0 +1,3 @@
+model,full_accuracy_%,classical_only_accuracy_%,quantum_only_accuracy_%,quantum_gain_%
+QNN_CPU,90.1871,87.7162,22.4144,2.4709
+QNN_GPU,88.881,85.8454,11.8602,3.0356

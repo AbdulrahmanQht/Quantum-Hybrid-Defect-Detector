@@ -16,7 +16,6 @@ const exportSuccess = ref(null)
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 const MAX_SIZE_MB = 5
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000'
 
 // --- Chart Configuration ---
 const chartOptions = computed(() => ({
@@ -107,7 +106,7 @@ async function uploadImage() {
     const formData = new FormData()
     formData.append('file', selectedFile.value)
 
-    const res = await fetch(`${API_BASE}/api/classify`, {
+    const res = await fetch("/api/v1/classify", {
       method: 'POST',
       body: formData
     })
@@ -120,24 +119,24 @@ async function uploadImage() {
     const data = await res.json()
     results.value = [
       {
-        modelName: 'Classical CNN',
-        prediction: data.Classical_CNN.predicted_class,
-        confidence: data.Classical_CNN.confidence * 100,
-        latency: data.Classical_CNN.inference_latency_ms,
+        modelName: 'CNN',
+        prediction: data.CNN.predicted_class,
+        confidence: data.CNN.confidence * 100,
+        latency: data.CNN.inference_latency_ms,
         color: '#06b6d4'
       },
       {
-        modelName: 'Hybrid QNN',
-        prediction: data.Hybrid_QNN.predicted_class,
-        confidence: data.Hybrid_QNN.confidence * 100,
-        latency: data.Hybrid_QNN.inference_latency_ms,
+        modelName: 'QNN-CPU',
+        prediction: data.QNN_CPU.predicted_class,
+        confidence: data.QNN_CPU.confidence * 100,
+        latency: data.QNN_CPU.inference_latency_ms,
         color: '#8b5cf6'
       },
       {
-        modelName: 'GPU-Hybrid',
-        prediction: data.GPU_Hybrid.predicted_class,
-        confidence: data.GPU_Hybrid.confidence * 100,
-        latency: data.GPU_Hybrid.inference_latency_ms,
+        modelName: 'QNN-GPU',
+        prediction: data.QNN_GPU.predicted_class,
+        confidence: data.QNN_GPU.confidence * 100,
+        latency: data.QNN_GPU.inference_latency_ms,
         color: '#10b981'
       }
     ]
@@ -243,18 +242,18 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div :dir="dir" class="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
-    <div class="max-w-4xl mx-auto px-4 py-10 sm:px-6">
+  <div :dir="dir" class="min-h-screen transition-colors duration-300 bg-slate-50 dark:bg-slate-950">
+    <div class="max-w-4xl px-4 py-10 mx-auto sm:px-6">
 
       <!-- Page Header -->
-      <div class="text-center mb-10">
-        <span class="inline-block text-xs font-mono tracking-widest text-cyan-600 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-950 px-3 py-1 rounded-full mb-4">
+      <div class="mb-10 text-center">
+        <span class="inline-block px-3 py-1 mb-4 font-mono text-xs tracking-widest border rounded-full text-cyan-600 dark:text-cyan-400 border-cyan-200 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-950">
           QUANTUM · CLASSICAL · HYBRID
         </span>
-        <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-50 tracking-tight mb-2">
+        <h1 class="mb-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
           {{ t('classify.title') }}
         </h1>
-        <p class="text-slate-500 dark:text-slate-400 text-sm">
+        <p class="text-sm text-slate-500 dark:text-slate-400">
           {{ t('classify.subtitle') }}
         </p>
       </div>
@@ -275,17 +274,17 @@ onUnmounted(() => {
           <!-- Drop zone (no file selected yet) -->
           <div
             v-if="!selectedFile"
-            class="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-12 text-center cursor-pointer hover:border-cyan-400 dark:hover:border-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-950/30 transition-all duration-200"
+            class="p-12 text-center transition-all duration-200 border-2 border-dashed cursor-pointer border-slate-200 dark:border-slate-700 rounded-xl hover:border-cyan-400 dark:hover:border-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-950/30"
             @click="fileInput.click()"
             @dragover.prevent
             @drop.prevent="onDrop"
           >
-            <i class="pi pi-cloud-upload text-5xl text-slate-300 dark:text-slate-600 mb-4 block" />
-            <p class="text-slate-600 dark:text-slate-300 font-medium mb-1">
+            <i class="block mb-4 text-5xl pi pi-cloud-upload text-slate-300 dark:text-slate-600" />
+            <p class="mb-1 font-medium text-slate-600 dark:text-slate-300">
               {{ t('classify.dropzone') }}
-              <span class="text-cyan-600 dark:text-cyan-400 underline underline-offset-2">{{ t('classify.choose') }}</span>
+              <span class="underline text-cyan-600 dark:text-cyan-400 underline-offset-2">{{ t('classify.choose') }}</span>
             </p>
-            <p class="text-xs font-mono text-slate-400 dark:text-slate-500 mt-2">
+            <p class="mt-2 font-mono text-xs text-slate-400 dark:text-slate-500">
               PNG · JPG · WEBP &nbsp;·&nbsp; {{ t('classify.max_size') }} &nbsp;·&nbsp;
             </p>
           </div>
@@ -294,20 +293,20 @@ onUnmounted(() => {
           <div v-else class="space-y-4">
 
             <!-- PrimeVue Image with built-in zoom/preview -->
-            <div class="relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 flex justify-center">
+            <div class="relative flex justify-center overflow-hidden border rounded-xl border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900">
               <Image
                 :src="previewUrl"
                 :alt="selectedFile.name"
                 imageClass="max-h-72 object-contain"
                 preview
               />
-              <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-4 py-3 pointer-events-none">
-                <p class="text-white text-xs font-mono truncate">{{ selectedFile.name }}</p>
+              <div class="absolute bottom-0 left-0 right-0 px-4 py-3 pointer-events-none bg-gradient-to-t from-black/60 to-transparent">
+                <p class="font-mono text-xs text-white truncate">{{ selectedFile.name }}</p>
               </div>
             </div>
 
             <!-- Action buttons -->
-            <div class="flex gap-3 justify-end pt-1">
+            <div class="flex justify-end gap-3 pt-1">
               <Button
                 :label= "t('classify.reset')"
                 icon="pi pi-refresh"
@@ -349,7 +348,7 @@ onUnmounted(() => {
 
         <!-- Top Prediction Card -->
         <Card
-          class="shadow-sm border-l-4 transition-colors duration-300"
+          class="transition-colors duration-300 border-l-4 shadow-sm"
           :class="topResult.prediction === 'No Defect'
             ? 'border-l-emerald-500 dark:border-l-emerald-400'
             : 'border-l-red-500 dark:border-l-red-400'"
@@ -357,19 +356,19 @@ onUnmounted(() => {
           <template #content>
             <div class="flex items-center gap-4">
               <i
-                class="text-4xl flex-shrink-0"
+                class="flex-shrink-0 text-4xl"
                 :class="topResult.prediction === 'No Defect'
                   ? 'pi pi-check-circle text-emerald-500 dark:text-emerald-400'
                   : 'pi pi-exclamation-triangle text-red-500 dark:text-red-400'"
               />
               <div class="flex-1 min-w-0">
-                <p class="text-xs font-mono tracking-widest text-slate-400 dark:text-slate-500 mb-1 uppercase">
+                <p class="mb-1 font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500">
                   {{ t('classify.top_prediction') }}
                 </p>
-                <p class="text-xl font-bold text-slate-800 dark:text-slate-100 mb-1">
+                <p class="mb-1 text-xl font-bold text-slate-800 dark:text-slate-100">
                   {{ t('classify.' + topResult.prediction) }}
                 </p>
-                <p class="text-xs font-mono text-slate-400 dark:text-slate-500">
+                <p class="font-mono text-xs text-slate-400 dark:text-slate-500">
                   {{ topResult.modelName }} &nbsp;·&nbsp;
                   {{ topResult.confidence.toFixed(1) }}% {{ t('classify.confidence').toLowerCase() }} &nbsp;·&nbsp;
                   {{ topResult.latency.toFixed(1) }}ms
@@ -386,7 +385,7 @@ onUnmounted(() => {
         <!-- Model Comparison Table -->
         <Card class="shadow-sm">
           <template #title>
-            <span class="text-xs font-mono tracking-widest text-slate-400 dark:text-slate-500 uppercase">
+            <span class="font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500">
               {{ t('classify.model_comparison') }}
             </span>
           </template>
@@ -424,7 +423,7 @@ onUnmounted(() => {
                         value: { style: `background: ${data.color};` }
                       }"
                     />
-                    <span class="text-xs font-mono text-slate-500 dark:text-slate-400 w-12 text-right shrink-0">
+                    <span class="w-12 font-mono text-xs text-right text-slate-500 dark:text-slate-400 shrink-0">
                       {{ data.confidence.toFixed(1) }}%
                     </span>
                   </div>
@@ -433,7 +432,7 @@ onUnmounted(() => {
 
               <Column field="latency" :header="t('classify.latency')">
                 <template #body="{ data }">
-                  <span class="text-xs font-mono text-slate-500 dark:text-slate-400">
+                  <span class="font-mono text-xs text-slate-500 dark:text-slate-400">
                     {{ data.latency.toFixed(1) }} ms
                   </span>
                 </template>
@@ -444,10 +443,10 @@ onUnmounted(() => {
         </Card>
 
         <!-- Charts -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card class="shadow-sm">
             <template #title>
-              <span class="text-xs font-mono tracking-widest text-slate-400 dark:text-slate-500 uppercase">
+              <span class="font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500">
                 {{ t('classify.confidence_scores') }}
               </span>
             </template>
@@ -458,7 +457,7 @@ onUnmounted(() => {
 
           <Card class="shadow-sm">
             <template #title>
-              <span class="text-xs font-mono tracking-widest text-slate-400 dark:text-slate-500 uppercase">
+              <span class="font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500">
                 {{ t('classify.inference_latency') }}
               </span>
             </template>
@@ -469,13 +468,13 @@ onUnmounted(() => {
 
           <Card class="shadow-sm lg:col-span-2">
             <template #title>
-              <span class="text-xs font-mono tracking-widest text-slate-400 dark:text-slate-500 uppercase">
+              <span class="font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500">
                 {{ t('classify.distribution') }}
               </span>
             </template>
             <template #content>
               <div class="flex justify-center">
-                <Chart type="pie" :data="confidenceChartData" :options="pieOptions" class="h-60 max-w-sm w-full" />
+                <Chart type="pie" :data="confidenceChartData" :options="pieOptions" class="w-full max-w-sm h-60" />
               </div>
             </template>
           </Card>
@@ -484,14 +483,14 @@ onUnmounted(() => {
         <!-- Export -->
         <Card class="shadow-sm">
           <template #content>
-            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
               <div>
                 <p class="font-semibold text-slate-800 dark:text-slate-100 mb-0.5">{{ t('classify.export_title') }}</p>
                 <p class="text-sm text-slate-500 dark:text-slate-400">
                   {{ t('classify.export_subtitle') }}
                 </p>
               </div>
-              <div class="flex gap-2 flex-shrink-0">
+              <div class="flex flex-shrink-0 gap-2">
                 <Button
                   label="CSV"
                   icon="pi pi-file-excel"
