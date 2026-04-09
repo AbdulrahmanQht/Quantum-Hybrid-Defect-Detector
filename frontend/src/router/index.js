@@ -6,7 +6,6 @@ const routes = [
   { path: '/classify', name: 'classify', component: () => import('../views/ClassifyView.vue') },
   { path: '/benchmark', name: 'benchmark', component: () => import('../views/BenchmarkView.vue') },
   { path: '/quantum-advantage', name: 'quantum-advantage', component: () => import('../views/QuantumAdvantageView.vue') },
-  { path: '/about', name: 'about', component: () => import('../views/AboutView.vue') },
   { path: '/contact', name: 'contact', component: () => import('../views/ContactView.vue') },
 ]
 
