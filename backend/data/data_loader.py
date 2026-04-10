@@ -28,7 +28,7 @@ class DataLoaderManager:
         # For wsl2 (I'm training qnn GPU in wsl2 since lightining.gpu is not supported in windows for CUDA 13.2)
         wsl_interop = os.environ.get("WSL_INTEROP") or os.environ.get("WSL_DISTRO_NAME")
         if wsl_interop and num_workers > 6:
-            num_workers = 6
+            num_workers = min(8, cpu_count - 2)
 
         # Keep CPU workers alive between epochs to reduce overhead.
         keep_alive = num_workers > 0

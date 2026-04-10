@@ -12,6 +12,7 @@ const messages = {
       about: 'About',
       contact: 'Contact'
     },
+    home: {},
     classify: {
       title: 'Defect Detection',
       subtitle: 'Upload an industrial image to run inference across all three models simultaneously',
@@ -48,6 +49,8 @@ const messages = {
       err_spoof: 'File content does not match its extension.',
       err_upload: 'Upload failed. Please try again.',
     },
+    benchmark: {},
+    quantum_advantage: {},
     contact: {
       pageTitle: 'Get in Touch',
       pageSubtitle: "We'd love to hear from you. Send us a message and we'll respond as soon as possible.",
@@ -75,6 +78,7 @@ const messages = {
       about: 'من نحن',
       contact: 'اتصل بنا'
     },
+    home: {},
     classify: {
       title: 'كشف العيوب',
       subtitle: 'قم بتحميل صورة صناعية لتشغيل الاستدلال عبر النماذج الثلاثة في وقت واحد',
@@ -111,6 +115,8 @@ const messages = {
       err_spoof: 'محتوى الملف لا يتطابق مع امتداده.',
       err_upload: 'فشل التحميل. يرجى المحاولة مرة أخرى.',
     },
+    benchmark: {},
+    quantum_advantage: {},
     contact: {
       pageTitle: 'تواصل معنا',
       pageSubtitle: 'يسعدنا سماع رأيك. أرسل لنا رسالة وسنرد عليك في أقرب وقت ممكن.',

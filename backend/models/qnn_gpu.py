@@ -160,13 +160,12 @@ class HybridQnnGPU(nn.Module):
         w = [total / (k * class_counts.get(i, 1)) for i in range(k)]
         return torch.tensor(w, dtype=torch.float32)
 
-    def train_model(self, train_loader, optimizer, criterion, device, epoch, num_epochs, *, grad_clip=5.0):
+    def train_model(self, train_loader, optimizer, criterion, device, epoch, num_epochs, scaler, *, grad_clip=5.0):
         self.train()
         running_loss = 0.0
         correct = 0
         total = 0
         is_cuda = device.type == "cuda"
-        scaler = torch.amp.GradScaler(device.type, enabled=is_cuda)
         pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{num_epochs}", colour="green")
         for batch_idx, (images, labels) in enumerate(pbar):
             images, labels = images.to(device), labels.to(device)
@@ -258,11 +257,13 @@ class HybridQnnGPU(nn.Module):
         learning_rate: float = 5e-4, quantum_lr_mult: float = 8.0, label_smoothing: float = 0.05,
         checkpoint_path: str = "models/qnn_gpu.pth", use_class_weights: bool = True, skip_prompt: bool = True):
         self.to(device)
+        
         if use_class_weights:
             cw = self.compute_class_weights(train_loader.dataset).to(device)
             crit = nn.CrossEntropyLoss(weight=cw, label_smoothing=label_smoothing)
         else:
             crit = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
+            
         q_params = list(self.q_layer.parameters())
         q_ids = {id(p) for p in q_params}
         classical = [p for p in self.parameters() if id(p) not in q_ids]
@@ -273,12 +274,12 @@ class HybridQnnGPU(nn.Module):
             ]
         )
         sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=num_epochs)
+        scaler = torch.amp.GradScaler(device.type, enabled=device.type == "cuda")
         best_acc, best_state = 0.0, None
+        
         for epoch in range(num_epochs):
             t0 = time.perf_counter()
-            tr_loss, tr_acc = self.train_model(
-                train_loader, opt, crit, device, epoch, num_epochs
-            )
+            tr_loss, tr_acc = self.train_model(train_loader, opt, crit, device, epoch, num_epochs, scaler)
             va_loss, va_acc, per_cls = self.validate_model(val_loader, crit, device)
             sched.step()
             dt = time.perf_counter() - t0
@@ -386,7 +387,6 @@ if __name__ == "__main__":
         q_depth=q_depth,
         q_device_name=device_name
     )
-
 
     model.fit(
         device=device,
