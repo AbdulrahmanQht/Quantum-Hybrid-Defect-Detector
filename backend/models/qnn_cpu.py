@@ -350,13 +350,24 @@ if __name__ == "__main__":
     n_qubits = 6
     q_depth = 2
     device_name = "default.qubit"
-    checkpoint = "models/qnn_cpu.pth"
+    checkpoint = "backend/models/qnn_cpu_noise_training_6_qubits_2_q_depth.pth"
 
+    # PyTorch Device check
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"PyTorch is using device: {device}")
+    if device.type == 'cuda':
+        print(f"GPU Name: {torch.cuda.get_device_name(0)}")
+
+    # PennyLane Device check
+    try:
+        q_device = qml.device(device_name, wires=n_qubits)
+        print(f"PennyLane device initialized: {device_name}")
+    except Exception as e:
+        print(f"Error initializing PennyLane device '{device_name}': {e}")
     manager = DataLoaderManager(
-        train_dir="data/train",
-        val_dir="data/val",
-        test_dir="data/test",
+        train_dir="backend/data/train",
+        val_dir="backend/data/val",
+        test_dir="backend/data/test",
         img_width=384,
         img_height=384,
         batch_size=batch_size,
@@ -367,7 +378,7 @@ if __name__ == "__main__":
     names = [idx_to_class[i] for i in range(len(idx_to_class))]
     os.makedirs("data", exist_ok=True)
     os.makedirs("models", exist_ok=True)
-    with open("data/class_names.json", "w", encoding="utf-8") as f:
+    with open("backend/data/class_names.json", "w", encoding="utf-8") as f:
         json.dump(names, f)
 
     model = HybridQnnCPU(

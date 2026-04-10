@@ -312,14 +312,18 @@ if __name__ == "__main__":
     epochs = 50
     batch_size = 16
     lr = 5e-4
-    checkpoint = "models/cnn_new.pth"
+    checkpoint = "backend/models/cnn_new_noise_training.pth"
 
+    # PyTorch Device check
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"PyTorch is using device: {device}")
+    if device.type == 'cuda':
+        print(f"GPU Name: {torch.cuda.get_device_name(0)}")
 
     manager = DataLoaderManager(
-        train_dir="data/train",
-        val_dir="data/val",
-        test_dir="data/test",
+        train_dir="backend/data/train",
+        val_dir="backend/data/val",
+        test_dir="backend/data/test",
         img_width=384,
         img_height=384,
         batch_size=batch_size,
@@ -331,7 +335,7 @@ if __name__ == "__main__":
     names = [idx_to_class[i] for i in range(len(idx_to_class))]
     os.makedirs("data", exist_ok=True)
     os.makedirs("models", exist_ok=True)
-    with open("data/class_names.json", "w", encoding="utf-8") as f:
+    with open("backend/data/class_names.json", "w", encoding="utf-8") as f:
         json.dump(names, f)
 
     model = CNN(num_classes=len(names))
@@ -345,4 +349,3 @@ if __name__ == "__main__":
             checkpoint_path=checkpoint,
             skip_prompt=True,
         )
-        

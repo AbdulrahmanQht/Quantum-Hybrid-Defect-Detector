@@ -19,10 +19,10 @@ from pydantic import BaseModel, Field
 
 from backend.utils.logger import Logger
 
-logger   = Logger()
-router   = APIRouter(prefix="/api/v1", tags=["Benchmark"])
+logger = Logger()
+router = APIRouter(prefix="/api/v1", tags=["Benchmark"])
 
-BENCHMARK_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "benchmark_results.json")
+BENCHMARK_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "benchmark" ,"benchmark_results.json")
 
 # Module-level cache — populated on the first request, never invalidated.
 _benchmark_cache: Optional["BenchmarkResults"] = None

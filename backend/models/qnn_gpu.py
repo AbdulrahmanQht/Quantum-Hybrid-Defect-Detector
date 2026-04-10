@@ -19,7 +19,7 @@ Architecture:
     5. Fusion Classifier: Concatenates 512-D classical + 128-D quantum → num_classes.
 
 Training Stabilization:
-    - Near-zero quantum weight init (±0.05π) to avoid barren plateaus.
+    - Near-zero quantum weight init (±0.08π) to avoid barren plateaus.
     - Split Adam optimizer with 8× higher LR for quantum parameters.
     - Gradient clipping at 5.0 to suppress quantum gradient spikes.
     - Cosine annealing LR schedule over full training run.
@@ -67,7 +67,7 @@ def make_vqc_torch_layer(dev: qml.Device, n_qubits: int, q_depth: int, *, reuplo
     layer = qml.qnn.TorchLayer(circuit, {"weights": (q_depth, n_qubits, 2)})
     if hasattr(layer, "weights") and layer.weights is not None:
         with torch.no_grad():
-            s = 0.05 * math.pi
+            s = 0.08 * math.pi
             layer.weights.uniform_(-s, s)
     return layer
 
@@ -269,8 +269,8 @@ class HybridQnnGPU(nn.Module):
         classical = [p for p in self.parameters() if id(p) not in q_ids]
         opt = Adam(
             [
-                {"params": classical, "lr": learning_rate},
-                {"params": q_params, "lr": learning_rate * quantum_lr_mult},
+                {"params": classical, "lr": learning_rate, "weight_decay": 1e-4},
+                {"params": q_params,  "lr": learning_rate * quantum_lr_mult, "weight_decay": 0.0},
             ]
         )
         sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=num_epochs)
@@ -357,17 +357,28 @@ if __name__ == "__main__":
     epochs = 50
     batch_size = 16
     lr = 5e-4
-    quantum_lr_mult = 8.0
+    quantum_lr_mult = 6.0
     n_qubits = 6
-    q_depth = 2
+    q_depth = 3
     device_name = "lightning.gpu"
-    checkpoint = "models/qnn_gpu.pth"
+    checkpoint = "backend/models/qnn_gpu_noise_training_6_qubits_3_q_depth.pth"
 
+    # PyTorch Device check
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"PyTorch is using device: {device}")
+    if device.type == 'cuda':
+        print(f"GPU Name: {torch.cuda.get_device_name(0)}")
+
+    # PennyLane Device check
+    try:
+        q_device = qml.device(device_name, wires=n_qubits)
+        print(f"PennyLane device initialized: {device_name}")
+    except Exception as e:
+        print(f"Error initializing PennyLane device '{device_name}': {e}")
     manager = DataLoaderManager(
-        train_dir="data/train",
-        val_dir="data/val",
-        test_dir="data/test",
+        train_dir="backend/data/train",
+        val_dir="backend/data/val",
+        test_dir="backend/data/test",
         img_width=384,
         img_height=384,
         batch_size=batch_size,
@@ -378,7 +389,7 @@ if __name__ == "__main__":
     names = [idx_to_class[i] for i in range(len(idx_to_class))]
     os.makedirs("data", exist_ok=True)
     os.makedirs("models", exist_ok=True)
-    with open("data/class_names.json", "w", encoding="utf-8") as f:
+    with open("backend/data/class_names.json", "w", encoding="utf-8") as f:
         json.dump(names, f)
 
     model = HybridQnnGPU(

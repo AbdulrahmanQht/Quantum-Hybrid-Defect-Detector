@@ -1,17 +1,32 @@
+"""
+POST /api/v1/contact
+--------------------
+Receives a contact form payload, validates it via Pydantic, and constructs 
+a structured plain-text email body to bypass strict spam filters.
+
+Dispatches the message via Gmail SMTP to the team leader and CCs team members.
+Logs all requests and dispatch statuses using the internal Logger.
+"""
 import os
 from dotenv import load_dotenv
-from pydantic import BaseModel
-from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
+from fastapi import APIRouter, HTTPException, Request
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
+
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
 from backend.utils.logger import Logger
 
 load_dotenv()
 
 # Initialize the custom logger
 logger = Logger()
-router = APIRouter()
 
-# ─── Configuration (Gmail SMTP) ───────────────────────────────────────────
+router = APIRouter(prefix="/api/v1", tags=["Contact"])
+limiter = Limiter(key_func=get_remote_address)
+
+# Configuration (Gmail SMTP)
 conf = ConnectionConfig(
     MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
     MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
@@ -25,15 +40,26 @@ conf = ConnectionConfig(
 )
 
 class ContactForm(BaseModel):
-    name: str
-    subject: str
-    message: str
+    # Field constraints handle length and reject empty strings
+    name: str = Field(..., min_length=2, max_length=100)
+    subject: str = Field(..., min_length=3, max_length=150)
+    message: str = Field(..., min_length=10, max_length=3000)
+    
+    @field_validator('name', 'subject', mode='before')
+    @classmethod
+    def strip_newlines(cls, v: str) -> str:
+        return v.replace('\n', ' ').replace('\r', ' ')
+    
+    model_config = {"str_strip_whitespace": True}
 
+def sanitize_for_log(value: str, max_len: int = 100) -> str:
+    return value.replace('\n', '\\n').replace('\r', '\\r')[:max_len]
 
-@router.post("/api/v1/contact")
-async def handle_contact_form(form: ContactForm):
+@router.post("/contact")
+@limiter.limit("5/minute")
+async def handle_contact_form(request: Request, form: ContactForm):
     # Log the start of the request
-    logger.info(f"Contact form request received from: {form.name} | Subject: {form.subject}")
+    logger.info(f"Contact form from: {sanitize_for_log(form.name)} | Subject: {sanitize_for_log(form.subject)}")
 
     # Structured Plain Text Body (Safe for IAU Outlook Filters)
     structured_body = (
@@ -52,7 +78,7 @@ async def handle_contact_form(form: ContactForm):
     message = MessageSchema(
         subject=email_subject,
         recipients=[os.getenv("TEAM_LEADER")],
-        cc=os.getenv("TEAM_MEMBERS").split(","),
+        cc=os.getenv("TEAM_MEMBERS").split(",") if os.getenv("TEAM_MEMBERS") else [],
         body=structured_body,
         subtype=MessageType.plain  # Keep as plain for maximum delivery
     )
@@ -73,5 +99,5 @@ async def handle_contact_form(form: ContactForm):
 
         raise HTTPException(
             status_code=500,
-            detail="Internal Server Error during email dispatch"
+            detail="Unable to process request at this time. Please try again later."
         )

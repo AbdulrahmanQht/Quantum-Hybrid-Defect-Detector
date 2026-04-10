@@ -12,14 +12,14 @@ What this computes:
     2. Per-class Accuracy / Precision / Recall / F1  (all 3 models)
     3. Macro & Weighted averages per model
     4. Confusion matrix per model
-    5. Noise robustness sweep — accuracy at N sigma levels (all 3 models)
+    5. Noise robustness sweep — accuracy at N levels across 4 noise types (all 3 models)
     6. Average single-image inference latency (all 3 models)
     7. Config metadata — test set size, resolution, epochs, qubits, batch size
 
 CSV exports:
     - per_class_metrics.csv      — per-class P / R / F1 / Acc for all models
     - summary_metrics.csv        — macro & weighted averages + overall accuracy
-    - noise_robustness.csv       — accuracy per sigma per model
+    - noise_robustness.csv       — accuracy per noise_type / level per model
     - inference_latency.csv      — avg latency (ms) per model
     - confusion_matrix_<model>.csv — one file per model
 """
@@ -62,8 +62,12 @@ CONFIG = {
     "training_epochs":  50,
     "n_qubits":         6,
     "q_depth":          2,
-    # Noise sigma levels for the robustness sweep
-    "noise_sigmas": [0.00, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.40, 0.50, 0.60, 0.75],
+    "noise_levels": {
+        "gaussian":    [0.00, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.40, 0.50, 0.60, 0.75],
+        "blur":        [0.00, 0.30, 0.60, 0.90, 1.20, 1.50, 2.00, 2.50, 3.00],
+        "contrast":    [1.00, 0.85, 0.70, 0.55, 0.40, 0.25, 0.10],
+        "salt_pepper": [0.00, 0.005, 0.01, 0.02, 0.04, 0.07, 0.10],
+    },
     # Number of single images used to measure average inference latency
     "latency_samples":  50,
 }
@@ -232,6 +236,39 @@ def run_clean_evaluation(model: torch.nn.Module, test_loader: DataLoader, device
     }
 
 # Experiment 2 — Noise robustness sweep
+def _apply_noise(images: torch.Tensor, noise_type: str, level: float) -> torch.Tensor:
+    """
+    Applies the requested noise type at the given intensity level.
+    p=1.0 is always used here (benchmarking requires deterministic application).
+ 
+    noise_type  level meaning
+    ----------  ---------------------------------------------------------
+    gaussian    std dev added to pixel values (0.0 = clean)
+    blur        GaussianBlur sigma; kernel size is derived from level
+    contrast    blend factor: 1.0 = full contrast, 0.0 = flat grey
+    salt_pepper fraction of pixels corrupted (0.0 = clean)
+    """
+    if level == 0.0 or (noise_type == "contrast" and level == 1.0):
+        return images
+ 
+    if noise_type == "gaussian":
+        return (images + torch.randn_like(images) * level).clamp(0.0, 1.0)
+ 
+    if noise_type == "blur":
+        from torchvision.transforms import v2
+        k = max(3, int(level * 10) | 1)   # odd kernel, grows with level
+        return v2.GaussianBlur(kernel_size=k, sigma=level)(images)
+ 
+    if noise_type == "contrast":
+        # Delegate to PreProcessing static method; force p=1.0 so it always fires.
+        return PreProcessing._contrast_reduction(images, factor_range=(level, level), p=1.0)
+ 
+    if noise_type == "salt_pepper":
+        # Delegate to PreProcessing static method; force p=1.0 so it always fires.
+        return PreProcessing._salt_and_pepper_noise(images, amount_range=(level, level), p=1.0)
+ 
+    raise ValueError(f"Unknown noise_type '{noise_type}'. Choose: gaussian, blur, contrast, salt_pepper")
+
 @torch.no_grad()
 def _accuracy_with_noise(model: torch.nn.Module, data_loader: DataLoader, device: torch.device, sigma: float,) -> float:
     """Single-pass accuracy with Gaussian noise applied at the given sigma."""
@@ -249,27 +286,41 @@ def _accuracy_with_noise(model: torch.nn.Module, data_loader: DataLoader, device
 
     return round(100.0 * correct / total, 4)
 
-def run_noise_sweep(models: dict[str, torch.nn.Module], test_loader: DataLoader, device: torch.device, sigmas: list[float],) -> list[dict]:
+def run_noise_sweep(models: dict[str, torch.nn.Module], test_loader: DataLoader, device: torch.device, noise_levels: dict[str, list[float]],) -> dict[str, list[dict]]:
     """
-    Returns a list of dicts, one per sigma level.
-    Each dict: {"sigma": float, "CNN": acc, "QNN_CPU": acc, "QNN_GPU": acc | None}
+    Runs the robustness sweep across all four noise types and their levels.
+ 
+    Returns a dict keyed by noise_type. Each value is a list of dicts:
+        [{"level": float, "CNN": acc, "QNN_CPU": acc, "QNN_GPU": acc | None}, ...]
+ 
+    contrast levels are descending (1.0 = clean, lower = more degraded),
+    which is the opposite axis direction to the other three noise types.
+    This is preserved as-is so the frontend can render it correctly.
     """
-    rows: list[dict] = []
-
-    for sigma in sigmas:
-        row: dict = {"sigma": sigma}
-        for label, model in models.items():
-            acc = _accuracy_with_noise(model, test_loader, device, sigma)
-            row[label] = acc
-            logger.info(f"  Noise σ={sigma:.2f} | {label} → {acc:.2f}%")
-
-        for key in ALL_MODEL_KEYS:
-            row.setdefault(key, None)
-
-        rows.append(row)
-        print(f"σ={sigma:.2f} → {row}")
-
-    return rows
+    results: dict[str, list[dict]] = {}
+ 
+    for noise_type, levels in noise_levels.items():
+        logger.info(f"\n  -- Noise type: {noise_type} --")
+        rows: list[dict] = []
+ 
+        for level in levels:
+            row: dict = {"level": level}
+ 
+            for label, model in models.items():
+                acc = _accuracy_with_noise(model, test_loader, device, noise_type, level)
+                row[label] = acc
+                logger.info(f"    {noise_type} level={level:.3f} | {label} → {acc:.2f}%")
+ 
+            # Ensure all model keys are present (QNN_GPU may be absent on CPU machine)
+            for key in ALL_MODEL_KEYS:
+                row.setdefault(key, None)
+ 
+            rows.append(row)
+            print(f"  {noise_type} level={level:.3f} → {row}")
+ 
+        results[noise_type] = rows
+ 
+    return results
 
 # Experiment 3 — Inference latency
 def run_latency_benchmark(models: dict[str, torch.nn.Module], test_loader: DataLoader, device: torch.device, n_samples: int,) -> dict[str, Optional[float]]:
@@ -319,11 +370,7 @@ def run_latency_benchmark(models: dict[str, torch.nn.Module], test_loader: DataL
     return results
 
 
-def export_confusion_matrix_plots(
-    clean_results: dict[str, dict],
-    class_names: list[str],
-    output_dir: str,
-) -> None:
+def export_confusion_matrix_plots(clean_results: dict[str, dict], class_names: list[str], output_dir: str,) -> None:
     """
     Generates and saves a confusion matrix heatmap (PNG) for each model.
     """
@@ -421,22 +468,27 @@ def export_summary_metrics_csv(clean_results: dict[str, dict], output_dir: str,)
             ])
     logger.info(f"CSV saved: {path}")
 
-def export_noise_robustness_csv(noise_rows: list[dict], output_dir: str,) -> None:
+def export_noise_robustness_csv(noise_results: dict[str, list[dict]], output_dir: str,) -> None:
     """
-    One row per sigma level.
-    Columns: sigma, CNN_accuracy_%, QNN_CPU_accuracy_%, QNN_GPU_accuracy_%
+    Single CSV with all noise types.
+    Columns: noise_type, level, CNN_accuracy_%, QNN_CPU_accuracy_%, QNN_GPU_accuracy_%
+ 
+    contrast levels decrease from 1.0 (clean) — opposite axis to other types.
+    The noise_type column lets the frontend split and render each curve separately.
     """
     path = os.path.join(output_dir, "noise_robustness.csv")
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["sigma", "CNN_accuracy_%", "QNN_CPU_accuracy_%", "QNN_GPU_accuracy_%"])
-        for row in noise_rows:
-            writer.writerow([
-                row["sigma"],
-                _na(row.get("CNN")),
-                _na(row.get("QNN_CPU")),
-                _na(row.get("QNN_GPU")),
-            ])
+        writer.writerow(["noise_type", "level", "CNN_accuracy_%", "QNN_CPU_accuracy_%", "QNN_GPU_accuracy_%"])
+        for noise_type, rows in noise_results.items():
+            for row in rows:
+                writer.writerow([
+                    noise_type,
+                    row["level"],
+                    _na(row.get("CNN")),
+                    _na(row.get("QNN_CPU")),
+                    _na(row.get("QNN_GPU")),
+                ])
     logger.info(f"CSV saved: {path}")
 
 def export_latency_csv(latency_results: dict[str, Optional[float]], output_dir: str,) -> None:
@@ -516,9 +568,9 @@ def run_benchmark() -> dict:
 
     # Experiment 2: Noise robustness sweep
     logger.info("\n=== Experiment 2: Noise Robustness Sweep ===")
-    noise_rows = run_noise_sweep(models, test_loader, device, cfg["noise_sigmas"])
+    noise_results = run_noise_sweep(models, test_loader, device, cfg["noise_levels"])
 
-    # Experiment 3: Inference latency ─
+    # Experiment 3: Inference latency
     logger.info("\n=== Experiment 3: Inference Latency ===")
     latency_results = run_latency_benchmark(
         models, test_loader, device, cfg["latency_samples"]
@@ -541,7 +593,7 @@ def run_benchmark() -> dict:
         # Per-model: overall accuracy, per-class breakdown, averages, confusion matrix
         "clean_evaluation":     clean_results,
         # List of {sigma, CNN, QNN_CPU, QNN_GPU}
-        "noise_robustness":     noise_rows,
+        "noise_robustness":     noise_results,
         # Average single-image inference latency in ms
         "inference_latency_ms": latency_results,
     }
@@ -558,7 +610,7 @@ def run_benchmark() -> dict:
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     export_per_class_metrics_csv(clean_results, class_names, OUTPUT_DIR)
     export_summary_metrics_csv(clean_results, OUTPUT_DIR)
-    export_noise_robustness_csv(noise_rows, OUTPUT_DIR)
+    export_noise_robustness_csv(noise_results, OUTPUT_DIR)
     export_latency_csv(latency_results, OUTPUT_DIR)
     export_confusion_matrix_csvs(clean_results, class_names, OUTPUT_DIR)
 

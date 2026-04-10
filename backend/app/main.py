@@ -18,9 +18,13 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi import Limiter, _rate_limit_exceeded_handler
 
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
+
 from .routers.contact import router as contact_router
 from .routers.benchmark import router as benchmark_router
 from .routers.quantum_advantage import router as quantum_advantage
+from .routers.classification import router as classification_router
 from .schemas.classification import ClassificationResponse
 
 from backend.utils.logger import Logger
@@ -78,7 +82,8 @@ async def lifespan(app: FastAPI):
         ml_models["CNN"] = {"model": cnn_model, "device": device}
         logger.info("CNN loaded successfully.")
     except Exception as e:
-        raise RuntimeError(f"Failed to load CNN: {e}")
+        logger.error(f"Failed to load CNN: {e}")
+        raise RuntimeError("Failed to load CNN.")
 
     # Load Hybrid QNN-CPU
     qnn_cpu_path = os.path.join(models_dir, "qnn_cpu.pth")
@@ -117,6 +122,8 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning(f"{key} warm-up failed (non-fatal): {str(e)}")
 
+    app.state.ml_models = ml_models
+    app.state.inference_executor = inference_executor
     logger.info("Server is warmed up!")
     yield
 
@@ -132,12 +139,27 @@ limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response: Response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        # Tighten CSP if you serve the frontend from FastAPI
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';"
+        )
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1"])
@@ -145,115 +167,38 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1
 app.include_router(contact_router)
 app.include_router(benchmark_router)
 app.include_router(quantum_advantage)
+app.include_router(classification_router)
 
 
 @app.get("/api/v1/health")
-def health_check():
-    gpu_available = torch.cuda.is_available()
-    return {
-        "status": "healthy",
-        "gpu_available": gpu_available,
-        "cuda_version": torch.version.cuda if gpu_available else None,
-    }
-
-
-@app.get("/api/v1/models")
-def list_models():
-    return {name: "loaded" for name in ml_models if name != "class_names"}
-
-
-@app.post("/api/v1/classify")
-@limiter.limit("5/minute")
-async def classify_image(request: Request, file: UploadFile = File(...)) -> ClassificationResponse:
-    # Adding a counter to test response time before and after adding pydantic classes
-    request_start = time.perf_counter()
-
-    # Check availability of models and class names
-    required_models = ["CNN", "QNN_CPU", "class_names"]
-    if torch.cuda.is_available():
-        required_models.append("QNN_GPU")
-
-    missing_models = [m for m in required_models if m not in ml_models]
-
-    if missing_models:
-        logger.error(f"Classification failed: Missing models in registry: {missing_models}")
-        raise HTTPException(status_code=503, detail=f"Server is not ready. Missing: {', '.join(missing_models)}",
-                            )
-    # Fast fail checks for file type and size before processing to save resources
-    allowed_mimes = ["image/jpeg", "image/png", "image/webp", "image/bmp", "image/tiff"]
-    if file.content_type not in allowed_mimes:
-        raise HTTPException(status_code=415, detail="Unsupported media type. Only images are allowed.")
-
-    # Reading all bytes at once for performance, reading 1 byte at a time was causing a bottleneck.
-    file_bytes = await file.read()
-    if len(file_bytes) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=413, detail="File too large")
-
+@limiter.limit("10/minute")
+def health_check(request: Request):
     try:
-        # Decode bytes DIRECTLY to a PyTorch Tensor (Bypasses PIL entirely)
-        # Convert bytes to a 1D uint8 tensor, then decode to an image tensor in RGB format
-        raw_tensor = torch.frombuffer(file_bytes, dtype=torch.uint8)
-        img_tensor = decode_image(raw_tensor, mode=ImageReadMode.RGB)
+        import pennylane
+        pennylane_ok = True
+    except ImportError:
+        pennylane_ok = False
 
-        # Validate dimensions manually since we aren't using PIL
-        _, height, width = img_tensor.shape
-        if height > MAX_DIMENSION or width > MAX_DIMENSION:
-            raise HTTPException(status_code=400, detail="Image dimensions exceed 4096x4096.")
+    cnn_ok     = "CNN"     in ml_models
+    qnn_cpu_ok = "QNN_CPU" in ml_models
+    qnn_gpu_ok = "QNN_GPU" in ml_models
 
-    except Exception as e:
-        logger.error(f"Image validation error: {str(e)}")
-        raise HTTPException(status_code=400, detail="Corrupted or invalid image file.")
+    status = "healthy" if all([cnn_ok, qnn_cpu_ok, qnn_gpu_ok, pennylane_ok]) else "degraded"
 
-    class_names = ml_models["class_names"]
-
-    # Parallel Inference Setup
-    cnn_setup = ml_models["CNN"]
-    qnn_cpu_setup = ml_models["QNN_CPU"]
-    qnn_gpu_setup = ml_models["QNN_GPU"]
-
-    try:
-        # Reuse CNN's transform — all models share the same preprocessing
-        transform_pipeline = cnn_setup["model"].inference_transform
-        shared_input_tensor = transform_pipeline(img_tensor).unsqueeze(0)  # [1, 3, 384, 384]
-
-        # Submit all inference jobs to the thread pool simultaneously.
-        # PyTorch releases the GIL during C++/CUDA ops, so these genuinely run in parallel.
-        futures = {
-            "CNN": inference_executor.submit(
-                cnn_setup["model"].predict, shared_input_tensor, cnn_setup["device"], class_names
-            ),
-            "QNN_CPU": inference_executor.submit(
-                qnn_cpu_setup["model"].predict, shared_input_tensor, qnn_cpu_setup["device"], class_names
-            ),
+    return JSONResponse(
+        status_code=200 if status == "healthy" else 503,
+        content={
+            "status": status,
+            "models": {
+                "CNN":     "ok" if cnn_ok     else "unavailable",
+                "QNN_CPU": "ok" if qnn_cpu_ok else "unavailable",
+                "QNN_GPU": "ok" if qnn_gpu_ok else "unavailable",
+            },
+            "pennylane": "ok" if pennylane_ok else "unavailable",
         }
-        if "QNN_GPU" in ml_models:
-            futures["QNN_GPU"] = inference_executor.submit(
-                qnn_gpu_setup["model"].predict, shared_input_tensor, qnn_gpu_setup["device"], class_names
-            )
-
-        # Collect results — .result() blocks until that future is done
-        loop = asyncio.get_event_loop()
-        results = {
-            key: await loop.run_in_executor(None, future.result)
-            for key, future in futures.items()
-        }
-
-        total_time_ms = (time.perf_counter() - request_start) * 1000
-        logger.info(f"Full Request Processed: {total_time_ms:.2f}ms | Filename: {file.filename}")
-
-        results_data = {
-            "filename": file.filename,
-            "CNN": results["CNN"],
-            "QNN_CPU": results["QNN_CPU"],
-            "QNN_GPU": results.get("QNN_GPU"),  # None if CUDA unavailable
-        }
-        return ClassificationResponse(**results_data)
-
-    except Exception as e:
-        logger.error(f"Inference error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error during classification. Please try again.")
-
-
+    )
+    
+    
 # Frontend static files
 current_dir = os.path.dirname(os.path.abspath(__file__))
 frontend_path = os.path.abspath(os.path.join(current_dir, "..", "..", "frontend", "dist"))
