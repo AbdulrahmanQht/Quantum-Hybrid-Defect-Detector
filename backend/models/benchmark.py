@@ -47,6 +47,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from backend.models.cnn import CNN
+from backend.data.preprocessing import PreProcessing
 from backend.models.qnn_cpu import HybridQnnCPU
 from backend.models.qnn_gpu import HybridQnnGPU
 from backend.data.data_loader import DataLoaderManager

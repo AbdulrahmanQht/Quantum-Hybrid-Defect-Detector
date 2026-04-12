@@ -9,7 +9,7 @@ Logs all requests and dispatch statuses using the internal Logger.
 """
 import os
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from fastapi import APIRouter, HTTPException, Request
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 

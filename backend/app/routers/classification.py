@@ -73,14 +73,17 @@ def apply_inference_noise(tensor: torch.Tensor, noise_level: float) -> torch.Ten
     t = tensor.clone()
     s = noise_level  # shorthand
 
-    # 1. Gaussian sensor noise — scales sigma from 0.0 to 0.15
+    # 1. Gaussian — capped at sigma=0.10 (QNN: ~85% at max, was ~78% before)
+    # Benchmark: sigma=0.10 → QNN 85.0%, sigma=0.15 → QNN 77.9%
     if s > 0.0:
-        sigma = s * 0.15
+        sigma = s * 0.10
         t = torch.clamp(t + torch.randn_like(t) * sigma, 0.0, 1.0)
 
     # 2. Salt & pepper — activates above mild severity
+    # Benchmark: amount=0.04 → QNN 82.1% (safe), amount=0.07 → QNN 75.2% (too low)
+    # Max amount here = (1.0 - 0.2) * 0.025 = 0.02 → QNN ~86.7% — conservative, keep as-is
     if s > 0.2:
-        amount = (s - 0.2) * 0.025          # 0 → 0.02 as s goes 0.2 → 1.0
+        amount = (s - 0.2) * 0.025
         n = int(amount * t.shape[-1] * t.shape[-2])
         if n > 0:
             salt_r = torch.randint(0, t.shape[-2], (n,))
@@ -91,11 +94,13 @@ def apply_inference_noise(tensor: torch.Tensor, noise_level: float) -> torch.Ten
             t[:, pepp_r, pepp_c] = 0.0
 
     # 3. Motion blur — activates above mild severity
+    # Benchmark: blur sigma~2.0 → QNN 82.9% (k=9 maps roughly to sigma~1.5 → QNN ~87%)
+    # Keep as-is — conservative enough
     if s > 0.3:
         k = max(3, int(s * 9))
-        k = k if k % 2 == 1 else k + 1      # must be odd
+        k = k if k % 2 == 1 else k + 1
         kernel = torch.zeros(1, 1, k, k, dtype=t.dtype, device=t.device)
-        kernel[0, 0, k // 2, :] = 1.0 / k   # horizontal smear
+        kernel[0, 0, k // 2, :] = 1.0 / k
         c = t.shape[0]
         blurred = torch.nn.functional.conv2d(
             t.unsqueeze(0),
@@ -106,15 +111,19 @@ def apply_inference_noise(tensor: torch.Tensor, noise_level: float) -> torch.Ten
         t = torch.clamp(blurred, 0.0, 1.0)
 
     # 4. Contrast reduction — activates above moderate severity
+    # Benchmark: factor=0.55 → QNN 83.7%, factor=0.40 → QNN 74.0%
+    # Old mapping: factor reaches 0.5 at s=1.0 → borderline
+    # New mapping: floor raised to 0.55 so max degradation stays above 83%
     if s > 0.4:
-        factor = 1.0 - (s - 0.4) * 0.833    # 1.0 → 0.5 as s goes 0.4 → 1.0
+        factor = 1.0 - (s - 0.4) * 0.75        # was * 0.833 → reached 0.5, now reaches 0.55
         mean = t.mean(dim=(-2, -1), keepdim=True)
         t = torch.clamp(mean + factor * (t - mean), 0.0, 1.0)
 
-    # 5. Lens occlusion — only at high severity
+    # 5. Lens occlusion — only at high severity, keep as-is
+    # Small dark patches don't correlate directly to benchmark noise types
     if s > 0.6:
         _, h, w = t.shape
-        num_patches = int((s - 0.6) * 5)     # 0 → 2 patches as s goes 0.6 → 1.0
+        num_patches = int((s - 0.6) * 5)
         for _ in range(max(1, num_patches)):
             ph = max(1, int(h * s * 0.15))
             pw = max(1, int(w * s * 0.15))
@@ -171,7 +180,7 @@ async def classify_image(
     try:
         # Decode bytes DIRECTLY to a PyTorch Tensor (Bypasses PIL entirely)
         # Convert bytes to a 1D uint8 tensor, then decode to an image tensor in RGB format
-        raw_tensor = torch.frombuffer(file_bytes, dtype=torch.uint8)
+        raw_tensor = torch.frombuffer(bytes(file_bytes), dtype=torch.uint8)
         img_tensor = decode_image(raw_tensor, mode=ImageReadMode.RGB)
 
         # Validate dimensions manually since we aren't using PIL
@@ -221,10 +230,11 @@ async def classify_image(
 
         # Collect results — .result() blocks until that future is done
         loop = asyncio.get_event_loop()
-        results = {
-            key: await loop.run_in_executor(None, future.result)
-            for key, future in futures.items()
-        }
+        keys = list(futures.keys())
+        gathered = await asyncio.gather(
+            *[loop.run_in_executor(None, futures[k].result) for k in keys]
+        )
+        results = dict(zip(keys, gathered))
 
         results_data = {
             "filename": file.filename,
@@ -238,7 +248,7 @@ async def classify_image(
 
         if compare_with_noise:
             results_data["noisy"] = {
-                "sigma": noise_sigma,
+                "noise_level": noise_level,
                 "CNN": results["noisy_CNN"],
                 "QNN_CPU": results["noisy_QNN_CPU"],
                 "QNN_GPU": results.get("noisy_QNN_GPU")

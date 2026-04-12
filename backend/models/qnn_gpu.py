@@ -257,6 +257,9 @@ class HybridQnnGPU(nn.Module):
         learning_rate: float = 5e-4, quantum_lr_mult: float = 8.0, label_smoothing: float = 0.05,
         checkpoint_path: str = "models/qnn_gpu.pth", use_class_weights: bool = True, skip_prompt: bool = True):
         self.to(device)
+        start_msg = "\n" + "="*30 + "\nQNN-GPU BEGINS TRAINING\n" + "="*30
+        print(start_msg)
+        self.logger.info("QNN-GPU BEGINS TRAINING")
         
         if use_class_weights:
             cw = self.compute_class_weights(train_loader.dataset).to(device)
@@ -354,27 +357,27 @@ class HybridQnnGPU(nn.Module):
 
 
 if __name__ == "__main__":
-    epochs = 50
+    epochs = 75
     batch_size = 16
     lr = 5e-4
     quantum_lr_mult = 6.0
     n_qubits = 6
-    q_depth = 3
+    q_depth = 2
     device_name = "lightning.gpu"
-    checkpoint = "backend/models/qnn_gpu_noise_training_6_qubits_3_q_depth.pth"
+    checkpoint = "backend/models/qnn_gpu_noise_training_6_qubits_2_q_depth_75_epochs.pth"
 
     # PyTorch Device check
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"PyTorch is using device: {device}")
     if device.type == 'cuda':
         print(f"GPU Name: {torch.cuda.get_device_name(0)}")
-
     # PennyLane Device check
     try:
         q_device = qml.device(device_name, wires=n_qubits)
         print(f"PennyLane device initialized: {device_name}")
     except Exception as e:
         print(f"Error initializing PennyLane device '{device_name}': {e}")
+        
     manager = DataLoaderManager(
         train_dir="backend/data/train",
         val_dir="backend/data/val",
@@ -398,7 +401,25 @@ if __name__ == "__main__":
         q_depth=q_depth,
         q_device_name=device_name
     )
-
+    start_msg = (
+        f"\n{'='*40}\n"
+        f"HYBRID QNN (GPU) BEGINS TRAINING\n"
+        f"{'-'*40}\n"
+        f"Epochs:          {epochs}\n"
+        f"Batch Size:      {batch_size}\n"
+        f"Learning Rate:   {lr}\n"
+        f"Quantum LR Mult: {quantum_lr_mult}\n"
+        f"N-Qubits:        {n_qubits}\n"
+        f"Q-Depth:         {q_depth}\n"
+        f"Q-Device:        {device_name}\n"
+        f"PyTorch Device:  {device}\n"
+        f"Checkpoint Path: {checkpoint}\n"
+        f"{'='*40}"
+    )
+    
+    print(start_msg)
+    model.logger.info(start_msg)
+    
     model.fit(
         device=device,
         train_loader=train_loader,

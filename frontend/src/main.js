@@ -36,6 +36,8 @@ import Textarea from 'primevue/textarea';
 import Accordion from 'primevue/accordion';
 import AccordionTab from 'primevue/accordiontab';
 import ProgressSpinner from 'primevue/progressspinner';
+import ToggleSwitch from 'primevue/toggleswitch';
+import Slider from 'primevue/slider';
 
 const app = createApp(App)
 
@@ -83,6 +85,8 @@ app.component('Textarea', Textarea)
 app.component('Accordion', Accordion);
 app.component('AccordionTab', AccordionTab);
 app.component('ProgressSpinner', ProgressSpinner);
+app.component('ToggleSwitch', ToggleSwitch)
+app.component('Slider', Slider)
 
 app.use(router)
 app.use(i18n);

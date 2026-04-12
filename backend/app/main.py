@@ -25,7 +25,6 @@ from .routers.contact import router as contact_router
 from .routers.benchmark import router as benchmark_router
 from .routers.quantum_advantage import router as quantum_advantage
 from .routers.classification import router as classification_router
-from .schemas.classification import ClassificationResponse
 
 from backend.utils.logger import Logger
 from backend.models.cnn import CNN
@@ -35,7 +34,8 @@ from backend.models.qnn_gpu import HybridQnnGPU
 
 logger = Logger()
 
-inference_executor = ThreadPoolExecutor(max_workers=3)
+# Increased to 6 because of noisy classifications runs 2 classifications 1 clean and 1 noisy per model
+inference_executor = ThreadPoolExecutor(max_workers=6)
 
 # Global dictionary to hold models
 ml_models = {}
@@ -128,7 +128,7 @@ async def lifespan(app: FastAPI):
     yield
 
     logger.info("Shutting down. Clearing memory.")
-    inference_executor.shutdown(wait=True)
+    inference_executor.shutdown(wait=False, cancel_futures=True)
     ml_models.clear()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
@@ -148,7 +148,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
         # Tighten CSP if you serve the frontend from FastAPI
         response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';"
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-eval'; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "img-src 'self' data: blob:; "
+            "connect-src 'self' http://127.0.0.1:8000;"
         )
         return response
 

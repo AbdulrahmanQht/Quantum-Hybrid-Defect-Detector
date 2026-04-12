@@ -203,14 +203,19 @@ class CNN(nn.Module):
                 preds.extend(pred.cpu().numpy())
                 y_true.extend(labels.cpu().numpy())
         acc = 100.0 * correct / total
+        loss = loss_sum / len(test_loader)
         print(f"Clean test | Loss: {loss_sum / len(test_loader):.4f} | Acc: {acc:.2f}%")
         try:
             with open(path, encoding="utf-8") as f:
                 names = json.load(f)
         except FileNotFoundError:
             names = [f"Class {i}" for i in range(self.num_classes)]
-        print(classification_report(y_true, preds, target_names=names, zero_division=0))
-        self.logger.info(f"Clean test acc: {acc:.2f}%")
+        report = classification_report(
+            y_true, preds, target_names=names, zero_division=0
+        )
+        print(report)
+        self.logger.info(f"Clean test | Loss: {loss:.4f} | Acc: {acc:.2f}%")
+        self.logger.info(f"Detailed Metrics:\n{report}")
         return acc
 
     def fit(self, device, train_loader, val_loader, test_loader,
@@ -218,6 +223,7 @@ class CNN(nn.Module):
         checkpoint_path: str = "models/cpu_new.pth", use_class_weights: bool = True, skip_prompt: bool = True):
         """Runs training, validation, testing and saves the best model."""
         self.to(device)
+        
         if use_class_weights:
             cw = self.compute_class_weights(train_loader.dataset).to(device)
             crit = nn.CrossEntropyLoss(weight=cw, label_smoothing=label_smoothing)
@@ -309,11 +315,11 @@ class CNN(nn.Module):
         self.to(device)
 
 if __name__ == "__main__":
-    epochs = 50
+    epochs = 75
     batch_size = 16
     lr = 5e-4
-    checkpoint = "backend/models/cnn_new_noise_training.pth"
-
+    checkpoint = "models/cnn_noise_training_75_epochs.pth"
+    
     # PyTorch Device check
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"PyTorch is using device: {device}")
@@ -321,13 +327,14 @@ if __name__ == "__main__":
         print(f"GPU Name: {torch.cuda.get_device_name(0)}")
 
     manager = DataLoaderManager(
-        train_dir="backend/data/train",
-        val_dir="backend/data/val",
-        test_dir="backend/data/test",
+        train_dir="data/train",
+        val_dir="data/val",
+        test_dir="data/test",
         img_width=384,
         img_height=384,
         batch_size=batch_size,
     )
+    
 
     train_loader, val_loader, test_loader = manager.get_loaders()
     ds = train_loader.dataset
@@ -335,10 +342,25 @@ if __name__ == "__main__":
     names = [idx_to_class[i] for i in range(len(idx_to_class))]
     os.makedirs("data", exist_ok=True)
     os.makedirs("models", exist_ok=True)
-    with open("backend/data/class_names.json", "w", encoding="utf-8") as f:
+    with open("data/class_names.json", "w", encoding="utf-8") as f:
         json.dump(names, f)
 
     model = CNN(num_classes=len(names))
+    
+    start_msg = (
+        f"\n{'='*30}\n"
+        f"CNN BEGINS TRAINING\n"
+        f"Epochs: {epochs}\n"
+        f"Batch Size: {batch_size}\n"
+        f"Learning Rate: {lr}\n"
+        f"Device: {device}\n"
+        f"Checkpoint Path: {checkpoint}"
+        f"{'='*30}"
+    )
+    
+    print(start_msg)
+    model.logger.info(start_msg)
+    
     model.fit(
             device=device,
             train_loader=train_loader,
