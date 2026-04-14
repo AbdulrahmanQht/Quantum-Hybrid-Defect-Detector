@@ -8,7 +8,7 @@ This project implements and analyzes the performance of three distinct AI archit
 
 This system allows users to upload industrial inspection images and receive parallel classification results from three models:
 1.  **Classical CNN:** A standard deep learning baseline implemented in PyTorch.
-2.  **Hybrid QNN:** A quantum-classical neural network using a Variational Quantum Circuit (VQC) via PennyLane.
+2.  **Hybrid QNN:** A quantum-classical neural network using a Variational Quantum Circuit (VQC) utilizing Hybrid-Fusion via PennyLane.
 3.  **GPU-Accelerated Hybrid:** A high-performance hybrid model optimizing quantum simulations using NVIDIA cuQuantum SDK.
 
 The application features a **Vue.js** frontend for visualization and a **FastAPI** backend for model inference.
