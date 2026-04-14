@@ -12,6 +12,7 @@ const messages = {
       about: 'About',
       contact: 'Contact'
     },
+    home: {},
     classify: {
       title: 'Defect Detection',
       subtitle: 'Upload an industrial image to run inference across all three models simultaneously',
@@ -43,11 +44,22 @@ const messages = {
       prediction: 'Prediction',
       safe: 'SAFE',
       defect: 'DEFECT',
-        err_format: 'Invalid format. Please upload a PNG, JPG, JPEG, or WEBP image.',
+      err_format: 'Invalid format. Please upload a PNG, JPG, JPEG, or WEBP image.',
       err_size: 'File size exceeds 5MB. Please upload a smaller image.',
       err_spoof: 'File content does not match its extension.',
       err_upload: 'Upload failed. Please try again.',
+      noise_toggle: "Inject Noise",
+      noise_toggle_sub: "Simulate degraded inspection conditions",
+      noise_severity: "Severity",
+      noise_low: "Mild",
+      noise_medium: "Degraded",
+      noise_high: "Severe",
+      noisy_results: "Noisy Inference",
+      noisy_top_prediction: "Top Prediction Under Noise",
+      noisy_label: "Noisy"
     },
+    benchmark: {},
+    quantum_advantage: {},
     contact: {
       pageTitle: 'Get in Touch',
       pageSubtitle: "We'd love to hear from you. Send us a message and we'll respond as soon as possible.",
@@ -75,6 +87,7 @@ const messages = {
       about: 'من نحن',
       contact: 'اتصل بنا'
     },
+    home: {},
     classify: {
       title: 'كشف العيوب',
       subtitle: 'قم بتحميل صورة صناعية لتشغيل الاستدلال عبر النماذج الثلاثة في وقت واحد',
@@ -110,7 +123,18 @@ const messages = {
       err_size: 'حجم الملف يتجاوز 5 ميجابايت.',
       err_spoof: 'محتوى الملف لا يتطابق مع امتداده.',
       err_upload: 'فشل التحميل. يرجى المحاولة مرة أخرى.',
+      noise_toggle: "تفعيل التشويش",
+      noise_toggle_sub: "محاكاة ظروف الفحص الرديئة",
+      noise_severity: "مستوى التشويش",
+      noise_low: "منخفض",
+      noise_medium: "متوسط",
+      noise_high: "عالي",
+      noisy_results: "نتائج مشوشة",
+      noisy_top_prediction: "أفضل توقع مع التشويش",
+      noisy_label: "مشوش"
     },
+    benchmark: {},
+    quantum_advantage: {},
     contact: {
       pageTitle: 'تواصل معنا',
       pageSubtitle: 'يسعدنا سماع رأيك. أرسل لنا رسالة وسنرد عليك في أقرب وقت ممكن.',

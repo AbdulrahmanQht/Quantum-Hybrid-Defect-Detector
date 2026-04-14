@@ -13,9 +13,24 @@ const validating = ref(false)
 const error = ref(null)
 const results = ref(null)
 const exportSuccess = ref(null)
+const compareWithNoise = ref(false)
+const noiseLevel = ref(0.3)
+const noisyResults = ref(null)
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 const MAX_SIZE_MB = 5
+
+// --- Noise Severity ---
+const noiseSeverityLabel = computed(() => {
+  if (noiseLevel.value <= 0.3) return t('classify.noise_low')
+  if (noiseLevel.value <= 0.6) return t('classify.noise_medium')
+  return t('classify.noise_high')
+})
+
+const noisyTopResult = computed(() => {
+  if (!noisyResults.value) return null
+  return noisyResults.value.reduce((prev, cur) => prev.confidence > cur.confidence ? prev : cur)
+})
 
 // --- Chart Configuration ---
 const chartOptions = computed(() => ({
@@ -100,11 +115,16 @@ async function uploadImage() {
   loading.value = true
   error.value = null
   results.value = null
+  noisyResults.value = null
   exportSuccess.value = null
 
   try {
     const formData = new FormData()
     formData.append('file', selectedFile.value)
+    formData.append('compare_with_noise', compareWithNoise.value)
+    if (compareWithNoise.value) {
+      formData.append('noise_level', noiseLevel.value.toFixed(2))
+    }
 
     const res = await fetch("/api/v1/classify", {
       method: 'POST',
@@ -117,29 +137,34 @@ async function uploadImage() {
     }
 
     const data = await res.json()
-    results.value = [
+
+    const parseSet = (set) => [
       {
         modelName: 'CNN',
-        prediction: data.CNN.predicted_class,
-        confidence: data.CNN.confidence * 100,
-        latency: data.CNN.inference_latency_ms,
+        prediction: set.CNN.predicted_class,
+        confidence: set.CNN.confidence * 100,
+        latency: set.CNN.inference_latency_ms,
         color: '#06b6d4'
       },
       {
         modelName: 'QNN-CPU',
-        prediction: data.QNN_CPU.predicted_class,
-        confidence: data.QNN_CPU.confidence * 100,
-        latency: data.QNN_CPU.inference_latency_ms,
+        prediction: set.QNN_CPU.predicted_class,
+        confidence: set.QNN_CPU.confidence * 100,
+        latency: set.QNN_CPU.inference_latency_ms,
         color: '#8b5cf6'
       },
-      {
+      ...(set.QNN_GPU ? [{
         modelName: 'QNN-GPU',
-        prediction: data.QNN_GPU.predicted_class,
-        confidence: data.QNN_GPU.confidence * 100,
-        latency: data.QNN_GPU.inference_latency_ms,
+        prediction: set.QNN_GPU.predicted_class,
+        confidence: set.QNN_GPU.confidence * 100,
+        latency: set.QNN_GPU.inference_latency_ms,
         color: '#10b981'
-      }
+      }] : [])
     ]
+
+    results.value = parseSet(data.clean)
+    if (data.noisy) noisyResults.value = parseSet(data.noisy)
+
   } catch (err) {
     error.value = err.message || t('classify.err_upload')
   } finally {
@@ -184,26 +209,36 @@ const latencyChartData = computed(() => {
 // --- Reset ---
 function reset() {
   selectedFile.value = null
-  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)  // was revokeObjectObject — typo
   previewUrl.value = null
   results.value = null
+  noisyResults.value = null        // ← charts/table won't clear without this
   error.value = null
   exportSuccess.value = null
   validating.value = false
+  compareWithNoise.value = false   // ← reset toggle back to off
+  noiseLevel.value = 0.3           // ← reset slider to default
   if (fileInput.value) fileInput.value.value = ''
 }
 
 // --- Export ---
 function exportToCSV() {
   if (!results.value) return
-  const headers = ['Model Name', 'Prediction Class', 'Confidence Score (%)', 'Inference Latency (ms)']
-  const csvContent = [
+
+  const headers = ['Condition', 'Model Name', 'Prediction Class', 'Confidence Score (%)', 'Inference Latency (ms)']
+  const rows = [
     headers.join(','),
     ...results.value.map(r =>
-      `"${r.modelName}","${r.prediction}",${r.confidence.toFixed(1)},${r.latency.toFixed(1)}`
-    )
-  ].join('\n')
-  const blob = new Blob([csvContent], { type: 'text/csv' })
+      `"Clean","${r.modelName}","${r.prediction}",${r.confidence.toFixed(1)},${r.latency.toFixed(1)}`
+    ),
+    ...(noisyResults.value
+      ? noisyResults.value.map(r =>
+          `"Noisy (level ${noiseLevel.value.toFixed(2)})","${r.modelName}","${r.prediction}",${r.confidence.toFixed(1)},${r.latency.toFixed(1)}`
+        )
+      : [])
+  ]
+
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
   const url = window.URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -218,14 +253,29 @@ function sanitizeFilename(name) {
   return name.replace(/[^a-zA-Z0-9.-]/g, '_')
 }
 
+function stripColor(results) {
+  return results.map(({ color, ...rest }) => rest)
+}
+
 function exportToJSON() {
   if (!results.value) return
+
   const jsonData = {
     timestamp: new Date().toISOString(),
     fileName: sanitizeFilename(selectedFile.value?.name),
-    topPrediction: topResult.value,
-    allResults: results.value
+    clean: {
+    topPrediction: stripColor([topResult.value])[0],
+    allResults: stripColor(results.value)
+  },
+  ...(noisyResults.value && {
+    noisy: {
+      noiseLevel: noiseLevel.value,
+      topPrediction: stripColor([noisyTopResult.value])[0],
+      allResults: stripColor(noisyResults.value)
+    }
+  })
   }
+
   const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' })
   const url = window.URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -290,7 +340,7 @@ onUnmounted(() => {
           </div>
 
           <!-- Preview (file selected) -->
-          <div v-else class="space-y-4">
+          <div v-else dir="ltr" class="space-y-4">
 
             <!-- PrimeVue Image with built-in zoom/preview -->
             <div class="relative flex justify-center overflow-hidden border rounded-xl border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900">
@@ -305,10 +355,57 @@ onUnmounted(() => {
               </div>
             </div>
 
+            <!-- Noise injection toggle + slider -->
+            <div  class="p-4 space-y-3 border rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    {{ t('classify.noise_toggle') }}
+                  </p>
+                  <p class="text-xs text-slate-400 dark:text-slate-500">
+                    {{ t('classify.noise_toggle_sub') }}
+                  </p>
+                </div>
+                <ToggleSwitch v-model="compareWithNoise" />
+              </div>
+
+              <Transition name="slide-down">
+                <div v-if="compareWithNoise" class="pt-1 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="font-mono text-xs text-slate-400 dark:text-slate-500">
+                      {{ t('classify.noise_severity') }}
+                    </span>
+                    <span
+                      class="px-2 py-0.5 rounded font-mono text-xs"
+                      :class="{
+                        'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400': noiseLevel <= 0.3,
+                        'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400': noiseLevel > 0.3 && noiseLevel <= 0.6,
+                        'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400': noiseLevel > 0.6
+                      }"
+                    >
+                      {{ noiseSeverityLabel }} · {{ noiseLevel.toFixed(2) }}
+                    </span>
+                  </div>
+                  <Slider
+                    v-model="noiseLevel"
+                    :min="0.05"
+                    :max="1.0"
+                    :step="0.05"
+                    class="w-full"
+                  />
+                  <div class="flex justify-between font-mono text-xs text-slate-400 dark:text-slate-500">
+                    <span>{{ t('classify.noise_low') }}</span>
+                    <span>{{ t('classify.noise_medium') }}</span>
+                    <span>{{ t('classify.noise_high') }}</span>
+                  </div>
+                </div>
+              </Transition>
+            </div>
+
             <!-- Action buttons -->
             <div class="flex justify-end gap-3 pt-1">
               <Button
-                :label= "t('classify.reset')"
+                :label="t('classify.reset')"
                 icon="pi pi-refresh"
                 severity="secondary"
                 outlined
@@ -322,6 +419,7 @@ onUnmounted(() => {
                 @click="uploadImage"
               />
             </div>
+
           </div>
 
         </template>
@@ -518,6 +616,99 @@ onUnmounted(() => {
         </Message>
 
       </div>
+      <!-- Noisy Results -->
+<div v-if="noisyResults && noisyTopResult" class="space-y-4 animate-fadein">
+  
+  <!-- Section divider -->
+  <div class="flex items-center gap-3 pt-2">
+    <div class="flex-1 border-t border-dashed border-slate-200 dark:border-slate-700" />
+    <span class="px-3 py-1 font-mono text-xs tracking-widest border rounded-full text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950">
+      {{ t('classify.noisy_results') }} · {{ t('classify.noise_severity') }} {{ noiseLevel.toFixed(2) }}
+    </span>
+    <div class="flex-1 border-t border-dashed border-slate-200 dark:border-slate-700" />
+  </div>
+
+  <!-- Noisy Top Prediction -->
+  <Card
+    class="transition-colors duration-300 border-l-4 shadow-sm border-l-amber-500 dark:border-l-amber-400"
+  >
+    <template #content>
+      <div class="flex items-center gap-4">
+        <i class="flex-shrink-0 text-4xl pi pi-exclamation-circle text-amber-500 dark:text-amber-400" />
+        <div class="flex-1 min-w-0">
+          <p class="mb-1 font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500">
+            {{ t('classify.noisy_top_prediction') }}
+          </p>
+          <p class="mb-1 text-xl font-bold text-slate-800 dark:text-slate-100">
+            {{ t('classify.' + noisyTopResult.prediction) }}
+          </p>
+          <p class="font-mono text-xs text-slate-400 dark:text-slate-500">
+            {{ noisyTopResult.modelName }} &nbsp;·&nbsp;
+            {{ noisyTopResult.confidence.toFixed(1) }}% {{ t('classify.confidence').toLowerCase() }}
+          </p>
+        </div>
+        <Tag
+          :value="noisyTopResult.prediction === 'No Defect' ? t('classify.safe') : t('classify.defect')"
+          :severity="noisyTopResult.prediction === 'No Defect' ? 'success' : 'danger'"
+        />
+      </div>
+    </template>
+  </Card>
+
+  <!-- Noisy Model Comparison Table -->
+  <Card class="shadow-sm">
+    <template #title>
+      <span class="font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500">
+        {{ t('classify.model_comparison') }} · {{ t('classify.noisy_label') }}
+      </span>
+    </template>
+    <template #content>
+      <DataTable :value="noisyResults" stripedRows responsiveLayout="scroll">
+        <Column field="modelName" :header="t('classify.model')">
+          <template #body="{ data }">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" :style="{ background: data.color }" />
+              <span class="font-medium text-slate-800 dark:text-slate-200">{{ data.modelName }}</span>
+            </div>
+          </template>
+        </Column>
+        <Column field="prediction" :header="t('classify.prediction')">
+          <template #body="{ data }">
+            <Tag
+              :value="t('classify.' + data.prediction)"
+              :severity="data.prediction === 'No Defect' ? 'success' : 'danger'"
+            />
+          </template>
+        </Column>
+        <Column field="confidence" :header="t('classify.confidence')">
+          <template #body="{ data }">
+            <div class="flex items-center gap-3 min-w-40">
+              <ProgressBar
+                :value="parseFloat(data.confidence.toFixed(1))"
+                :showValue="false"
+                class="flex-1"
+                :pt="{
+                  root: { style: 'height: 6px;' },
+                  value: { style: `background: ${data.color};` }
+                }"
+              />
+              <span class="w-12 font-mono text-xs text-right text-slate-500 dark:text-slate-400 shrink-0">
+                {{ data.confidence.toFixed(1) }}%
+              </span>
+            </div>
+          </template>
+        </Column>
+        <Column field="latency" :header="t('classify.latency')">
+          <template #body="{ data }">
+            <span class="font-mono text-xs text-slate-500 dark:text-slate-400">
+              {{ data.latency.toFixed(1) }} ms
+            </span>
+          </template>
+        </Column>
+      </DataTable>
+    </template>
+  </Card>
+</div>
     </div>
   </div>
 </template>
@@ -530,5 +721,20 @@ onUnmounted(() => {
 @keyframes fadein {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+.slide-down-enter-from,
+.slide-down-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+.slide-down-enter-to,
+.slide-down-leave-from {
+  opacity: 1;
+  max-height: 200px;
 }
 </style>

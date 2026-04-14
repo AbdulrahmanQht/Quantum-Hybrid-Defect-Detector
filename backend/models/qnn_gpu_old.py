@@ -1,105 +1,100 @@
-﻿from __future__ import annotations
+"""
+Strong Hybrid Quantum-Classical architecture for Industrial Defect Detection.
+
+Inspired by:
+    - ResNet: Shares the same ResidualBlock backbone as the CNN baseline,
+      enabling a fair apples-to-apples comparison of classical vs. quantum features.
+    - Data Re-uploading (Pérez-Salinas et al.): Re-embeds classical features
+      between VQC layers to increase expressive power without adding qubits.
+    - Strongly Entangling Layers: RY/RZ rotations + CNOT ring entanglement
+      per depth layer to maximize quantum feature interaction.
+
+Architecture:
+    1. Classical Backbone: ResidualBlock stem → 512-D pooled feature vector.
+    2. Pre-Quantum Projection: 512 → n_qubits via Linear + LayerNorm + Tanh
+       (squashes input into [-1, 1] for stable angle embedding).
+    3. VQC (Variational Quantum Circuit): AngleEmbedding + RY/RZ + CNOT ring,
+       with data re-uploading between depth layers.
+    4. Post-Quantum Projection: n_qubits → 128-D via Linear + LayerNorm + GELU.
+    5. Fusion Classifier: Concatenates 512-D classical + 128-D quantum → num_classes.
+
+Training Stabilization:
+    - Near-zero quantum weight init (±0.08π) to avoid barren plateaus.
+    - Split Adam optimizer with 8× higher LR for quantum parameters.
+    - Gradient clipping at 5.0 to suppress quantum gradient spikes.
+    - Cosine annealing LR schedule over full training run.
+"""
+from __future__ import annotations
 
 import os
 import copy
 import json
+import math
 import time
 from typing import List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
 from tqdm import tqdm
+import pennylane as qml
 from torch.optim import Adam
 import torch.nn.functional as F
 from sklearn.metrics import classification_report
 
 from backend.utils.logger import Logger
+from backend.models.cnn import ResidualBlock
 from backend.data.preprocessing import PreProcessing
 from backend.data.data_loader import DataLoaderManager
 
-
-class ResidualBlock(nn.Module):
-    """
-    A standard Residual Block with Depthwise Separable Convolutions.
-
-    This block implements the 'Skip Connection' or 'Shortcut' pattern, which allows
-    gradients to flow through the network more easily, preventing the vanishing
-    gradient problem in deeper architectures.
-
-    Architecture:
-        1. Pointwise Expansion: 1x1 convolution expanding channel dimensions.
-        2. Depthwise Conv: 7x7 spatial filtering per channel.
-        3. Pointwise Reduction: 1x1 convolution projecting back to target dimensions.
-        4. SE Attention: Channel-wise attention gating.
-        5. Shortcut: Identity or 1x1 projection to match dimensions.
-    Uses the formula: Y = F(X) + W(X) || output = (ConvBlock(x) * SE(ConvBlock(x))) + Shortcut(x)
-    """
-    def __init__(self, in_channels, out_channels, stride=1, expansion=4):
-        super().__init__()
-        mid_channels = in_channels * expansion
-
-        self.conv = nn.Sequential(
-            # Expansion Phase
-            nn.Conv2d(in_channels, mid_channels, kernel_size=1),
-            nn.BatchNorm2d(mid_channels),
-            nn.GELU(),
-            # Depthwise Phase (7x7 Context)
-            nn.Conv2d(
-                mid_channels,
-                mid_channels,
-                kernel_size=7,
-                stride=stride,
-                padding=3,
-                groups=mid_channels,
-            ),
-            nn.BatchNorm2d(mid_channels),
-            nn.GELU(),
-            # Reduction Phase
-            nn.Conv2d(mid_channels, out_channels, kernel_size=1),
-            nn.BatchNorm2d(out_channels),
+def make_vqc_torch_layer(dev: qml.Device, n_qubits: int, q_depth: int, *, reupload: bool = True) -> qml.qnn.TorchLayer:
+    @qml.qnode(dev, interface="torch", diff_method="adjoint")
+    def circuit(inputs, weights):
+        qml.AngleEmbedding(
+            features=inputs * math.pi, wires=range(n_qubits), rotation="Y"
         )
+        for layer in range(q_depth):
+            for i in range(n_qubits):
+                qml.RY(weights[layer, i, 0], wires=i)
+                qml.RZ(weights[layer, i, 1], wires=i)
+            for i in range(n_qubits):
+                qml.CNOT(wires=[i, (i + 1) % n_qubits])
+            if reupload and layer < q_depth - 1:
+                qml.AngleEmbedding(
+                    features=inputs * math.pi, wires=range(n_qubits), rotation="Y"
+                )
+        return [qml.expval(qml.PauliZ(i)) for i in range(n_qubits)]
 
-        # Squeeze-and-Excitation Attention
-        self.se = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(out_channels, out_channels // 8, kernel_size=1),
-            nn.GELU(),
-            nn.Conv2d(out_channels // 8, out_channels, kernel_size=1),
-            nn.Sigmoid(),
-        )
+    layer = qml.qnn.TorchLayer(circuit, {"weights": (q_depth, n_qubits, 2)})
+    if hasattr(layer, "weights") and layer.weights is not None:
+        with torch.no_grad():
+            s = 0.08 * math.pi
+            layer.weights.uniform_(-s, s)
+    return layer
 
-        self.shortcut = nn.Sequential()
-        if stride != 1 or in_channels != out_channels:
-            self.shortcut = nn.Sequential(
-                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride),
-                nn.BatchNorm2d(out_channels),
-            )
 
-    def forward(self, x):
-        out = self.conv(x)
-        out = out * self.se(out)
-        return out + self.shortcut(x)
+def _quantum_tensor(q_layer: nn.Module, q_input: torch.Tensor, input_device: torch.device) -> torch.Tensor:
+    with torch.amp.autocast(device_type=input_device.type, enabled=False):
+        return q_layer(q_input.float())
 
-class CNN(nn.Module):
+class HybridQnnGPU(nn.Module):
     """
-    Modernized CNN architecture made for Industrial Defect Detection.
-
-    Inspired by:
-        - ConvNeXt: Uses large kernels (7x7) and GELU for a Transformer-like field of view.
-        - MobileNetV2: Employs Depthwise Separable Convolutions for extreme efficiency.
-        - ResNet: Utilizes Skip Connections to maintain training stability over 50+ epochs.
-
-    This model is designed to be lightweight enough for real-time inference via FastAPI
-    while remaining robust enough to handle industrial image noise.
+    GPU-accelerated variant of HybridQNN using PennyLane's 'lightning.gpu' device
+    backed by NVIDIA cuQuantum (cuStateVec). Architecture is identical to the CPU
+    variant — only the quantum device and diff_method differ.
+        - Device:      lightning.gpu  (vs. default.qubit)
+        - Diff method: adjoint         (vs. backprop)
+    Adjoint differentiation avoids storing intermediate statevectors, making it
+    significantly faster on GPU for circuits with moderate qubit counts.
     """
     backbone_dim = 512
 
-    def __init__(self, num_classes: int):
+    def __init__(self, num_classes: int, n_qubits: int = 6, q_depth: int = 2, q_device_name: str = "lightning.gpu", quantum_embed_dim: int = 128):
         super().__init__()
         self.logger = Logger()
         self.num_classes = num_classes
-        self.inference_transform = PreProcessing.get_transforms(img_width=384, img_height=384, is_training=False)
+        self.n_qubits = n_qubits
         
+        self.inference_transform = PreProcessing.get_transforms(img_width=384, img_height=384, is_training=False)
         self.backbone = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3),
             nn.BatchNorm2d(64),
@@ -109,40 +104,68 @@ class CNN(nn.Module):
             ResidualBlock(128, 256, stride=2),
             ResidualBlock(256, 512, stride=2),
         )
-
-        # Input is 512 (backbone only)
+        self.pre_quantum = nn.Sequential(
+            nn.Linear(self.backbone_dim, n_qubits),
+            nn.LayerNorm(n_qubits),
+            nn.Tanh(),
+        )
+        
+        try:
+            self.q_device = qml.device(q_device_name, wires=n_qubits)
+        except (Exception) as e: 
+            self.logger.error(f"Fallback: {q_device_name} failed, using lightning.qubit. Error: {e}")
+            # Fallback to lightning.qubit (CPU)
+            self.q_device = qml.device("lightning.qubit", wires=n_qubits)
+            
+        self.q_layer = make_vqc_torch_layer(
+            self.q_device, n_qubits, q_depth, reupload=True
+        )
+        
+        self.post_quantum = nn.Sequential(
+            nn.Linear(n_qubits, quantum_embed_dim),
+            nn.LayerNorm(quantum_embed_dim),
+            nn.GELU(),
+        )
+        
+        fused = self.backbone_dim + quantum_embed_dim
         self.classifier = nn.Sequential(
-            nn.Linear(self.backbone_dim, 256),
+            nn.Linear(fused, 256),
             nn.BatchNorm1d(256),
             nn.GELU(),
             nn.Dropout(0.45),
             nn.Linear(256, num_classes),
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = x.to(dtype=next(self.backbone.parameters()).dtype)
-        h = self.backbone(x)
-        z = F.adaptive_avg_pool2d(h, (1, 1)).flatten(1)  # (B, 512)
-        return self.classifier(z)
+    def forward(self, x: torch.Tensor, precomputed_z: bool = False) -> torch.Tensor:
+        if precomputed_z:
+            # x is already pooled backbone features (shape: [B, 512])
+            z = x.to(dtype=next(self.pre_quantum.parameters()).dtype)
+        else:
+            x = x.to(dtype=next(self.backbone.parameters()).dtype)
+            h = self.backbone(x)
+            z = F.adaptive_avg_pool2d(h, (1, 1)).flatten(1)
+
+        q_in = self.pre_quantum(z)
+        q_raw = _quantum_tensor(self.q_layer, q_in, z.device)
+        q_emb = self.post_quantum(q_raw)
+        return self.classifier(torch.cat([z, q_emb], dim=1))
 
     @staticmethod
     def compute_class_weights(dataset) -> torch.Tensor:
         class_counts: dict = {}
         for _, label in dataset.samples:
             class_counts[label] = class_counts.get(label, 0) + 1
-            
         total = sum(class_counts.values())
         k = len(class_counts)
         w = [total / (k * class_counts.get(i, 1)) for i in range(k)]
         return torch.tensor(w, dtype=torch.float32)
 
-    def train_model(self, train_loader, optimizer, criterion, device, epoch, num_epochs, *, grad_clip=5.0):
+    def train_model(self, train_loader, optimizer, criterion, device, epoch, num_epochs, scaler, *, grad_clip=5.0):
         self.train()
         running_loss = 0.0
         correct = 0
         total = 0
         is_cuda = device.type == "cuda"
-        scaler = torch.amp.GradScaler(device.type, enabled=is_cuda)
         pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{num_epochs}", colour="green")
         for batch_idx, (images, labels) in enumerate(pbar):
             images, labels = images.to(device), labels.to(device)
@@ -152,6 +175,14 @@ class CNN(nn.Module):
                 loss = criterion(logits, labels)
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
+            if epoch == 0 and batch_idx == 0:
+                wq = getattr(self.q_layer, "weights", None)
+                g = (
+                    "None"
+                    if wq is None or wq.grad is None
+                    else f"{wq.grad.abs().mean().item():.8f}"
+                )
+                print(f"\nQuantum grad mean (batch 1): {g}\n")
             nn.utils.clip_grad_norm_(self.parameters(), max_norm=grad_clip)
             scaler.step(optimizer)
             scaler.update()
@@ -183,7 +214,10 @@ class CNN(nn.Module):
                     if i == p.item():
                         class_correct[i] = class_correct.get(i, 0) + 1
         acc = 100.0 * correct / total
-        per_cls = {c: 100.0 * class_correct.get(c, 0) / class_total[c] for c in sorted(class_total.keys())}
+        per_cls = {
+            c: 100.0 * class_correct.get(c, 0) / class_total[c]
+            for c in sorted(class_total.keys())
+        }
         return loss_sum / len(val_loader), acc, per_cls
 
     def test_model(self, test_loader, criterion, device, path="data/class_names.json"):
@@ -204,12 +238,13 @@ class CNN(nn.Module):
                 y_true.extend(labels.cpu().numpy())
         acc = 100.0 * correct / total
         loss = loss_sum / len(test_loader)
-        print(f"Clean test | Loss: {loss_sum / len(test_loader):.4f} | Acc: {acc:.2f}%")
+        print(f"Clean test | Loss: {loss:.4f} | Acc: {acc:.2f}%")
         try:
             with open(path, encoding="utf-8") as f:
                 names = json.load(f)
         except FileNotFoundError:
             names = [f"Class {i}" for i in range(self.num_classes)]
+
         report = classification_report(
             y_true, preds, target_names=names, zero_division=0
         )
@@ -218,26 +253,36 @@ class CNN(nn.Module):
         self.logger.info(f"Detailed Metrics:\n{report}")
         return acc
 
-    def fit(self, device, train_loader, val_loader, test_loader,
-        *, num_epochs: int = 50, learning_rate: float = 5e-4, label_smoothing: float = 0.05,
-        checkpoint_path: str = "models/cpu_new.pth", use_class_weights: bool = True, skip_prompt: bool = True):
-        """Runs training, validation, testing and saves the best model."""
+    def fit(self, device, train_loader, val_loader, test_loader, *, num_epochs: int = 50, 
+        learning_rate: float = 5e-4, quantum_lr_mult: float = 8.0, label_smoothing: float = 0.05,
+        checkpoint_path: str = "models/qnn_gpu.pth", use_class_weights: bool = True, skip_prompt: bool = True):
         self.to(device)
+        start_msg = "\n" + "="*30 + "\nQNN-GPU BEGINS TRAINING\n" + "="*30
+        print(start_msg)
+        self.logger.info("QNN-GPU BEGINS TRAINING")
         
         if use_class_weights:
             cw = self.compute_class_weights(train_loader.dataset).to(device)
             crit = nn.CrossEntropyLoss(weight=cw, label_smoothing=label_smoothing)
         else:
             crit = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
-
-        opt = Adam(self.parameters(), lr=learning_rate)
+            
+        q_params = list(self.q_layer.parameters())
+        q_ids = {id(p) for p in q_params}
+        classical = [p for p in self.parameters() if id(p) not in q_ids]
+        opt = Adam(
+            [
+                {"params": classical, "lr": learning_rate, "weight_decay": 1e-4},
+                {"params": q_params,  "lr": learning_rate * quantum_lr_mult, "weight_decay": 0.0},
+            ]
+        )
         sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=num_epochs)
+        scaler = torch.amp.GradScaler(device.type, enabled=device.type == "cuda")
         best_acc, best_state = 0.0, None
+        
         for epoch in range(num_epochs):
             t0 = time.perf_counter()
-            tr_loss, tr_acc = self.train_model(
-                train_loader, opt, crit, device, epoch, num_epochs
-            )
+            tr_loss, tr_acc = self.train_model(train_loader, opt, crit, device, epoch, num_epochs, scaler)
             va_loss, va_acc, per_cls = self.validate_model(val_loader, crit, device)
             sched.step()
             dt = time.perf_counter() - t0
@@ -261,28 +306,24 @@ class CNN(nn.Module):
         if not skip_prompt and input("Save again? (y/n): ").strip().lower() == "y":
             torch.save(best_state, checkpoint_path)
 
-    def predict(self, image_tensor: torch.Tensor, device: Union[torch.device, str], 
-                class_names: Optional[list[str]] = None,) -> dict[str, Union[int, str, float, dict[str, float], list[float]]]:
+
+    def predict(self, image_tensor: torch.Tensor, device: Union[torch.device, str], class_names: Optional[list[str]] = None,) -> dict[str, Union[int, str, float, dict[str, float], list[float]]]:
         """
         Predicts the class of a single image.
         Accepts: torch.tensor.
         """
         self.to(device)
         self.eval()
-        
         start = time.perf_counter()
         image_tensor = image_tensor.to(device)
-        
         with torch.no_grad():
             logits = self(image_tensor)
             probabilities = F.softmax(logits, dim=1)
             confidence, predicted_idx = torch.max(probabilities, dim=1)
-            
         latency_ms = (time.perf_counter() - start) * 1000
         idx: int = predicted_idx.item()
         conf: float = confidence.item()
         all_scores: list[float] = probabilities.flatten().tolist()
-        
         result_dict: dict = {
             "predicted_index": idx,
             "predicted_class": class_names[idx] if class_names else "Unknown",
@@ -294,12 +335,12 @@ class CNN(nn.Module):
             ),
             "inference_latency_ms": round(latency_ms, 3),
         }
-        
         self.logger.log_results(
-            model_name="CNN_Single_Inference",
+            model_name="QNN_GPU_Single_Inference",
             latency=result_dict["inference_latency_ms"],
             confidence=result_dict["confidence"],
-            result=str(result_dict["predicted_class"]),)
+            result=str(result_dict["predicted_class"]),
+        )
         return result_dict
 
     def save_model(self, path: str) -> None:
@@ -314,60 +355,79 @@ class CNN(nn.Module):
         self.load_state_dict(state)
         self.to(device)
 
+
 if __name__ == "__main__":
     epochs = 75
     batch_size = 16
     lr = 5e-4
-    checkpoint = "models/cnn_noise_training_75_epochs.pth"
-    
+    quantum_lr_mult = 6.0
+    n_qubits = 6
+    q_depth = 2
+    device_name = "lightning.gpu"
+    checkpoint = "backend/models/qnn_gpu_noise_training_6_qubits_2_q_depth_75_epochs.pth"
+
     # PyTorch Device check
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"PyTorch is using device: {device}")
     if device.type == 'cuda':
         print(f"GPU Name: {torch.cuda.get_device_name(0)}")
-
+    # PennyLane Device check
+    try:
+        q_device = qml.device(device_name, wires=n_qubits)
+        print(f"PennyLane device initialized: {device_name}")
+    except Exception as e:
+        print(f"Error initializing PennyLane device '{device_name}': {e}")
+        
     manager = DataLoaderManager(
-        train_dir="data/train",
-        val_dir="data/val",
-        test_dir="data/test",
+        train_dir="backend/data/train",
+        val_dir="backend/data/val",
+        test_dir="backend/data/test",
         img_width=384,
         img_height=384,
         batch_size=batch_size,
     )
-    
-
     train_loader, val_loader, test_loader = manager.get_loaders()
     ds = train_loader.dataset
     idx_to_class = {v: k for k, v in ds.class_to_idx.items()}
     names = [idx_to_class[i] for i in range(len(idx_to_class))]
     os.makedirs("data", exist_ok=True)
     os.makedirs("models", exist_ok=True)
-    with open("data/class_names.json", "w", encoding="utf-8") as f:
+    with open("backend/data/class_names.json", "w", encoding="utf-8") as f:
         json.dump(names, f)
 
-    model = CNN(num_classes=len(names))
-    
+    model = HybridQnnGPU(
+        num_classes=len(names),
+        n_qubits=n_qubits,
+        q_depth=q_depth,
+        q_device_name=device_name
+    )
     start_msg = (
-        f"\n{'='*30}\n"
-        f"CNN BEGINS TRAINING\n"
-        f"Epochs: {epochs}\n"
-        f"Batch Size: {batch_size}\n"
-        f"Learning Rate: {lr}\n"
-        f"Device: {device}\n"
-        f"Checkpoint Path: {checkpoint}"
-        f"{'='*30}"
+        f"\n{'='*40}\n"
+        f"HYBRID QNN (GPU) BEGINS TRAINING\n"
+        f"{'-'*40}\n"
+        f"Epochs:          {epochs}\n"
+        f"Batch Size:      {batch_size}\n"
+        f"Learning Rate:   {lr}\n"
+        f"Quantum LR Mult: {quantum_lr_mult}\n"
+        f"N-Qubits:        {n_qubits}\n"
+        f"Q-Depth:         {q_depth}\n"
+        f"Q-Device:        {device_name}\n"
+        f"PyTorch Device:  {device}\n"
+        f"Checkpoint Path: {checkpoint}\n"
+        f"{'='*40}"
     )
     
     print(start_msg)
     model.logger.info(start_msg)
     
     model.fit(
-            device=device,
-            train_loader=train_loader,
-            val_loader=val_loader,
-            test_loader=test_loader,
-            num_epochs=epochs,
-            learning_rate=lr,
-            checkpoint_path=checkpoint,
-            skip_prompt=True,
-        )
+        device=device,
+        train_loader=train_loader,
+        val_loader=val_loader,
+        test_loader=test_loader,
+        num_epochs=epochs,
+        learning_rate=lr,
+        quantum_lr_mult=quantum_lr_mult,
+        checkpoint_path=checkpoint,
+        skip_prompt=True,
+    )

@@ -19,8 +19,8 @@ from pydantic import BaseModel, Field
 
 from backend.utils.logger import Logger
 
-logger   = Logger()
-router   = APIRouter(prefix="/api/v1", tags=["Quantum Advantage"])
+logger = Logger()
+router = APIRouter(prefix="/api/v1", tags=["Quantum Advantage"])
 
 QA_RESULTS_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 

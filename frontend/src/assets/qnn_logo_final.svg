@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 420" width="400" height="420">
+  <defs>
+    <linearGradient id="wave1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0097A7" stop-opacity="0"/>
+      <stop offset="15%" stop-color="#0097A7" stop-opacity="1"/>
+      <stop offset="85%" stop-color="#00BCD4" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#00BCD4" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="wave2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00BCD4" stop-opacity="0"/>
+      <stop offset="20%" stop-color="#00BCD4" stop-opacity="0.6"/>
+      <stop offset="80%" stop-color="#0097A7" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#0097A7" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="tail" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0D1B2A"/>
+      <stop offset="100%" stop-color="#0097A7"/>
+    </linearGradient>
+    <clipPath id="qBody">
+      <circle cx="200" cy="145" r="97"/>
+    </clipPath>
+  </defs>
+
+  <!-- === Q MARK === -->
+  <g>
+    <!-- Q body -->
+    <circle cx="200" cy="145" r="88" fill="#0D1B2A"/>
+    <circle cx="200" cy="145" r="62" fill="#ffffff"/>
+
+    <!-- Waves clipped to full circle -->
+    <g clip-path="url(#qBody)">
+      <path d="M 95,108 
+        C 114,86 134,86 154,108 
+        C 174,130 194,130 214,108 
+        C 234,86 254,86 274,108 
+        C 294,130 306,130 316,108" 
+        fill="none" stroke="url(#wave1)" stroke-width="3" stroke-linecap="round"/>
+
+      <path d="M 95,145 
+        C 120,120 142,120 168,145 
+        C 194,170 216,170 242,145 
+        C 268,120 290,120 316,145" 
+        fill="none" stroke="#0097A7" stroke-width="2.5" stroke-linecap="round" opacity="0.65"/>
+
+      <path d="M 95,182 
+        C 114,160 134,160 154,182 
+        C 174,204 194,204 214,182 
+        C 234,160 254,160 274,182 
+        C 294,204 306,204 316,182" 
+        fill="none" stroke="url(#wave2)" stroke-width="2" stroke-linecap="round"/>
+
+      <path d="M 95,108 
+        C 114,86 134,86 154,108 
+        C 174,130 194,130 214,108 
+        C 234,86 254,86 274,108 
+        C 294,130 306,130 316,108
+        L 316,182
+        C 306,204 294,204 274,182
+        C 254,160 234,160 214,182
+        C 194,204 174,204 154,182
+        C 134,160 114,160 95,182 Z" 
+        fill="#0097A7" opacity="0.05"/>
+    </g>
+
+    <!-- Re-punch inner -->
+    <circle cx="200" cy="145" r="62" fill="#ffffff"/>
+
+    <!-- Q tail -->
+    <rect x="210" y="184" width="74" height="24" rx="12" 
+      fill="url(#tail)" transform="rotate(41, 210, 196)"/>
+  </g>
+
+  <!-- === QNN === -->
+  <text x="200" y="330" text-anchor="middle"
+    font-family="'Futura', 'Century Gothic', 'Trebuchet MS', sans-serif"
+    font-size="56" font-weight="700" letter-spacing="10" fill="#0D1B2A">
+    QNN
+  </text>
+
+  <!-- === SUBTITLE === -->
+  <text x="200" y="362" text-anchor="middle"
+    font-family="'Futura', 'Century Gothic', 'Trebuchet MS', sans-serif"
+    font-size="12" font-weight="400" letter-spacing="5.5" fill="#6B7B8D">
+    QUANTUM NEURAL NETWORKS
+  </text>
+
+</svg>
