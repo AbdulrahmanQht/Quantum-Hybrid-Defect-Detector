@@ -315,7 +315,7 @@ class HybridQnnCPU(nn.Module):
         return main_logits
 
 
-    # EMA helpers (correct save/restore pattern — Kimi's bug fixed)
+    # EMA helpers (correct save/restore pattern)
     def _update_ema(self) -> None:
         """Accumulate EMA shadow alongside live quantum weights each step."""
         for name, param in self.q_layer.named_parameters():
@@ -346,6 +346,73 @@ class HybridQnnCPU(nn.Module):
             if name in live:
                 param.data.copy_(live[name])
 
+    # This method helps model pause and resume training because models takes days to train
+    def save_resume_checkpoint(
+        self,
+        path: str,
+        epoch: int,
+        optimizer,
+        scheduler,
+        scaler,
+        best_acc: float,
+        best_state: Optional[dict],
+        best_shadow: Optional[dict],
+    ) -> None:
+        """
+        Save a full training-state snapshot so training can be resumed later.
+        Saved every epoch; the file is overwritten each time (no accumulation).
+        """
+        checkpoint = {
+            "epoch":        epoch,          # last *completed* epoch (0-indexed)
+            "model_state":  self.state_dict(),
+            "opt_state":    optimizer.state_dict(),
+            "sched_state":  scheduler.state_dict(),
+            "scaler_state": scaler.state_dict(),
+            "ema_shadow":   {k: v.cpu() for k, v in self._quantum_shadow.items()},
+            "best_acc":     best_acc,
+            "best_state":   best_state,
+            "best_shadow":  best_shadow,
+        }
+        torch.save(checkpoint, path)
+        print(f"Resume checkpoint saved → {path}  (epoch {epoch + 1} done)")
+        self.logger.info(f"Resume checkpoint saved → {path}  (epoch {epoch + 1} done)")
+
+    def load_resume_checkpoint(
+        self,
+        path: str,
+        device: torch.device,
+        optimizer,
+        scheduler,
+        scaler,
+    ) -> tuple[int, float, Optional[dict], Optional[dict]]:
+        """
+        Restore a full training-state snapshot.
+        Returns (start_epoch, best_acc, best_state, best_shadow).
+        """
+        try:
+            ckpt = torch.load(path, map_location=device, weights_only=False)
+        except TypeError:
+            ckpt = torch.load(path, map_location=device)
+
+        self.load_state_dict(ckpt["model_state"])
+        optimizer.load_state_dict(ckpt["opt_state"])
+        scheduler.load_state_dict(ckpt["sched_state"])
+        scaler.load_state_dict(ckpt["scaler_state"])
+        self._quantum_shadow = {
+            k: v.to(device) for k, v in ckpt["ema_shadow"].items()
+        }
+
+        start_epoch  = ckpt["epoch"] + 1       # resume from the NEXT epoch
+        best_acc     = ckpt["best_acc"]
+        best_state   = ckpt.get("best_state")
+        best_shadow  = ckpt.get("best_shadow")
+
+        self.logger.info(
+            f"Resumed from {path} — continuing from epoch {start_epoch + 1}"
+            f"  (best val so far: {best_acc:.2f}%)"
+        )
+        return start_epoch, best_acc, best_state, best_shadow
+    
     # Class weights
     @staticmethod
     def compute_class_weights(dataset) -> torch.Tensor:
@@ -556,12 +623,13 @@ class HybridQnnCPU(nn.Module):
         quantum_lr_mult: float = 3.5,
         label_smoothing: float = 0.05,
         checkpoint_path: str = "models/qnn_cpu.pth",
+        resume_checkpoint_path: str = "models/qnn_cpu_resume.pth",
         use_class_weights: bool = True,
         skip_prompt: bool = True,
     ) -> None:
         self.to(device)
 
-        start_msg = "\n" + "=" * 45 + "\ HYBRID QNN-CPU BEGINS TRAINING\n" + "=" * 45
+        start_msg = "\n" + "=" * 45 + "\nHYBRID QNN-CPU BEGINS TRAINING\n" + "=" * 45
         print(start_msg)
         self.logger.info("HYBRID QNN-CPU BEGINS TRAINING")
 
@@ -571,7 +639,7 @@ class HybridQnnCPU(nn.Module):
         else:
             crit = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
 
-        # Split optimiser: quantum parameters get a higher learning rate
+        # Split optimizer: quantum parameters get a higher learning rate
         q_params = (
             list(self.q_layer.parameters())
             + list(self.quantum_selector.parameters())
@@ -588,9 +656,22 @@ class HybridQnnCPU(nn.Module):
         sched  = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=num_epochs)
         scaler = torch.amp.GradScaler(device.type, enabled=device.type == "cuda")
 
-        best_acc, best_state, best_shadow = 0.0, None, None
+        start_epoch  = 0
+        best_acc     = 0.0
+        best_state   = None
+        best_shadow  = None
+        
+        if os.path.exists(resume_checkpoint_path):
+            print(f"\nResume checkpoint found: {resume_checkpoint_path}")
+            start_epoch, best_acc, best_state, best_shadow = self.load_resume_checkpoint(
+                resume_checkpoint_path, device, opt, sched, scaler
+            )
+            print(f"Resuming from epoch {start_epoch + 1}/{num_epochs}  "
+                f"(best val so far: {best_acc:.2f}%)\n")
+        else:
+            print("No resume checkpoint found — starting fresh.\n")
 
-        for epoch in range(num_epochs):
+        for epoch in range(start_epoch, num_epochs):
             t0 = time.perf_counter()
 
             tr_loss, tr_acc = self.train_model(
@@ -619,6 +700,12 @@ class HybridQnnCPU(nn.Module):
                 torch.save(self.state_dict(), checkpoint_path)
                 self._restore_live(live_backup)
                 print(f"Saved best val {va_acc:.2f}% → {checkpoint_path}")
+                
+            self.save_resume_checkpoint(
+            resume_checkpoint_path,
+            epoch, opt, sched, scaler,
+            best_acc, best_state, best_shadow,
+        )
 
         print(f"\nBest val accuracy: {best_acc:.2f}%")
         if best_state is not None:
@@ -698,15 +785,14 @@ class HybridQnnCPU(nn.Module):
             self._quantum_shadow[name] = param.data.clone()
 
 
-
 if __name__ == "__main__":
-    epochs = 50
+    epochs = 75
     batch_size = 16
     lr = 5e-4
     quantum_lr_mult = 3.5
     n_qubits = 6
     q_depth = 2
-    checkpoint = "models/qnn_cpu.pth"
+    checkpoint = "models/qnn_cpu_75_epochs.pth"
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"PyTorch device: {device}")
@@ -748,32 +834,14 @@ if __name__ == "__main__":
         f"\n{'='*52}\n"
         f"HYBRID QNN-CPU  —  TRAINING START\n"
         f"{'-'*52}\n"
-        f"Epochs:             {epochs}\n"
-        f"Batch Size:         {batch_size}\n"
-        f"Learning Rate:      {lr}\n"
-        f"Quantum LR Mult:    {quantum_lr_mult}\n"
-        f"N-Qubits:           {n_qubits}  (strict)\n"
-        f"Q-Depth:            {q_depth}  (strict)\n"
-        f"PyTorch Device:     {device}\n"
-        f"Checkpoint:         {checkpoint}\n"
-        f"{'='*52}\n"
-        f"Architecture\n"
-        f"  Backbone     : Split (early→256D ▶ quantum, late→512D ▶ classical)\n"
-        f"  Q-Input      : QuantumFeatureSelector (sigmoid gate + Tanh)\n"
-        f"  Angle Scales : Learnable per-qubit Parameter (sigmoid bounded)\n"
-        f"  Curriculum   : Input noise 0.0 → 0.05 over first 60%% of epochs\n"
-        f"  VQC Init     : Hadamard |+>^n superposition\n"
-        f"  Embedding    : Y-axis AngleEmbed + IQP ZZ correlations\n"
-        f"  Rotations    : RX + RY + RZ (full set)\n"
-        f"  Entanglement : Even=CNOT ring+ZZ  |  Odd=CZ ladder+skip-1 CZ\n"
-        f"  Re-upload    : Z-axis 0.5π (orthogonal to initial Y)\n"
-        f"  Measurement  : PauliZ + PauliX + PauliY = 18 features\n"
-        f"  Q-Residual   : Z_exp + q_in skip on Z channel\n"
-        f"  Q-Gate       : quantum emb sigmoid-gates classical 512D features\n"
-        f"  Fusion       : SE attention gate on cat[gated_z, q_emb]\n"
-        f"  Aux Heads    : classical + quantum, adaptive weight 0.05→0.40\n"
-        f"  EMA          : quantum params, decay=0.995, correct save/restore\n"
-        f"  Grad Clip    : Classical=5.0  |  Quantum=2.5\n"
+        f"Epochs: {epochs}\n"
+        f"Batch Size: {batch_size}\n"
+        f"Learning Rate: {lr}\n"
+        f"Quantum LR Mult: {quantum_lr_mult}\n"
+        f"N-Qubits: {n_qubits}\n"
+        f"Q-Depth: {q_depth}\n"
+        f"PyTorch Device: {device}\n"
+        f"Checkpoint: {checkpoint}\n"
         f"{'='*52}"
     )
     print(start_msg)
