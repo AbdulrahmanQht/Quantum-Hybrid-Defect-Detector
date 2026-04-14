@@ -38,6 +38,8 @@ import AccordionTab from 'primevue/accordiontab';
 import ProgressSpinner from 'primevue/progressspinner';
 import ToggleSwitch from 'primevue/toggleswitch';
 import Slider from 'primevue/slider';
+import Timeline from 'primevue/timeline';
+
 
 const app = createApp(App)
 
@@ -87,6 +89,7 @@ app.component('AccordionTab', AccordionTab);
 app.component('ProgressSpinner', ProgressSpinner);
 app.component('ToggleSwitch', ToggleSwitch)
 app.component('Slider', Slider)
+app.component('Timeline', Timeline)
 
 app.use(router)
 app.use(i18n);

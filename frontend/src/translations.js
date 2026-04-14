@@ -58,7 +58,9 @@ const messages = {
       noisy_top_prediction: "Top Prediction Under Noise",
       noisy_label: "Noisy"
     },
-    benchmark: {},
+    benchmark: {title: 'title',
+      subtitle: 'Compare the performance of all three models across different metrics',
+      latency: '',},
     quantum_advantage: {},
     contact: {
       pageTitle: 'Get in Touch',
@@ -133,7 +135,11 @@ const messages = {
       noisy_top_prediction: "أفضل توقع مع التشويش",
       noisy_label: "مشوش"
     },
-    benchmark: {},
+    benchmark: {
+      title  : 'مقارنة  النماذج',
+      subtitle: 'مقارنة أداء النماذج الثلاثة عبر مقاييس مختلفة',
+      latency: 'وقت الاستجابة (مللي ثانية)',
+    },
     quantum_advantage: {},
     contact: {
       pageTitle: 'تواصل معنا',
