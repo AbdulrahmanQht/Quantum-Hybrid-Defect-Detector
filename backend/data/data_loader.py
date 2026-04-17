@@ -19,7 +19,7 @@ class DataLoaderManager:
         self.batch_size = batch_size
         pin_memory = torch.cuda.is_available()
         cpu_count = os.cpu_count() or 1
-        num_workers = max(1, cpu_count - 2)
+        num_workers = 16
 
         # NOTE: On Windows, using num_workers > 0 requires the
         if os.name == "nt" and num_workers > 4:

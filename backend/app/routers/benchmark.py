@@ -22,62 +22,66 @@ from backend.utils.logger import Logger
 logger = Logger()
 router = APIRouter(prefix="/api/v1", tags=["Benchmark"])
 
-BENCHMARK_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "benchmark" ,"benchmark_results.json")
+BENCHMARK_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "benchmark" , "V2", "benchmark_results.json")
 
 # Module-level cache — populated on the first request, never invalidated.
 _benchmark_cache: Optional["BenchmarkResults"] = None
 
 # Pydantic models — mirror benchmark_results.json exactly
 class BenchmarkConfig(BaseModel):
-    test_set_size:    int
+    test_set_size: int
     image_resolution: str
-    batch_size:       int
-    training_epochs:  int
-    n_qubits:         int
-    q_depth:          int
-    class_names:      list[str]
-    noise_sigmas:     list[float]
+    batch_size: int
+    training_epochs: int
+    n_qubits: int
+    q_depth: int
+    class_names: list[str]
+    noise_levels: dict[str, list]
 
 class AverageMetrics(BaseModel):
     precision: float
-    recall:    float
-    f1:        float
+    recall: float
+    f1: float
 
 class Averages(BaseModel):
-    macro:    AverageMetrics
+    macro: AverageMetrics
     weighted: AverageMetrics
 
 class PerClassMetrics(BaseModel):
-    accuracy:  float
+    accuracy: float
     precision: float
-    recall:    float
-    f1:        float
-    support:   int
+    recall: float
+    f1: float
+    support: int
 
 class ModelEvaluation(BaseModel):
-    accuracy:         float
-    per_class:        dict[str, PerClassMetrics]  # keyed by class name
-    averages:         Averages
-    confusion_matrix: list[list[int]]             # [true_class][predicted_class]
-    n_samples:        int
+    accuracy: float
+    per_class: dict[str, PerClassMetrics]
+    averages: Averages
+    confusion_matrix: list[list[int]] # [true_class][predicted_class]
+    n_samples: int
 
 class NoiseRobustnessRow(BaseModel):
-    sigma:   float
-    CNN:     Optional[float] = None
+    level: float
+    CNN: Optional[float] = None
     QNN_CPU: Optional[float] = None
     QNN_GPU: Optional[float] = None
+    CNN_mean_conf: Optional[float] = None
+    QNN_CPU_mean_conf: Optional[float] = None
+    QNN_GPU_mean_conf: Optional[float] = None
 
 class InferenceLatency(BaseModel):
-    CNN:     Optional[float] = None
+    CNN: Optional[float] = None
     QNN_CPU: Optional[float] = None
     QNN_GPU: Optional[float] = None
 
 class BenchmarkResults(BaseModel):
-    generated_at:        str
-    device:              str
-    config:              BenchmarkConfig
-    clean_evaluation:    dict[str, ModelEvaluation]   # keyed by model name
-    noise_robustness:    list[NoiseRobustnessRow]
+    generated_at: str
+    device: str
+    config: BenchmarkConfig
+    clean_evaluation: dict[str, ModelEvaluation]
+    noise_robustness: dict[str, list[NoiseRobustnessRow]]
+    noise_maun_summary: dict[str, dict[str, Optional[float]]]
     inference_latency_ms: InferenceLatency
 
 # Cache loader — called once
@@ -92,26 +96,32 @@ def _load_benchmark() -> BenchmarkResults:
             status_code=503,
             detail=(
                 "Benchmark results are not available yet. "
-                "Run benchmark_runner.py to generate them."
+                "Run benchmark.py to generate them."
             ),
         )
-
+ 
     try:
         with open(BENCHMARK_FILE, encoding="utf-8") as f:
             raw = json.load(f)
         result = BenchmarkResults.model_validate(raw)
         logger.info(f"Benchmark results loaded and cached from {BENCHMARK_FILE}")
         return result
-
+ 
     except json.JSONDecodeError as exc:
         logger.error(f"benchmark_results.json is malformed: {exc}")
-        raise HTTPException(status_code=500, detail="Benchmark file is malformed JSON.")
-
+        raise HTTPException(
+            status_code=500,
+            detail="Benchmark file is malformed JSON.",
+        )
+ 
     except Exception as exc:
         logger.error(f"Failed to parse benchmark results: {exc}")
-        raise HTTPException(status_code=500, detail=f"Failed to parse benchmark results: {exc}")
-
-
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to parse benchmark results: {exc}",
+        )
+ 
+ 
 def _get_cached_benchmark() -> BenchmarkResults:
     """Return the cached results, loading from disk on the very first call."""
     global _benchmark_cache
@@ -126,11 +136,12 @@ def _get_cached_benchmark() -> BenchmarkResults:
     response_model=BenchmarkResults,
     summary="Get benchmark results",
     description=(
-        "Returns pre-computed benchmark results for all three models (CNN, QNN_CPU, QNN_GPU). "
-        "Results are loaded from disk once on the first request and served from memory thereafter. "
-        "Re-generate results by running `benchmark_runner.py` and restarting the server."
+        "Returns pre-computed benchmark results for all three models "
+        "(CNN, QNN_CPU, QNN_GPU). "
+        "Results are loaded from disk once on the first request and served "
+        "from memory thereafter. "
+        "Re-generate by running benchmark.py and restarting the server."
     ),
 )
-
 def get_benchmark() -> BenchmarkResults:
     return _get_cached_benchmark()

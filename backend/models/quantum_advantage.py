@@ -20,16 +20,23 @@ What this computes:
 
     4. Entanglement Entropy       — extracts the full statevector (via a mirrored
                                     default.qubit circuit) and computes von Neumann
-                                    entropy for each qubit bipartition. Proves the
-                                    CNOT ring is genuinely entangling features.
+                                    entropy for each qubit bipartition.
                                     NOTE: lightning.gpu does not expose statevectors,
                                     so GPU model weights are loaded into a temporary
                                     default.qubit device for this experiment only.
 
     5. Quantum Gradient Variance  — measures gradient variance of the trained quantum
                                     weights across test batches. Near-zero = barren
-                                    plateau. High = healthy quantum signal. Compared
-                                    against the CNN's final-layer gradient variance.
+                                    plateau. High = healthy quantum signal.
+
+    6. Noise Robustness Ablation  — NEW: runs full / classical_only / quantum_only
+                                    forward passes under 5 noise types at multiple
+                                    intensity levels.
+                                    Key metric:
+                                        quantum_noise_gain[level] =
+                                            full_acc[level] − classical_only_acc[level]
+                                    An increasing gain as noise intensifies proves the
+                                    quantum branch specifically improves noise tolerance.
 
 Outputs:
     data/QA/quantum_advantage_results.json
@@ -38,6 +45,7 @@ Outputs:
     data/QA/qa_reupload_ablation.csv
     data/QA/qa_entanglement_entropy.csv
     data/QA/qa_gradient_variance.csv
+    data/QA/qa_noise_ablation.csv              ← new (Experiment 6)
 """
 
 from __future__ import annotations
@@ -62,67 +70,97 @@ from backend.models.qnn_cpu import HybridQnnCPU
 from backend.models.qnn_gpu import HybridQnnGPU
 from backend.data.data_loader import DataLoaderManager
 from backend.utils.logger import Logger
+from backend.utils.noise import apply_noise, QA_NOISE_LEVELS    # ← shared util
 
 logger = Logger()
 
-# Config
+# ── Config ─────────────────────────────────────────────────────────────────────
+
 CONFIG = {
-    "img_width":       384,
-    "img_height":      384,
-    "batch_size":      16,
-    "n_qubits":        6,
-    "q_depth":         2,
-    # Batches used for gradient variance (full test set is slow with grad enabled)
+    "img_width":        384,
+    "img_height":       384,
+    "batch_size":       16,
+    "n_qubits":         6,
+    "q_depth":          2,
     "grad_var_batches": 20,
-    # Samples used for entanglement entropy (statevector is expensive)
-    "entropy_samples": 128,
+    "entropy_samples":  128,
 }
 
-# 1. Get the directory where benchmark.py lives (.../backend/models/)
-_current_dir = os.path.dirname(os.path.abspath(__file__))
-
-# 2. Get the 'backend' root (.../backend/)
-BACKEND_ROOT = os.path.dirname(_current_dir)
+_current_dir  = os.path.dirname(os.path.abspath(__file__))
+BACKEND_ROOT  = os.path.dirname(_current_dir)
 
 CHECKPOINT_PATHS = {
-    "CNN": os.path.join(BACKEND_ROOT, "models", "cnn.pth"),
+    "CNN":     os.path.join(BACKEND_ROOT, "models", "cnn.pth"),
     "QNN_CPU": os.path.join(BACKEND_ROOT, "models", "qnn_cpu.pth"),
     "QNN_GPU": os.path.join(BACKEND_ROOT, "models", "qnn_gpu_6_qubits.pth"),
 }
 CLASS_NAMES_PATH = os.path.join(BACKEND_ROOT, "data", "class_names.json")
-OUTPUT_PATH = os.path.join(BACKEND_ROOT, "data", "QA", "quantum_advantage_results.json")
-
-# Ensure this directory exists relative to backend
-OUTPUT_DIR = os.path.join(BACKEND_ROOT, "data", "QA")
+OUTPUT_PATH      = os.path.join(BACKEND_ROOT, "data", "QA", "quantum_advantage_results.json")
+OUTPUT_DIR       = os.path.join(BACKEND_ROOT, "data", "QA")
 
 DATA_DIRS = {
     "train": os.path.join(BACKEND_ROOT, "data", "train"),
-    "val": os.path.join(BACKEND_ROOT, "data", "val"),
-    "test": os.path.join(BACKEND_ROOT, "data", "test"),
+    "val":   os.path.join(BACKEND_ROOT, "data", "val"),
+    "test":  os.path.join(BACKEND_ROOT, "data", "test"),
 }
 
 QNN_MODEL_KEYS = ["QNN_CPU", "QNN_GPU"]
 
-# Helpers
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
+
 def _na(value) -> str:
     return str(value) if value is not None else "N/A"
 
+
 @torch.no_grad()
-def _evaluate(forward_fn: Callable[[torch.Tensor], torch.Tensor], loader: DataLoader, device: torch.device,) -> float:
+def _evaluate(
+    forward_fn: Callable[[torch.Tensor], torch.Tensor],
+    loader: DataLoader,
+    device: torch.device,
+) -> float:
     """Generic accuracy evaluation given an arbitrary forward function."""
     correct = 0
     total   = 0
     for images, labels in loader:
         images, labels = images.to(device), labels.to(device)
-        preds = forward_fn(images).argmax(dim=1)
+        preds   = forward_fn(images).argmax(dim=1)
         correct += preds.eq(labels).sum().item()
         total   += labels.size(0)
     return round(100.0 * correct / total, 4)
 
 
-def _extract_classical_and_quantum(model: nn.Module, images: torch.Tensor, device: torch.device,) -> tuple[torch.Tensor, torch.Tensor]:
+@torch.no_grad()
+def _evaluate_noisy(
+    forward_fn: Callable[[torch.Tensor], torch.Tensor],
+    loader: DataLoader,
+    device: torch.device,
+    noise_type: str,
+    level: float,
+) -> float:
     """
-    Run the backbone + quantum branch and return:
+    Accuracy evaluation with noise applied to every batch before forwarding.
+    forward_fn may be any of: full model, classical_only, quantum_only.
+    """
+    correct = 0
+    total   = 0
+    for images, labels in loader:
+        images = images.to(device, dtype=torch.float32)
+        labels = labels.to(device)
+        noisy  = apply_noise(images, noise_type, level)
+        preds  = forward_fn(noisy).argmax(dim=1)
+        correct += preds.eq(labels).sum().item()
+        total   += labels.size(0)
+    return round(100.0 * correct / total, 4)
+
+
+def _extract_classical_and_quantum(
+    model: nn.Module,
+    images: torch.Tensor,
+    device: torch.device,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Run backbone + quantum branch and return:
         z      — 512-D classical pooled features
         q_emb  — 128-D post-quantum projected features
     Works for both HybridQnnCPU and HybridQnnGPU.
@@ -133,9 +171,8 @@ def _extract_classical_and_quantum(model: nn.Module, images: torch.Tensor, devic
     h = model.backbone(x)
     z = F.adaptive_avg_pool2d(h, (1, 1)).flatten(1)
 
-    q_in  = model.pre_quantum(z)
+    q_in = model.pre_quantum(z)
 
-    # CPU model sends q_input to CPU; GPU model keeps it on device
     if isinstance(model, HybridQnnCPU):
         with torch.amp.autocast(device_type=device.type, enabled=False):
             q_raw = model.q_layer(q_in.to("cpu").float()).to(device)
@@ -146,17 +183,18 @@ def _extract_classical_and_quantum(model: nn.Module, images: torch.Tensor, devic
     q_emb = model.post_quantum(q_raw)
     return z, q_emb
 
-# Experiment 1 — Feature Orthogonality
-@torch.no_grad()
-def run_feature_orthogonality(models: dict[str, nn.Module], test_loader: DataLoader, device: torch.device,) -> dict[str, Optional[float]]:
-    """
-    Measures cosine similarity between the classical branch features
-    (z, first 128 dims) and the quantum branch features (q_emb, 128-D).
 
-    Interpretation:
-        ~0.0   quantum learns orthogonal / complementary features (ideal)
-        ~1.0   quantum just mirrors classical branch (no advantage)
-        ~-1.0  anti-correlated (also non-trivial)
+# ── Experiment 1 — Feature Orthogonality ──────────────────────────────────────
+
+@torch.no_grad()
+def run_feature_orthogonality(
+    models: dict[str, nn.Module],
+    test_loader: DataLoader,
+    device: torch.device,
+) -> dict[str, Optional[float]]:
+    """
+    Cosine similarity between classical (z[:128]) and quantum (q_emb) features.
+    ~0 = orthogonal (ideal);  ~1 = quantum mirrors classical (no advantage).
     """
     results: dict[str, Optional[float]] = {}
 
@@ -166,44 +204,37 @@ def run_feature_orthogonality(models: dict[str, nn.Module], test_loader: DataLoa
 
         for images, _ in tqdm(test_loader, desc=f"[Orthogonality] {label}", colour="cyan"):
             z, q_emb = _extract_classical_and_quantum(model, images, device)
+            z_proj   = z[:, : q_emb.size(1)]
+            z_norm   = F.normalize(z_proj.float(), dim=1)
+            q_norm   = F.normalize(q_emb.float(),  dim=1)
+            sims.append((z_norm * q_norm).sum(dim=1).mean().item())
 
-            # Project z to same dimensionality as q_emb for fair comparison
-            z_proj = z[:, :q_emb.size(1)]
-
-            z_norm = F.normalize(z_proj.float(), dim=1)
-            q_norm = F.normalize(q_emb.float(), dim=1)
-
-            batch_sim = (z_norm * q_norm).sum(dim=1).mean().item()
-            sims.append(batch_sim)
-
-        avg_sim = round(float(np.mean(sims)), 6)
+        avg_sim       = round(float(np.mean(sims)), 6)
         results[label] = avg_sim
         logger.info(f"  [{label}] Classical-Quantum cosine similarity: {avg_sim:.4f}")
 
     return results
 
-# Experiment 2 — Branch Ablation
-@torch.no_grad()
-def run_branch_ablation(models: dict[str, nn.Module], test_loader: DataLoader, device: torch.device,) -> dict[str, dict[str, Optional[float]]]:
-    """
-    Three conditions per model:
-        full            — normal forward pass
-        classical_only  — quantum branch replaced with zeros
-        quantum_only    — classical branch replaced with zeros
 
-    quantum_gain = full_acc - classical_only_acc
-    This is the headline number proving the quantum branch adds real accuracy.
+# ── Experiment 2 — Branch Ablation ────────────────────────────────────────────
+
+@torch.no_grad()
+def run_branch_ablation(
+    models: dict[str, nn.Module],
+    test_loader: DataLoader,
+    device: torch.device,
+) -> dict[str, dict[str, Optional[float]]]:
+    """
+    Three conditions: full / classical_only (q=0) / quantum_only (z=0).
+    quantum_gain = full_acc − classical_only_acc.
     """
     results: dict[str, dict] = {}
 
     for label, model in models.items():
         model.eval()
 
-        # Full forward
-        full_acc = _evaluate(model, test_loader, device)
-
-        # Classical only (zero q_emb)
-        q_dim = model.post_quantum[-2].normalized_shape[0]  # LayerNorm input dim = 128
+        full_acc     = _evaluate(model, test_loader, device)
+        q_dim        = model.post_quantum[-2].normalized_shape[0]
 
         def classical_only(x: torch.Tensor) -> torch.Tensor:
             z, _ = _extract_classical_and_quantum(model, x, device)
@@ -211,136 +242,116 @@ def run_branch_ablation(models: dict[str, nn.Module], test_loader: DataLoader, d
             return model.classifier(torch.cat([z, q_blank], dim=1))
 
         classical_acc = _evaluate(classical_only, test_loader, device)
-
-        # Quantum only (zero z)
-        z_dim = model.backbone_dim  # 512
+        z_dim         = model.backbone_dim
 
         def quantum_only(x: torch.Tensor) -> torch.Tensor:
             z, q_emb = _extract_classical_and_quantum(model, x, device)
-            z_blank = torch.zeros(x.size(0), z_dim, device=device, dtype=z.dtype)
+            z_blank  = torch.zeros(x.size(0), z_dim, device=device, dtype=z.dtype)
             return model.classifier(torch.cat([z_blank, q_emb], dim=1))
 
-        quantum_acc = _evaluate(quantum_only, test_loader, device)
-
-        quantum_gain = round(full_acc - classical_acc, 4)
+        quantum_acc   = _evaluate(quantum_only, test_loader, device)
+        quantum_gain  = round(full_acc - classical_acc, 4)
 
         results[label] = {
-            "full_accuracy":          full_acc,
+            "full_accuracy":           full_acc,
             "classical_only_accuracy": classical_acc,
-            "quantum_only_accuracy":  quantum_acc,
-            "quantum_gain_%":         quantum_gain,
+            "quantum_only_accuracy":   quantum_acc,
+            "quantum_gain_%":          quantum_gain,
         }
-
         logger.info(
-            f"  [{label}] Full: {full_acc:.2f}% | "
-            f"Classical-only: {classical_acc:.2f}% | "
-            f"Quantum-only: {quantum_acc:.2f}% | "
-            f"Quantum gain: {quantum_gain:+.2f}%"
+            f"  [{label}] Full: {full_acc:.2f}% | Classical-only: {classical_acc:.2f}% | "
+            f"Quantum-only: {quantum_acc:.2f}% | Gain: {quantum_gain:+.2f}%"
         )
 
     return results
 
-# Experiment 3 — Re-upload Ablation
-def _make_no_reupload_layer(original_layer: nn.Module, n_qubits: int, q_depth: int, device_name: str = "default.qubit",) -> nn.Module:
+
+# ── Experiment 3 — Re-upload Ablation ─────────────────────────────────────────
+
+def _make_no_reupload_layer(
+    original_layer: nn.Module,
+    n_qubits: int,
+    q_depth: int,
+    device_name: str = "default.qubit",
+) -> nn.Module:
     """
-    Builds an identical VQC but with reupload=False, then copies
-    the trained weights from the original layer into it.
-    Uses default.qubit regardless of original device — we only need
-    inference here, not GPU acceleration.
+    Builds an identical VQC with reupload disabled, copies trained weights.
+    Always uses default.qubit (CPU sim) — GPU adjoint diff not needed here.
     """
     dev = qml.device(device_name, wires=n_qubits)
 
     @qml.qnode(dev, interface="torch", diff_method="backprop")
     def circuit_no_reupload(inputs, weights):
-        qml.AngleEmbedding(
-            features=inputs * math.pi, wires=range(n_qubits), rotation="Y"
-        )
+        qml.AngleEmbedding(features=inputs * math.pi, wires=range(n_qubits), rotation="Y")
         for layer_idx in range(q_depth):
             for i in range(n_qubits):
                 qml.RY(weights[layer_idx, i, 0], wires=i)
                 qml.RZ(weights[layer_idx, i, 1], wires=i)
             for i in range(n_qubits):
                 qml.CNOT(wires=[i, (i + 1) % n_qubits])
-            # NOTE: re-uploading intentionally omitted
         return [qml.expval(qml.PauliZ(i)) for i in range(n_qubits)]
 
     no_reupload_layer = qml.qnn.TorchLayer(
         circuit_no_reupload, {"weights": (q_depth, n_qubits, 2)}
     )
-
-    # Copy trained weights exactly
     with torch.no_grad():
         no_reupload_layer.weights.copy_(original_layer.weights.cpu())
-
     return no_reupload_layer
 
 
 @torch.no_grad()
-def run_reupload_ablation(models: dict[str, nn.Module], test_loader: DataLoader, device: torch.device, n_qubits: int, q_depth: int,) -> dict[str, dict[str, Optional[float]]]:
-    """
-    Compares accuracy with and without data re-uploading.
-    The drop quantifies the expressive power added by re-uploading.
-    Uses the same trained weights — only the circuit topology changes.
-    """
+def run_reupload_ablation(
+    models: dict[str, nn.Module],
+    test_loader: DataLoader,
+    device: torch.device,
+    n_qubits: int,
+    q_depth: int,
+) -> dict[str, dict[str, Optional[float]]]:
     results: dict[str, dict] = {}
 
     for label, model in models.items():
         model.eval()
-
-        # Baseline: normal forward
-        with_reupload_acc = _evaluate(model, test_loader, device)
-
-        # Build patched layer (no re-upload) with identical weights
-        no_reupload_layer = _make_no_reupload_layer(
-            model.q_layer, n_qubits, q_depth
-        )
+        with_reupload_acc  = _evaluate(model, test_loader, device)
+        no_reupload_layer  = _make_no_reupload_layer(model.q_layer, n_qubits, q_depth)
         no_reupload_layer.eval()
 
         def forward_no_reupload(x: torch.Tensor) -> torch.Tensor:
             z, _ = _extract_classical_and_quantum(model, x, device)
             q_in = model.pre_quantum(z)
-            # Always run on CPU (default.qubit)
             with torch.amp.autocast(device_type="cpu", enabled=False):
                 q_raw = no_reupload_layer(q_in.cpu().float()).to(device)
             q_emb = model.post_quantum(q_raw)
             return model.classifier(torch.cat([z, q_emb], dim=1))
 
-        without_reupload_acc = _evaluate(forward_no_reupload, test_loader, device)
-
-        reupload_contribution = round(with_reupload_acc - without_reupload_acc, 4)
+        without_reupload_acc   = _evaluate(forward_no_reupload, test_loader, device)
+        reupload_contribution  = round(with_reupload_acc - without_reupload_acc, 4)
 
         results[label] = {
             "with_reupload_accuracy":    with_reupload_acc,
             "without_reupload_accuracy": without_reupload_acc,
             "reupload_contribution_%":   reupload_contribution,
         }
-
         logger.info(
-            f"  [{label}] With re-upload: {with_reupload_acc:.2f}% | "
+            f"  [{label}] With: {with_reupload_acc:.2f}% | "
             f"Without: {without_reupload_acc:.2f}% | "
-            f"Re-upload gain: {reupload_contribution:+.2f}%"
+            f"Gain: {reupload_contribution:+.2f}%"
         )
 
     return results
 
-# Experiment 4 — Entanglement Entropy
-def _build_statevector_circuit(n_qubits: int, q_depth: int, trained_weights: torch.Tensor,) -> tuple[Callable, torch.Tensor]:
-    """
-    Mirrors the exact VQC topology on default.qubit (statevector sim).
-    Returns the qnode and a reference to the weight tensor so we can
-    pass trained weights at call time.
 
-    This is the ONLY way to extract the full quantum state from a
-    lightning.gpu model — we rebuild the circuit on a CPU simulator
-    with identical weights.
-    """
+# ── Experiment 4 — Entanglement Entropy ───────────────────────────────────────
+
+def _build_statevector_circuit(
+    n_qubits: int,
+    q_depth: int,
+    trained_weights: torch.Tensor,
+) -> Callable:
     dev = qml.device("default.qubit", wires=n_qubits)
 
     @qml.qnode(dev, interface="torch", diff_method="backprop")
     def statevector_circuit(inputs, weights):
-        qml.AngleEmbedding(
-            features=inputs * math.pi, wires=range(n_qubits), rotation="Y"
-        )
+        qml.AngleEmbedding(features=inputs * math.pi, wires=range(n_qubits), rotation="Y")
         for layer_idx in range(q_depth):
             for i in range(n_qubits):
                 qml.RY(weights[layer_idx, i, 0], wires=i)
@@ -351,59 +362,44 @@ def _build_statevector_circuit(n_qubits: int, q_depth: int, trained_weights: tor
                 qml.AngleEmbedding(
                     features=inputs * math.pi, wires=range(n_qubits), rotation="Y"
                 )
-        return qml.state()  # full 2^n_qubits complex statevector
+        return qml.state()
 
     return statevector_circuit
 
-def _von_neumann_entropy(state_np: np.ndarray, qubit_idx: int, n_qubits: int) -> float:
-    """
-    Computes the von Neumann entropy of qubit `qubit_idx` by partial-tracing
-    over all other qubits. Entropy = 0  product state, = 1  maximally entangled.
-    """
-    dim = 2 ** n_qubits
+
+def _von_neumann_entropy(
+    state_np: np.ndarray, qubit_idx: int, n_qubits: int
+) -> float:
     state_np = state_np.reshape([2] * n_qubits)
-
-    # Keep `qubit_idx`, trace over everything else
-    # Reshape: (2, 2^(n-1)) by moving target qubit to front
-    axes = list(range(n_qubits))
-    axes.pop(qubit_idx)
-    axes = [qubit_idx] + axes
+    axes     = [qubit_idx] + [i for i in range(n_qubits) if i != qubit_idx]
     state_np = state_np.transpose(axes).reshape(2, -1)
-
-    # Reduced density matrix: rho_A = psi_A psi_A†
-    rho = state_np @ state_np.conj().T  # 2×2
-
-    eigvals = np.linalg.eigvalsh(rho.real)
-    eigvals = eigvals[eigvals > 1e-12]
-    entropy = float(-np.sum(eigvals * np.log2(eigvals)))
-    return round(entropy, 6)
+    rho      = state_np @ state_np.conj().T
+    eigvals  = np.linalg.eigvalsh(rho.real)
+    eigvals  = eigvals[eigvals > 1e-12]
+    return round(float(-np.sum(eigvals * np.log2(eigvals))), 6)
 
 
 @torch.no_grad()
-def run_entanglement_entropy(models: dict[str, nn.Module], test_loader: DataLoader, device: torch.device, n_qubits: int, q_depth: int,  n_samples: int,) -> dict[str, dict]:
-    """
-    Extracts the quantum statevector for n_samples inputs per model,
-    computes von Neumann entropy for each qubit bipartition,
-    and reports mean entropy per qubit and overall mean.
-
-    For QNN_GPU: weights are copied from lightning.gpu model into a
-    temporary default.qubit circuit (same topology, same weights).
-    This is necessary because lightning.gpu uses adjoint differentiation
-    which does not expose intermediate statevectors.
-    """
+def run_entanglement_entropy(
+    models: dict[str, nn.Module],
+    test_loader: DataLoader,
+    device: torch.device,
+    n_qubits: int,
+    q_depth: int,
+    n_samples: int,
+) -> dict[str, dict]:
     results: dict[str, dict] = {}
 
-    # Collect n_samples pre-quantum inputs from test set
     sample_q_inputs: list[torch.Tensor] = []
+    model_ref = next(iter(models.values()))
+    model_ref.eval()
     for images, _ in test_loader:
         for i in range(images.size(0)):
-            img = images[i].unsqueeze(0).to(device)
-            model_ref = next(iter(models.values()))
-            model_ref.eval()
+            img   = images[i].unsqueeze(0).to(device)
             dtype = next(model_ref.backbone.parameters()).dtype
-            h = model_ref.backbone(img.to(dtype=dtype))
-            z = F.adaptive_avg_pool2d(h, (1, 1)).flatten(1)
-            q_in = model_ref.pre_quantum(z).squeeze(0)  # (n_qubits,)
+            h     = model_ref.backbone(img.to(dtype=dtype))
+            z     = F.adaptive_avg_pool2d(h, (1, 1)).flatten(1)
+            q_in  = model_ref.pre_quantum(z).squeeze(0)
             sample_q_inputs.append(q_in.cpu().float())
             if len(sample_q_inputs) >= n_samples:
                 break
@@ -414,22 +410,17 @@ def run_entanglement_entropy(models: dict[str, nn.Module], test_loader: DataLoad
 
     for label, model in models.items():
         model.eval()
-
-        # Extract trained weights  CPU float
         trained_weights = model.q_layer.weights.detach().cpu().float()
-
-        # Build statevector circuit (always default.qubit)
-        sv_circuit = _build_statevector_circuit(n_qubits, q_depth, trained_weights)
-
+        sv_circuit      = _build_statevector_circuit(n_qubits, q_depth, trained_weights)
         per_qubit_entropies: dict[int, list[float]] = {i: [] for i in range(n_qubits)}
 
         for q_in in tqdm(sample_q_inputs, desc=f"[Entropy] {label}", colour="magenta"):
             state_tensor = sv_circuit(q_in, trained_weights)
-            state_np = state_tensor.detach().numpy().astype(complex)
-
+            state_np     = state_tensor.detach().numpy().astype(complex)
             for qubit_idx in range(n_qubits):
-                ent = _von_neumann_entropy(state_np, qubit_idx, n_qubits)
-                per_qubit_entropies[qubit_idx].append(ent)
+                per_qubit_entropies[qubit_idx].append(
+                    _von_neumann_entropy(state_np, qubit_idx, n_qubits)
+                )
 
         mean_per_qubit = {
             f"qubit_{i}": round(float(np.mean(per_qubit_entropies[i])), 6)
@@ -442,44 +433,32 @@ def run_entanglement_entropy(models: dict[str, nn.Module], test_loader: DataLoad
         results[label] = {
             "mean_entropy_per_qubit": mean_per_qubit,
             "overall_mean_entropy":   overall_mean,
-            # Interpretation guide saved alongside results
             "interpretation": (
-                "0.0 = no entanglement (classical separable state); "
-                "1.0 = maximally entangled qubit. "
-                "Values above 0.3 confirm genuine quantum correlations from the CNOT ring."
+                "0.0 = no entanglement; 1.0 = maximally entangled. "
+                "Values above 0.3 confirm genuine quantum correlations."
             ),
         }
-
-        logger.info(
-            f"  [{label}] Mean entanglement entropy: {overall_mean:.4f} "
-            f"| Per qubit: {mean_per_qubit}"
-        )
+        logger.info(f"  [{label}] Mean entropy: {overall_mean:.4f}")
 
     return results
 
-# Experiment 5 — Quantum Gradient Variance
+
+# ── Experiment 5 — Quantum Gradient Variance ──────────────────────────────────
+
 def run_gradient_variance(
-    models_all: dict[str, nn.Module], cnn_model: nn.Module, test_loader: DataLoader, device: torch.device, n_batches: int,) -> dict[str, dict]:
-    """
-    Measures gradient variance of:
-        - quantum layer weights (QNN models)
-        - final linear layer weights (CNN baseline for comparison)
-
-    Near-zero variance = barren plateau (quantum signal is vanishing).
-    High variance = healthy, expressive gradient signal.
-
-    Importantly, we do NOT retrain — we just do a forward+backward pass
-    through the frozen model to observe the gradient landscape.
-    """
+    models_all: dict[str, nn.Module],
+    cnn_model: nn.Module,
+    test_loader: DataLoader,
+    device: torch.device,
+    n_batches: int,
+) -> dict[str, dict]:
     results: dict[str, dict] = {}
     criterion = nn.CrossEntropyLoss()
 
-    # QNN models: quantum layer gradient variance
     for label, model in models_all.items():
         model.eval()
         q_weights = model.q_layer.weights
         q_weights.requires_grad_(True)
-
         grad_vars: list[float] = []
         grad_means: list[float] = []
 
@@ -487,42 +466,29 @@ def run_gradient_variance(
             if i >= n_batches:
                 break
             images, labels = images.to(device), labels.to(device)
-
-            # Zero existing grads
             if q_weights.grad is not None:
                 q_weights.grad.zero_()
-
-            logits = model(images)
-            loss   = criterion(logits, labels)
+            loss = criterion(model(images), labels)
             loss.backward()
-
             if q_weights.grad is not None:
                 g = q_weights.grad.detach().cpu().float()
                 grad_vars.append(g.var().item())
                 grad_means.append(g.abs().mean().item())
 
-        # Restore no-grad state
         q_weights.requires_grad_(False)
-
         results[label] = {
             "target":             "quantum_layer_weights",
             "mean_grad_variance": round(float(np.mean(grad_vars)),  8),
             "mean_grad_abs_mean": round(float(np.mean(grad_means)), 8),
             "n_batches":          n_batches,
             "interpretation": (
-                "Quantum layer gradient variance across test batches. "
-                "Near-zero = barren plateau risk. "
+                "Near-zero variance = barren plateau risk. "
                 "Compare to CNN baseline — higher QNN variance = stronger quantum signal."
             ),
         }
-        logger.info(
-            f"  [{label}] Q-layer grad variance: {results[label]['mean_grad_variance']:.8f} "
-            f"| abs mean: {results[label]['mean_grad_abs_mean']:.8f}"
-        )
 
-    # CNN baseline: final linear layer gradient variance
+    # CNN baseline
     cnn_model.eval()
-    # Find the last Linear layer in the CNN
     final_linear: Optional[nn.Linear] = None
     for m in reversed(list(cnn_model.modules())):
         if isinstance(m, nn.Linear):
@@ -538,21 +504,16 @@ def run_gradient_variance(
             if i >= n_batches:
                 break
             images, labels = images.to(device), labels.to(device)
-
             if final_linear.weight.grad is not None:
                 final_linear.weight.grad.zero_()
-
-            logits = cnn_model(images)
-            loss   = criterion(logits, labels)
+            loss = criterion(cnn_model(images), labels)
             loss.backward()
-
             if final_linear.weight.grad is not None:
                 g = final_linear.weight.grad.detach().cpu().float()
                 cnn_grad_vars.append(g.var().item())
                 cnn_grad_means.append(g.abs().mean().item())
 
         final_linear.weight.requires_grad_(False)
-
         results["CNN_baseline"] = {
             "target":             "final_linear_layer_weights",
             "mean_grad_variance": round(float(np.mean(cnn_grad_vars)),  8),
@@ -560,38 +521,131 @@ def run_gradient_variance(
             "n_batches":          n_batches,
             "interpretation":     "CNN final-layer gradient variance for comparison.",
         }
-        logger.info(
-            f"  [CNN_baseline] Final linear grad variance: "
-            f"{results['CNN_baseline']['mean_grad_variance']:.8f}"
-        )
 
     return results
 
-# CSV Exports
+
+# ── Experiment 6 — Noise Robustness Ablation (NEW) ────────────────────────────
+
+@torch.no_grad()
+def run_noise_ablation(
+    models: dict[str, nn.Module],
+    test_loader: DataLoader,
+    device: torch.device,
+    noise_levels: dict[str, list] = QA_NOISE_LEVELS,
+) -> dict[str, dict]:
+    """
+    Runs the branch ablation (full / classical_only / quantum_only) under
+    noise to quantify the quantum branch's specific contribution to noise
+    robustness.
+
+    Key metric:
+        quantum_noise_gain = full_acc − classical_only_acc
+
+    If quantum_noise_gain *increases* as the noise level rises, the quantum
+    branch is specifically helping the model cope with degraded inputs — a
+    direct empirical answer to the research question.
+
+    Uses QA_NOISE_LEVELS (a reduced subset of the full benchmark grid) to
+    keep runtime reasonable for the QNN forward passes.
+
+    Returns:
+        {
+          model_key: {
+            noise_type: [
+              {
+                "level":                float,
+                "full_accuracy_%":      float,
+                "classical_only_%":     float,
+                "quantum_only_%":       float,
+                "quantum_noise_gain_%": float,   # full − classical_only
+              },
+              ...
+            ]
+          }
+        }
+    """
+    results: dict[str, dict] = {}
+
+    for label, model in models.items():
+        model.eval()
+        results[label] = {}
+
+        # Cache branch dimensions once per model
+        q_dim = model.post_quantum[-2].normalized_shape[0]
+        z_dim = model.backbone_dim
+
+        # Define the three forward functions for this model
+        def full_forward(x: torch.Tensor) -> torch.Tensor:
+            return model(x)
+
+        def classical_only_forward(x: torch.Tensor) -> torch.Tensor:
+            z, _ = _extract_classical_and_quantum(model, x, device)
+            q_blank = torch.zeros(x.size(0), q_dim, device=device, dtype=z.dtype)
+            return model.classifier(torch.cat([z, q_blank], dim=1))
+
+        def quantum_only_forward(x: torch.Tensor) -> torch.Tensor:
+            z, q_emb = _extract_classical_and_quantum(model, x, device)
+            z_blank  = torch.zeros(x.size(0), z_dim, device=device, dtype=z.dtype)
+            return model.classifier(torch.cat([z_blank, q_emb], dim=1))
+
+        for noise_type, levels in noise_levels.items():
+            logger.info(f"\n  [{label}] Noise ablation — {noise_type}")
+            rows: list[dict] = []
+
+            for level in tqdm(levels, desc=f"  {label}/{noise_type}", leave=False):
+                full_acc      = _evaluate_noisy(full_forward,       test_loader, device, noise_type, level)
+                classical_acc = _evaluate_noisy(classical_only_forward, test_loader, device, noise_type, level)
+                quantum_acc   = _evaluate_noisy(quantum_only_forward,   test_loader, device, noise_type, level)
+                gain          = round(full_acc - classical_acc, 4)
+
+                row = {
+                    "level":                level,
+                    "full_accuracy_%":      full_acc,
+                    "classical_only_%":     classical_acc,
+                    "quantum_only_%":       quantum_acc,
+                    "quantum_noise_gain_%": gain,
+                }
+                rows.append(row)
+
+                logger.info(
+                    f"    level={level:.4g} | full={full_acc:.2f}%  "
+                    f"classical={classical_acc:.2f}%  quantum={quantum_acc:.2f}%  "
+                    f"gain={gain:+.2f}%"
+                )
+
+            results[label][noise_type] = rows
+
+    return results
+
+
+# ── CSV Exports ────────────────────────────────────────────────────────────────
+
 def export_orthogonality_csv(results: dict, output_dir: str) -> None:
     path = os.path.join(output_dir, "qa_feature_orthogonality.csv")
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["model", "cosine_similarity", "interpretation"])
         for model_key, val in results.items():
-            interp = (
-                "orthogonal (good)" if val is not None and abs(val) < 0.3
-                else "partially correlated" if val is not None and abs(val) < 0.7
-                else "highly correlated (no advantage)"
-            )
+            if val is not None:
+                interp = (
+                    "orthogonal (good)"           if abs(val) < 0.3  else
+                    "partially correlated"         if abs(val) < 0.7  else
+                    "highly correlated (no advantage)"
+                )
+            else:
+                interp = "N/A"
             writer.writerow([model_key, _na(val), interp])
     logger.info(f"CSV saved: {path}")
+
 
 def export_ablation_csv(results: dict, output_dir: str) -> None:
     path = os.path.join(output_dir, "qa_branch_ablation.csv")
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow([
-            "model",
-            "full_accuracy_%",
-            "classical_only_accuracy_%",
-            "quantum_only_accuracy_%",
-            "quantum_gain_%",
+            "model", "full_accuracy_%", "classical_only_accuracy_%",
+            "quantum_only_accuracy_%", "quantum_gain_%",
         ])
         for model_key, r in results.items():
             writer.writerow([
@@ -603,15 +657,14 @@ def export_ablation_csv(results: dict, output_dir: str) -> None:
             ])
     logger.info(f"CSV saved: {path}")
 
+
 def export_reupload_csv(results: dict, output_dir: str) -> None:
     path = os.path.join(output_dir, "qa_reupload_ablation.csv")
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow([
-            "model",
-            "with_reupload_accuracy_%",
-            "without_reupload_accuracy_%",
-            "reupload_contribution_%",
+            "model", "with_reupload_accuracy_%",
+            "without_reupload_accuracy_%", "reupload_contribution_%",
         ])
         for model_key, r in results.items():
             writer.writerow([
@@ -622,6 +675,7 @@ def export_reupload_csv(results: dict, output_dir: str) -> None:
             ])
     logger.info(f"CSV saved: {path}")
 
+
 def export_entropy_csv(results: dict, n_qubits: int, output_dir: str) -> None:
     path = os.path.join(output_dir, "qa_entanglement_entropy.csv")
     with open(path, "w", newline="", encoding="utf-8") as f:
@@ -630,12 +684,12 @@ def export_entropy_csv(results: dict, n_qubits: int, output_dir: str) -> None:
         writer.writerow(["model", "overall_mean_entropy"] + qubit_headers)
         for model_key, r in results.items():
             per_qubit = r.get("mean_entropy_per_qubit", {})
-            row = [
-                model_key,
-                _na(r.get("overall_mean_entropy")),
-            ] + [_na(per_qubit.get(f"qubit_{i}")) for i in range(n_qubits)]
-            writer.writerow(row)
+            writer.writerow(
+                [model_key, _na(r.get("overall_mean_entropy"))]
+                + [_na(per_qubit.get(f"qubit_{i}")) for i in range(n_qubits)]
+            )
     logger.info(f"CSV saved: {path}")
+
 
 def export_grad_variance_csv(results: dict, output_dir: str) -> None:
     path = os.path.join(output_dir, "qa_gradient_variance.csv")
@@ -644,37 +698,59 @@ def export_grad_variance_csv(results: dict, output_dir: str) -> None:
         writer.writerow(["model", "target_layer", "mean_grad_variance", "mean_grad_abs_mean"])
         for model_key, r in results.items():
             writer.writerow([
-                model_key,
-                r.get("target", "N/A"),
+                model_key, r.get("target", "N/A"),
                 _na(r.get("mean_grad_variance")),
                 _na(r.get("mean_grad_abs_mean")),
             ])
     logger.info(f"CSV saved: {path}")
 
 
-# Model Loading
-def load_models(num_classes: int, device: torch.device,) -> tuple[dict[str, nn.Module], nn.Module]:
+def export_noise_ablation_csv(results: dict, output_dir: str) -> None:
     """
-    Returns (qnn_models, cnn_model).
-    QNN_GPU is skipped gracefully if CUDA is unavailable.
-    CNN is loaded separately for gradient variance baseline.
+    Flat CSV for Experiment 6 (noise robustness ablation).
+    Columns: model, noise_type, level, full_accuracy_%, classical_only_%,
+             quantum_only_%, quantum_noise_gain_%
     """
+    path = os.path.join(output_dir, "qa_noise_ablation.csv")
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            "model", "noise_type", "level",
+            "full_accuracy_%", "classical_only_%",
+            "quantum_only_%",  "quantum_noise_gain_%",
+        ])
+        for model_key, noise_dict in results.items():
+            for noise_type, rows in noise_dict.items():
+                for row in rows:
+                    writer.writerow([
+                        model_key, noise_type, row["level"],
+                        _na(row.get("full_accuracy_%")),
+                        _na(row.get("classical_only_%")),
+                        _na(row.get("quantum_only_%")),
+                        _na(row.get("quantum_noise_gain_%")),
+                    ])
+    logger.info(f"CSV saved: {path}")
+
+
+# ── Model Loading ──────────────────────────────────────────────────────────────
+
+def load_models(
+    num_classes: int,
+    device: torch.device,
+) -> tuple[dict[str, nn.Module], nn.Module]:
     qnn_models: dict[str, nn.Module] = {}
 
-    # CNN (gradient variance baseline only)
     cnn = CNN(num_classes=num_classes)
     cnn.load_model(CHECKPOINT_PATHS["CNN"], device)
     cnn.eval()
     logger.info("CNN loaded (gradient variance baseline)")
 
-    # QNN_CPU
     qnn_cpu = HybridQnnCPU(num_classes=num_classes)
     qnn_cpu.load_model(CHECKPOINT_PATHS["QNN_CPU"], device)
     qnn_cpu.eval()
     qnn_models["QNN_CPU"] = qnn_cpu
     logger.info("QNN_CPU loaded")
 
-    # QNN_GPU
     if torch.cuda.is_available():
         qnn_gpu = HybridQnnGPU(num_classes=num_classes)
         qnn_gpu.load_model(CHECKPOINT_PATHS["QNN_GPU"], device)
@@ -682,29 +758,23 @@ def load_models(num_classes: int, device: torch.device,) -> tuple[dict[str, nn.M
         qnn_models["QNN_GPU"] = qnn_gpu
         logger.info("QNN_GPU loaded")
     else:
-        logger.warning(
-            "CUDA unavailable — QNN_GPU excluded. "
-            "Entanglement entropy will still run for QNN_CPU."
-        )
+        logger.warning("CUDA unavailable — QNN_GPU excluded.")
 
     return qnn_models, cnn
 
-# Main
+
+# ── Main ───────────────────────────────────────────────────────────────────────
+
 def run_quantum_advantage() -> dict:
     cfg    = CONFIG
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Quantum Advantage Runner on device: {device}")
 
-    # Load class names
-    class_names_path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "..", CLASS_NAMES_PATH
-    )
-    with open(class_names_path, encoding="utf-8") as f:
+    with open(CLASS_NAMES_PATH, encoding="utf-8") as f:
         class_names: list[str] = json.load(f)
     num_classes = len(class_names)
     logger.info(f"Classes ({num_classes}): {class_names}")
 
-    # Data loaders
     manager = DataLoaderManager(
         train_dir=DATA_DIRS["train"],
         val_dir=DATA_DIRS["val"],
@@ -716,46 +786,44 @@ def run_quantum_advantage() -> dict:
     _, _, test_loader = manager.get_loaders()
     logger.info(f"Test set: {len(test_loader.dataset)} images")
 
-    # Load models
     qnn_models, cnn_model = load_models(num_classes, device)
 
-    # Experiment 1: Feature Orthogonality 
     logger.info("\n=== Experiment 1: Feature Orthogonality ===")
     orthogonality_results = run_feature_orthogonality(qnn_models, test_loader, device)
 
-    # Experiment 2: Branch Ablation
     logger.info("\n=== Experiment 2: Branch Ablation ===")
     ablation_results = run_branch_ablation(qnn_models, test_loader, device)
 
-    # Experiment 3: Re-upload Ablation
     logger.info("\n=== Experiment 3: Re-upload Ablation ===")
     reupload_results = run_reupload_ablation(
         qnn_models, test_loader, device,
-        n_qubits=cfg["n_qubits"],
-        q_depth=cfg["q_depth"],
+        n_qubits=cfg["n_qubits"], q_depth=cfg["q_depth"],
     )
 
-    # Experiment 4: Entanglement Entropy
     logger.info("\n=== Experiment 4: Entanglement Entropy ===")
-    logger.info(
-        "NOTE: QNN_GPU weights are mirrored onto default.qubit for this "
-        "experiment — lightning.gpu (adjoint diff) does not expose statevectors."
-    )
     entropy_results = run_entanglement_entropy(
         qnn_models, test_loader, device,
-        n_qubits=cfg["n_qubits"],
-        q_depth=cfg["q_depth"],
+        n_qubits=cfg["n_qubits"], q_depth=cfg["q_depth"],
         n_samples=cfg["entropy_samples"],
     )
 
-    # Experiment 5: Gradient Variance
     logger.info("\n=== Experiment 5: Quantum Gradient Variance ===")
     grad_variance_results = run_gradient_variance(
         qnn_models, cnn_model, test_loader, device,
         n_batches=cfg["grad_var_batches"],
     )
 
-    # Assemble JSON 
+    logger.info("\n=== Experiment 6: Noise Robustness Ablation ===")
+    logger.info(
+        "  Running full / classical-only / quantum-only under 5 noise types.\n"
+        "  quantum_noise_gain = full_acc - classical_only_acc at each level."
+    )
+    noise_ablation_results = run_noise_ablation(
+        qnn_models, test_loader, device,
+        noise_levels=QA_NOISE_LEVELS,
+    )
+
+    # Assemble JSON
     output = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "device":       str(device),
@@ -765,70 +833,72 @@ def run_quantum_advantage() -> dict:
             "entropy_samples": cfg["entropy_samples"],
             "grad_var_batches":cfg["grad_var_batches"],
             "class_names":     class_names,
+            "qa_noise_levels": QA_NOISE_LEVELS,
             "notes": {
                 "entanglement_entropy": (
                     "QNN_GPU uses lightning.gpu with adjoint differentiation which "
-                    "does not expose intermediate statevectors. For this experiment, "
-                    "trained weights are loaded into an equivalent default.qubit "
-                    "circuit (same topology, same weights) to enable statevector extraction."
+                    "does not expose intermediate statevectors. Weights are mirrored "
+                    "onto a default.qubit circuit for this experiment."
                 ),
-                "branch_ablation": (
-                    "classical_only: quantum branch replaced with zero tensor. "
-                    "quantum_only: classical backbone branch replaced with zero tensor. "
-                    "quantum_gain = full_accuracy - classical_only_accuracy."
-                ),
-                "gradient_variance": (
-                    "Gradient variance measured over frozen trained weights via "
-                    "forward+backward pass on test batches. No retraining occurs."
+                "noise_ablation": (
+                    "full: normal forward on noisy input. "
+                    "classical_only: quantum branch zeroed. "
+                    "quantum_only: classical branch zeroed. "
+                    "quantum_noise_gain = full − classical_only. "
+                    "Increasing gain as noise rises = quantum branch improves robustness."
                 ),
             },
         },
         "experiment_1_feature_orthogonality": orthogonality_results,
-        "experiment_2_branch_ablation":       ablation_results,
-        "experiment_3_reupload_ablation":     reupload_results,
-        "experiment_4_entanglement_entropy":  entropy_results,
-        "experiment_5_gradient_variance":     grad_variance_results,
+        "experiment_2_branch_ablation":        ablation_results,
+        "experiment_3_reupload_ablation":      reupload_results,
+        "experiment_4_entanglement_entropy":   entropy_results,
+        "experiment_5_gradient_variance":      grad_variance_results,
+        "experiment_6_noise_ablation":         noise_ablation_results,   # ← new
     }
 
-    # Save JSON
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2)
     logger.info(f"JSON saved: {OUTPUT_PATH}")
 
-    # Export CSVs
     logger.info("\n=== Exporting CSVs ===")
     export_orthogonality_csv(orthogonality_results, OUTPUT_DIR)
     export_ablation_csv(ablation_results, OUTPUT_DIR)
     export_reupload_csv(reupload_results, OUTPUT_DIR)
     export_entropy_csv(entropy_results, cfg["n_qubits"], OUTPUT_DIR)
     export_grad_variance_csv(grad_variance_results, OUTPUT_DIR)
+    export_noise_ablation_csv(noise_ablation_results, OUTPUT_DIR)         # ← new
 
-    print(f"\nJSON   {OUTPUT_PATH}")
-    print(f"CSVs   {OUTPUT_DIR}/")
-    print("  qa_feature_orthogonality.csv")
-    print("  qa_branch_ablation.csv")
-    print("  qa_reupload_ablation.csv")
-    print("  qa_entanglement_entropy.csv")
-    print("  qa_gradient_variance.csv")
-
-    # Print Summary 
-    print("\n" + "=" * 60)
+    # Summary
+    print("\n" + "=" * 70)
     print("QUANTUM ADVANTAGE SUMMARY")
-    print("=" * 60)
+    print("=" * 70)
     for model_key in qnn_models:
         print(f"\n  {model_key}")
         orth = orthogonality_results.get(model_key)
-        print(f"    Feature orthogonality (cosine sim): {orth:.4f}  "
-              f"{' orthogonal' if orth is not None and abs(orth) < 0.3 else '~ partial'}")
+        if orth is not None:
+            tag = "orthogonal ✓" if abs(orth) < 0.3 else "~ partial"
+            print(f"    Feature orthogonality:     {orth:.4f}  ({tag})")
         abl = ablation_results.get(model_key, {})
-        print(f"    Quantum branch gain:  {abl.get('quantum_gain_%', 'N/A'):+.2f}%")
+        print(f"    Quantum branch gain:       {abl.get('quantum_gain_%', 'N/A'):+.2f}%")
         reu = reupload_results.get(model_key, {})
-        print(f"    Re-upload contribution: {reu.get('reupload_contribution_%', 'N/A'):+.2f}%")
+        print(f"    Re-upload contribution:    {reu.get('reupload_contribution_%', 'N/A'):+.2f}%")
         ent = entropy_results.get(model_key, {})
-        print(f"    Mean entanglement entropy: {ent.get('overall_mean_entropy', 'N/A'):.4f}  "
-              f"{' entangled' if ent.get('overall_mean_entropy', 0) > 0.3 else '~ weak'}")
-    print("=" * 60)
+        overall_ent = ent.get("overall_mean_entropy", 0)
+        tag_e = "entangled ✓" if overall_ent > 0.3 else "~ weak"
+        print(f"    Mean entanglement entropy: {overall_ent:.4f}  ({tag_e})")
+        # Noise ablation summary — Gaussian gain at lowest vs highest level
+        if model_key in noise_ablation_results:
+            gaussian_rows = noise_ablation_results[model_key].get("gaussian", [])
+            if len(gaussian_rows) >= 2:
+                clean_gain = gaussian_rows[0].get("quantum_noise_gain_%", 0)
+                noisy_gain = gaussian_rows[-1].get("quantum_noise_gain_%", 0)
+                print(
+                    f"    Gaussian noise gain:       "
+                    f"{clean_gain:+.2f}% (clean) → {noisy_gain:+.2f}% (σ=0.50)"
+                )
+    print("=" * 70)
 
     return output
 
@@ -837,15 +907,13 @@ if __name__ == "__main__":
     torch_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"[INFO] PyTorch device: {torch_device}")
     if torch_device.type == "cuda":
-        print(f"  CUDA device count: {torch.cuda.device_count()}")
         for i in range(torch.cuda.device_count()):
             print(f"  Device {i}: {torch.cuda.get_device_name(i)}")
 
     try:
-        import pennylane as qml
-
         qml_dev = qml.device("default.qubit", wires=1)
-        print(f"[INFO] PennyLane CPU device: {qml_dev}")
+        print(f"[INFO] PennyLane device: {qml_dev}")
     except Exception as e:
-        print(f"[WARN] PennyLane CPU device failed: {e}")
+        print(f"[WARN] PennyLane check failed: {e}")
+
     run_quantum_advantage()

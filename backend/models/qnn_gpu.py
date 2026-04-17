@@ -21,7 +21,11 @@ Training:
     - Optimizer         : split Adam, quantum_lr_mult=3.5, cosine annealing schedule
     - Loss              : CrossEntropy + class weights + label smoothing=0.05
 """
+
 from __future__ import annotations
+
+import torch.multiprocessing
+torch.multiprocessing.set_sharing_strategy('file_system')
 
 import copy
 import json
@@ -43,7 +47,9 @@ from backend.data.preprocessing import PreProcessing
 from backend.models.cnn import ResidualBlock
 from backend.utils.logger import Logger
 
-
+import resource
+soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+resource.setrlimit(resource.RLIMIT_NOFILE, (65535, hard))
 
 # Quantum Feature Selector
 class QuantumFeatureSelector(nn.Module):
@@ -150,10 +156,9 @@ def _quantum_forward(
     q_input: torch.Tensor,
     device: torch.device,
 ) -> torch.Tensor:
-    # lightning.gpu + adjoint supports batched execution natively.
-    # No CPU transfer, no per-sample loop — pass the whole batch at once.
     with torch.amp.autocast(device_type=device.type, enabled=False):
-        return q_layer(q_input.float())
+        q_input = q_input.to(device=device, dtype=torch.float32)  # or float64 if you standardize on that
+        return q_layer(q_input).to(device=device, dtype=q_input.dtype)
 
 
 
@@ -218,8 +223,7 @@ class HybridQnnGPU(nn.Module):
         try:
             self.q_device = qml.device("lightning.gpu", wires=n_qubits)
         except Exception as e:
-            self.logger.error(f"lightning.gpu failed, falling back to lightning.qubit. Error: {e}")
-            self.q_device = qml.device("lightning.qubit", wires=n_qubits)
+            self.logger.error(f"lightning.gpu failed. Error: {e}")
         self.q_layer = vqc(self.q_device, n_qubits, q_depth)
 
         # Post-quantum: 18 inputs (6 × 3 bases), residual on Z channel applied
@@ -653,8 +657,8 @@ class HybridQnnGPU(nn.Module):
         classical = [p for p in self.parameters() if id(p) not in q_ids]
 
         opt = Adam([
-            {"params": classical, "lr": learning_rate,                    "weight_decay": 1e-4},
-            {"params": q_params,  "lr": learning_rate * quantum_lr_mult,  "weight_decay": 0.0},
+            {"params": classical, "lr": learning_rate},
+            {"params": q_params,  "lr": learning_rate * quantum_lr_mult},
         ])
         sched  = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=num_epochs)
         scaler = torch.amp.GradScaler(device.type, enabled=device.type == "cuda")
@@ -788,9 +792,8 @@ class HybridQnnGPU(nn.Module):
             self._quantum_shadow[name] = param.data.clone()
 
 
-
 if __name__ == "__main__":
-    epochs = 50
+    epochs = 75
     batch_size = 16
     lr = 5e-4
     quantum_lr_mult = 3.5
@@ -802,6 +805,7 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"PyTorch device: {device}")
     if device.type == "cuda":
+        torch.backends.cudnn.benchmark = True 
         print(f"GPU: {torch.cuda.get_device_name(0)}")
     
     print(f"PennyLane device initialized: {device_name}")

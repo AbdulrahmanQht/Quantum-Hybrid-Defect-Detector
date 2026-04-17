@@ -32,50 +32,89 @@ _qa_cache: Optional["QuantumAdvantageResults"] = None
 
 # Pydantic models — mirror quantum_advantage_results.json exactly
 class QANotes(BaseModel):
+    """
+    Descriptive strings stored in the config block for documentation purposes.
+    FIX: noise_ablation is a new key written by Experiment 6.
+    """
     entanglement_entropy: str
-    branch_ablation: str
-    gradient_variance: str
-
+    branch_ablation:      str
+    gradient_variance:    str
+    noise_ablation:       str
+ 
+ 
 class QAConfig(BaseModel):
-    n_qubits:         int
-    q_depth:          int
-    entropy_samples:  int
+    """
+    Config block written at the top of quantum_advantage_results.json.
+    """
+    n_qubits: int
+    q_depth: int
+    entropy_samples: int
     grad_var_batches: int
-    class_names:      list[str]
-    notes:            QANotes
-
+    class_names: list[str]
+    qa_noise_levels: dict[str, list]
+    notes: QANotes
+ 
+ 
 class BranchAblationMetrics(BaseModel):
-    full_accuracy:           Optional[float] = None
+    """Experiment 2 — clean branch ablation (no noise)."""
+    model_config = ConfigDict(populate_by_name=True)
+ 
+    full_accuracy: Optional[float] = None
     classical_only_accuracy: Optional[float] = None
-    quantum_only_accuracy:   Optional[float] = None
-    quantum_gain_pct:        Optional[float] = Field(None, alias="quantum_gain_%")
+    quantum_only_accuracy: Optional[float] = None
+    quantum_gain_pct: Optional[float] = Field(None, alias="quantum_gain_%")
 
 class ReuploadAblationMetrics(BaseModel):
-    with_reupload_accuracy:    Optional[float] = None
+    """Experiment 3 — re-upload ablation."""
+    model_config = ConfigDict(populate_by_name=True)
+    with_reupload_accuracy: Optional[float] = None
     without_reupload_accuracy: Optional[float] = None
     reupload_contribution_pct: Optional[float] = Field(None, alias="reupload_contribution_%")
 
 class EntanglementMetrics(BaseModel):
+    """Experiment 4 — von Neumann entropy per qubit."""
     mean_entropy_per_qubit: dict[str, Optional[float]]
-    overall_mean_entropy:   Optional[float] = None
-    interpretation:         str
+    overall_mean_entropy: Optional[float] = None
+    interpretation: str
 
 class GradientVarianceMetrics(BaseModel):
-    target:             str
+    """Experiment 5 — quantum layer gradient variance."""
+    target: str
     mean_grad_variance: float
     mean_grad_abs_mean: float
-    n_batches:          int
-    interpretation:     str
+    n_batches: int
+    interpretation: str
+    
+class NoiseAblationRow(BaseModel):
+    """
+    One row in the Experiment 6 noise ablation sweep.
+ 
+    full_accuracy_%        — normal forward pass on noisy input
+    classical_only_%       — quantum branch zeroed
+    quantum_only_%         — classical branch zeroed
+    quantum_noise_gain_%   — full_accuracy_% − classical_only_%
+                             A positive and increasing value as noise rises
+                             proves the quantum branch improves robustness.
+    """
+    model_config = ConfigDict(populate_by_name=True)
+ 
+    level: float
+ 
+    full_accuracy_pct: Optional[float] = Field(None, alias="full_accuracy_%")
+    classical_only_pct: Optional[float] = Field(None, alias="classical_only_%")
+    quantum_only_pct: Optional[float] = Field(None, alias="quantum_only_%")
+    quantum_noise_gain_pct: Optional[float] = Field(None, alias="quantum_noise_gain_%")
 
 class QuantumAdvantageResults(BaseModel):
-    generated_at:                       str
-    device:                             str
-    config:                             QAConfig
+    generated_at: str
+    device: str
+    config: QAConfig
     experiment_1_feature_orthogonality: dict[str, Optional[float]]
-    experiment_2_branch_ablation:       dict[str, BranchAblationMetrics]
-    experiment_3_reupload_ablation:     dict[str, ReuploadAblationMetrics]
-    experiment_4_entanglement_entropy:  dict[str, EntanglementMetrics]
-    experiment_5_gradient_variance:     dict[str, GradientVarianceMetrics]
+    experiment_2_branch_ablation: dict[str, BranchAblationMetrics]
+    experiment_3_reupload_ablation: dict[str, ReuploadAblationMetrics]
+    experiment_4_entanglement_entropy: dict[str, EntanglementMetrics]
+    experiment_5_gradient_variance: dict[str, GradientVarianceMetrics]
+    experiment_6_noise_ablation: dict[str, dict[str, list[NoiseAblationRow]]]
 
 # Cache loader — called once
 def _load_qa_results() -> QuantumAdvantageResults:
@@ -96,8 +135,20 @@ def _load_qa_results() -> QuantumAdvantageResults:
     try:
         with open(QA_RESULTS_FILE, encoding="utf-8") as f:
             raw = json.load(f)
+        exp6_raw = raw.get("experiment_6_noise_ablation", {})
+        exp6_parsed: dict[str, dict[str, list[NoiseAblationRow]]] = {}
+        for model_name, noise_dict in exp6_raw.items():
+            exp6_parsed[model_name] = {}
+            for noise_type, rows in noise_dict.items():
+                exp6_parsed[model_name][noise_type] = [
+                    NoiseAblationRow.model_validate(r) for r in rows
+                ]
+        raw["experiment_6_noise_ablation"] = exp6_parsed
+ 
         result = QuantumAdvantageResults.model_validate(raw)
-        logger.info(f"Quantum Advantage results loaded and cached from {QA_RESULTS_FILE}")
+        logger.info(
+            f"Quantum Advantage results loaded and cached from {QA_RESULTS_FILE}"
+        )
         return result
 
     except json.JSONDecodeError as exc:
@@ -123,10 +174,13 @@ def _get_cached_qa_results() -> QuantumAdvantageResults:
     response_model=QuantumAdvantageResults,
     summary="Get quantum advantage results",
     description=(
-        "Returns pre-computed quantum advantage metrics spanning feature orthogonality, "
-        "branch ablation, re-upload ablation, entanglement entropy, and gradient variance. "
-        "Results are loaded from disk once on the first request and served from memory thereafter. "
-        "Re-generate results by running `quantum_advantage_runner.py` and restarting the server."
+        "Returns pre-computed quantum advantage metrics spanning feature "
+        "orthogonality, branch ablation, re-upload ablation, entanglement "
+        "entropy, gradient variance, and noise robustness ablation (Exp. 6). "
+        "Results are loaded from disk once on the first request and served "
+        "from memory thereafter. "
+        "Re-generate by running quantum_advantage_runner.py and restarting "
+        "the server."
     ),
 )
 def get_quantum_advantage() -> QuantumAdvantageResults:
