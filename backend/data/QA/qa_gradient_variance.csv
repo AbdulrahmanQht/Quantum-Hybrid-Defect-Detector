@@ -1,4 +1,4 @@
 model,target_layer,mean_grad_variance,mean_grad_abs_mean
-QNN_CPU,quantum_layer_weights,0.00018431,0.00698399
-QNN_GPU,quantum_layer_weights,8.896e-05,0.00425189
-CNN_baseline,final_linear_layer_weights,0.00103827,0.01691862
+QNN_CPU,quantum_layer_weights,0.00011858,0.00643699
+QNN_GPU,quantum_layer_weights,8.225e-05,0.00504466
+CNN_baseline,final_linear_layer_weights,0.00054249,0.01195558

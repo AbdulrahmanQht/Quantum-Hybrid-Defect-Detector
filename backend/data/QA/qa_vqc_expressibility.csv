@@ -1,0 +1,3 @@
+model,kl_divergence_from_haar,mean_fidelity,std_fidelity,haar_reference,n_pairs
+QNN_CPU,0.198511,0.017307,0.034728,"Beta(1, 63)",1000
+QNN_GPU,0.237965,0.017161,0.036244,"Beta(1, 63)",1000

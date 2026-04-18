@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-07T12:40:50.586496+00:00",
+  "generated_at": "2026-04-17T19:35:48.476781+00:00",
   "device": "cuda",
   "config": {
     "test_set_size": 2833,
@@ -16,423 +16,963 @@
       "Obstacle",
       "Rupture"
     ],
-    "noise_sigmas": [
-      0.0,
-      0.05,
-      0.1,
-      0.15,
-      0.2,
-      0.25,
-      0.3,
-      0.4,
-      0.5,
-      0.6,
-      0.75
-    ]
+    "noise_levels": {
+      "gaussian": [
+        0.0,
+        0.05,
+        0.1,
+        0.15,
+        0.2,
+        0.25,
+        0.3,
+        0.4,
+        0.5,
+        0.6,
+        0.75
+      ],
+      "blur": [
+        0.0,
+        0.3,
+        0.6,
+        0.9,
+        1.2,
+        1.5,
+        2.0,
+        2.5,
+        3.0
+      ],
+      "contrast": [
+        1.0,
+        0.85,
+        0.7,
+        0.55,
+        0.4,
+        0.25,
+        0.1
+      ],
+      "salt_pepper": [
+        0.0,
+        0.005,
+        0.01,
+        0.02,
+        0.04,
+        0.07,
+        0.1
+      ],
+      "motion_blur": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        6,
+        8,
+        10
+      ],
+      "jpeg_compression": [
+        100,
+        85,
+        70,
+        55,
+        40,
+        25,
+        10
+      ],
+      "lens_occlusion": [
+        0.0,
+        0.02,
+        0.04,
+        0.08,
+        0.12,
+        0.16,
+        0.2
+      ]
+    }
   },
   "clean_evaluation": {
     "CNN": {
-      "accuracy": 89.5164,
+      "accuracy": 93.4698,
       "per_class": {
         "Deformation": {
-          "accuracy": 88.24,
-          "precision": 90.36,
-          "recall": 88.24,
-          "f1": 89.29,
+          "accuracy": 94.31,
+          "precision": 93.58,
+          "recall": 94.31,
+          "f1": 93.95,
           "support": 510
         },
         "Deposition": {
-          "accuracy": 89.86,
-          "precision": 89.1,
-          "recall": 89.86,
-          "f1": 89.48,
+          "accuracy": 93.3,
+          "precision": 92.5,
+          "recall": 93.3,
+          "f1": 92.9,
           "support": 582
         },
         "Disconnect": {
-          "accuracy": 93.45,
-          "precision": 94.01,
-          "recall": 93.45,
-          "f1": 93.73,
+          "accuracy": 97.92,
+          "precision": 93.2,
+          "recall": 97.92,
+          "f1": 95.5,
           "support": 336
         },
         "Misalignment": {
-          "accuracy": 92.01,
-          "precision": 85.91,
-          "recall": 92.01,
-          "f1": 88.86,
+          "accuracy": 93.79,
+          "precision": 94.63,
+          "recall": 93.79,
+          "f1": 94.21,
           "support": 338
         },
         "Obstacle": {
-          "accuracy": 86.61,
-          "precision": 87.86,
-          "recall": 86.61,
-          "f1": 87.23,
+          "accuracy": 89.61,
+          "precision": 94.36,
+          "recall": 89.61,
+          "f1": 91.92,
           "support": 635
         },
         "Rupture": {
-          "accuracy": 89.81,
-          "precision": 91.08,
-          "recall": 89.81,
-          "f1": 90.44,
+          "accuracy": 94.68,
+          "precision": 92.74,
+          "recall": 94.68,
+          "f1": 93.7,
           "support": 432
         }
       },
       "averages": {
         "macro": {
-          "precision": 89.72,
-          "recall": 90.0,
-          "f1": 89.84
+          "precision": 93.5,
+          "recall": 93.93,
+          "f1": 93.7
         },
         "weighted": {
-          "precision": 89.55,
-          "recall": 89.52,
-          "f1": 89.52
+          "precision": 93.49,
+          "recall": 93.47,
+          "f1": 93.46
         }
       },
       "confusion_matrix": [
         [
-          450,
-          10,
+          481,
+          7,
           3,
-          13,
-          12,
-          22
+          4,
+          3,
+          12
         ],
         [
-          6,
-          523,
-          0,
-          2,
-          47,
-          4
-        ],
-        [
-          2,
+          3,
+          543,
           1,
-          314,
-          10,
-          5,
-          4
-        ],
-        [
-          13,
           1,
-          5,
-          311,
-          7,
-          1
-        ],
-        [
-          6,
-          51,
-          7,
-          14,
-          550,
+          27,
           7
         ],
         [
-          21,
+          2,
+          0,
+          329,
+          2,
           1,
-          5,
-          12,
-          5,
-          388
+          2
+        ],
+        [
+          8,
+          1,
+          7,
+          317,
+          2,
+          3
+        ],
+        [
+          9,
+          36,
+          4,
+          9,
+          569,
+          8
+        ],
+        [
+          11,
+          0,
+          9,
+          2,
+          1,
+          409
         ]
       ],
       "n_samples": 2833
     },
     "QNN_CPU": {
-      "accuracy": 90.1871,
+      "accuracy": 94.8818,
       "per_class": {
         "Deformation": {
-          "accuracy": 89.22,
-          "precision": 91.0,
-          "recall": 89.22,
-          "f1": 90.1,
+          "accuracy": 93.33,
+          "precision": 96.95,
+          "recall": 93.33,
+          "f1": 95.1,
           "support": 510
         },
         "Deposition": {
-          "accuracy": 90.21,
-          "precision": 90.99,
-          "recall": 90.21,
-          "f1": 90.6,
+          "accuracy": 95.53,
+          "precision": 94.4,
+          "recall": 95.53,
+          "f1": 94.96,
           "support": 582
         },
         "Disconnect": {
-          "accuracy": 96.43,
-          "precision": 88.28,
-          "recall": 96.43,
-          "f1": 92.18,
+          "accuracy": 97.02,
+          "precision": 97.02,
+          "recall": 97.02,
+          "f1": 97.02,
           "support": 336
         },
         "Misalignment": {
-          "accuracy": 90.83,
-          "precision": 88.22,
-          "recall": 90.83,
-          "f1": 89.5,
+          "accuracy": 94.08,
+          "precision": 93.26,
+          "recall": 94.08,
+          "f1": 93.67,
           "support": 338
         },
         "Obstacle": {
-          "accuracy": 86.77,
-          "precision": 89.89,
-          "recall": 86.77,
-          "f1": 88.3,
+          "accuracy": 93.23,
+          "precision": 94.42,
+          "recall": 93.23,
+          "f1": 93.82,
           "support": 635
         },
         "Rupture": {
-          "accuracy": 90.97,
-          "precision": 91.82,
-          "recall": 90.97,
-          "f1": 91.4,
+          "accuracy": 97.22,
+          "precision": 93.54,
+          "recall": 97.22,
+          "f1": 95.35,
           "support": 432
         }
       },
       "averages": {
         "macro": {
-          "precision": 90.03,
-          "recall": 90.74,
-          "f1": 90.35
+          "precision": 94.93,
+          "recall": 95.07,
+          "f1": 94.99
         },
         "weighted": {
-          "precision": 90.22,
-          "recall": 90.19,
-          "f1": 90.17
+          "precision": 94.91,
+          "recall": 94.88,
+          "f1": 94.88
         }
       },
       "confusion_matrix": [
         [
-          455,
-          8,
-          8,
-          19,
-          2,
-          18
-        ],
-        [
+          476,
           4,
-          525,
-          1,
-          1,
-          45,
-          6
+          3,
+          5,
+          6,
+          16
         ],
         [
-          2,
+          1,
+          556,
           0,
-          324,
-          4,
-          4,
+          1,
+          22,
           2
         ],
         [
-          13,
           1,
-          14,
-          307,
           2,
-          1
+          326,
+          6,
+          1,
+          0
         ],
         [
-          13,
-          41,
-          10,
-          12,
-          551,
-          8
+          6,
+          2,
+          3,
+          318,
+          4,
+          5
         ],
         [
-          13,
+          3,
+          24,
           2,
-          10,
-          5,
-          9,
-          393
+          8,
+          592,
+          6
+        ],
+        [
+          4,
+          1,
+          2,
+          3,
+          2,
+          420
         ]
       ],
       "n_samples": 2833
     },
     "QNN_GPU": {
-      "accuracy": 88.881,
+      "accuracy": 95.5877,
       "per_class": {
         "Deformation": {
-          "accuracy": 87.65,
-          "precision": 92.93,
-          "recall": 87.65,
-          "f1": 90.21,
+          "accuracy": 96.86,
+          "precision": 95.74,
+          "recall": 96.86,
+          "f1": 96.3,
           "support": 510
         },
         "Deposition": {
-          "accuracy": 89.18,
-          "precision": 87.97,
-          "recall": 89.18,
-          "f1": 88.57,
+          "accuracy": 96.39,
+          "precision": 94.92,
+          "recall": 96.39,
+          "f1": 95.65,
           "support": 582
         },
         "Disconnect": {
-          "accuracy": 91.67,
-          "precision": 94.19,
-          "recall": 91.67,
-          "f1": 92.91,
+          "accuracy": 97.62,
+          "precision": 96.76,
+          "recall": 97.62,
+          "f1": 97.19,
           "support": 336
         },
         "Misalignment": {
-          "accuracy": 91.72,
-          "precision": 85.87,
-          "recall": 91.72,
-          "f1": 88.7,
+          "accuracy": 94.38,
+          "precision": 95.22,
+          "recall": 94.38,
+          "f1": 94.8,
           "support": 338
         },
         "Obstacle": {
-          "accuracy": 84.09,
-          "precision": 87.25,
-          "recall": 84.09,
-          "f1": 85.65,
+          "accuracy": 92.6,
+          "precision": 96.39,
+          "recall": 92.6,
+          "f1": 94.46,
           "support": 635
         },
         "Rupture": {
-          "accuracy": 92.59,
-          "precision": 86.58,
-          "recall": 92.59,
-          "f1": 89.49,
+          "accuracy": 96.76,
+          "precision": 94.57,
+          "recall": 96.76,
+          "f1": 95.65,
           "support": 432
         }
       },
       "averages": {
         "macro": {
-          "precision": 89.13,
-          "recall": 89.48,
-          "f1": 89.25
+          "precision": 95.6,
+          "recall": 95.77,
+          "f1": 95.67
         },
         "weighted": {
-          "precision": 88.98,
-          "recall": 88.88,
-          "f1": 88.88
+          "precision": 95.6,
+          "recall": 95.59,
+          "f1": 95.58
         }
       },
       "confusion_matrix": [
         [
-          447,
-          6,
-          1,
-          15,
-          8,
-          33
-        ],
-        [
-          2,
-          519,
-          0,
-          1,
-          55,
-          5
-        ],
-        [
-          5,
+          494,
           3,
-          308,
-          10,
-          5,
-          5
-        ],
-        [
-          7,
+          2,
+          2,
           1,
-          7,
-          310,
-          5,
           8
         ],
         [
-          7,
-          59,
-          7,
-          17,
-          534,
-          11
+          2,
+          561,
+          1,
+          0,
+          16,
+          2
         ],
         [
-          13,
-          2,
+          1,
+          0,
+          328,
           4,
-          8,
+          1,
+          2
+        ],
+        [
+          6,
+          3,
+          3,
+          319,
+          3,
+          4
+        ],
+        [
           5,
-          400
+          24,
+          3,
+          7,
+          588,
+          8
+        ],
+        [
+          8,
+          0,
+          2,
+          3,
+          1,
+          418
         ]
       ],
       "n_samples": 2833
     }
   },
-  "noise_robustness": [
-    {
-      "sigma": 0.0,
-      "CNN": 89.5164,
-      "QNN_CPU": 90.1871,
-      "QNN_GPU": 88.881
+  "noise_robustness": {
+    "gaussian": [
+      {
+        "level": 0.0,
+        "CNN": 93.4698,
+        "CNN_mean_conf": 88.0359,
+        "QNN_CPU": 94.8818,
+        "QNN_CPU_mean_conf": 90.0827,
+        "QNN_GPU": 95.5877,
+        "QNN_GPU_mean_conf": 90.6653
+      },
+      {
+        "level": 0.05,
+        "CNN": 93.6463,
+        "CNN_mean_conf": 87.228,
+        "QNN_CPU": 94.9876,
+        "QNN_CPU_mean_conf": 89.3402,
+        "QNN_GPU": 95.3406,
+        "QNN_GPU_mean_conf": 90.1493
+      },
+      {
+        "level": 0.1,
+        "CNN": 91.3166,
+        "CNN_mean_conf": 83.6132,
+        "QNN_CPU": 92.9403,
+        "QNN_CPU_mean_conf": 86.3773,
+        "QNN_GPU": 92.9756,
+        "QNN_GPU_mean_conf": 86.9155
+      },
+      {
+        "level": 0.15,
+        "CNN": 83.9746,
+        "CNN_mean_conf": 78.5965,
+        "QNN_CPU": 86.622,
+        "QNN_CPU_mean_conf": 80.8884,
+        "QNN_GPU": 85.8101,
+        "QNN_GPU_mean_conf": 80.9949
+      },
+      {
+        "level": 0.2,
+        "CNN": 72.8909,
+        "CNN_mean_conf": 72.5747,
+        "QNN_CPU": 76.3502,
+        "QNN_CPU_mean_conf": 75.0452,
+        "QNN_GPU": 74.3382,
+        "QNN_GPU_mean_conf": 74.4635
+      },
+      {
+        "level": 0.25,
+        "CNN": 63.078,
+        "CNN_mean_conf": 67.9639,
+        "QNN_CPU": 65.5136,
+        "QNN_CPU_mean_conf": 68.2045,
+        "QNN_GPU": 61.9838,
+        "QNN_GPU_mean_conf": 67.9694
+      },
+      {
+        "level": 0.3,
+        "CNN": 52.4179,
+        "CNN_mean_conf": 63.5569,
+        "QNN_CPU": 54.8888,
+        "QNN_CPU_mean_conf": 62.2315,
+        "QNN_GPU": 52.7356,
+        "QNN_GPU_mean_conf": 61.0833
+      },
+      {
+        "level": 0.4,
+        "CNN": 34.5217,
+        "CNN_mean_conf": 58.2182,
+        "QNN_CPU": 38.6869,
+        "QNN_CPU_mean_conf": 51.1294,
+        "QNN_GPU": 28.9093,
+        "QNN_GPU_mean_conf": 51.1465
+      },
+      {
+        "level": 0.5,
+        "CNN": 23.0145,
+        "CNN_mean_conf": 57.1745,
+        "QNN_CPU": 27.9915,
+        "QNN_CPU_mean_conf": 44.8079,
+        "QNN_GPU": 20.5789,
+        "QNN_GPU_mean_conf": 48.037
+      },
+      {
+        "level": 0.6,
+        "CNN": 17.6844,
+        "CNN_mean_conf": 57.6471,
+        "QNN_CPU": 22.2026,
+        "QNN_CPU_mean_conf": 42.1167,
+        "QNN_GPU": 18.6375,
+        "QNN_GPU_mean_conf": 44.6506
+      },
+      {
+        "level": 0.75,
+        "CNN": 13.3074,
+        "CNN_mean_conf": 59.0666,
+        "QNN_CPU": 18.4963,
+        "QNN_CPU_mean_conf": 39.697,
+        "QNN_GPU": 16.0607,
+        "QNN_GPU_mean_conf": 40.7617
+      }
+    ],
+    "blur": [
+      {
+        "level": 0.0,
+        "CNN": 93.4698,
+        "CNN_mean_conf": 88.0359,
+        "QNN_CPU": 94.8818,
+        "QNN_CPU_mean_conf": 90.0827,
+        "QNN_GPU": 95.5877,
+        "QNN_GPU_mean_conf": 90.6653
+      },
+      {
+        "level": 0.3,
+        "CNN": 93.4698,
+        "CNN_mean_conf": 88.0417,
+        "QNN_CPU": 94.917,
+        "QNN_CPU_mean_conf": 90.0878,
+        "QNN_GPU": 95.5877,
+        "QNN_GPU_mean_conf": 90.6714
+      },
+      {
+        "level": 0.6,
+        "CNN": 93.6816,
+        "CNN_mean_conf": 88.172,
+        "QNN_CPU": 94.917,
+        "QNN_CPU_mean_conf": 90.2367,
+        "QNN_GPU": 95.7289,
+        "QNN_GPU_mean_conf": 90.8134
+      },
+      {
+        "level": 0.9,
+        "CNN": 93.7875,
+        "CNN_mean_conf": 88.1063,
+        "QNN_CPU": 95.0935,
+        "QNN_CPU_mean_conf": 90.1856,
+        "QNN_GPU": 95.6583,
+        "QNN_GPU_mean_conf": 90.8248
+      },
+      {
+        "level": 1.2,
+        "CNN": 93.5051,
+        "CNN_mean_conf": 87.7817,
+        "QNN_CPU": 94.8112,
+        "QNN_CPU_mean_conf": 89.8288,
+        "QNN_GPU": 95.4818,
+        "QNN_GPU_mean_conf": 90.5692
+      },
+      {
+        "level": 1.5,
+        "CNN": 92.7992,
+        "CNN_mean_conf": 87.091,
+        "QNN_CPU": 94.0346,
+        "QNN_CPU_mean_conf": 89.1397,
+        "QNN_GPU": 94.5641,
+        "QNN_GPU_mean_conf": 89.8317
+      },
+      {
+        "level": 2.0,
+        "CNN": 90.1165,
+        "CNN_mean_conf": 84.8378,
+        "QNN_CPU": 91.5637,
+        "QNN_CPU_mean_conf": 87.0103,
+        "QNN_GPU": 92.7639,
+        "QNN_GPU_mean_conf": 87.2698
+      },
+      {
+        "level": 2.5,
+        "CNN": 85.5277,
+        "CNN_mean_conf": 81.6613,
+        "QNN_CPU": 87.8221,
+        "QNN_CPU_mean_conf": 83.4891,
+        "QNN_GPU": 88.0339,
+        "QNN_GPU_mean_conf": 84.0389
+      },
+      {
+        "level": 3.0,
+        "CNN": 80.1624,
+        "CNN_mean_conf": 78.4289,
+        "QNN_CPU": 79.88,
+        "QNN_CPU_mean_conf": 79.3807,
+        "QNN_GPU": 82.1744,
+        "QNN_GPU_mean_conf": 81.0491
+      }
+    ],
+    "contrast": [
+      {
+        "level": 1.0,
+        "CNN": 93.4698,
+        "CNN_mean_conf": 88.0359,
+        "QNN_CPU": 94.8818,
+        "QNN_CPU_mean_conf": 90.0827,
+        "QNN_GPU": 95.5877,
+        "QNN_GPU_mean_conf": 90.6653
+      },
+      {
+        "level": 0.85,
+        "CNN": 93.8581,
+        "CNN_mean_conf": 87.9462,
+        "QNN_CPU": 95.1994,
+        "QNN_CPU_mean_conf": 90.215,
+        "QNN_GPU": 95.6583,
+        "QNN_GPU_mean_conf": 90.7176
+      },
+      {
+        "level": 0.7,
+        "CNN": 94.1405,
+        "CNN_mean_conf": 87.3377,
+        "QNN_CPU": 94.5288,
+        "QNN_CPU_mean_conf": 89.714,
+        "QNN_GPU": 94.9523,
+        "QNN_GPU_mean_conf": 90.2278
+      },
+      {
+        "level": 0.55,
+        "CNN": 92.3756,
+        "CNN_mean_conf": 85.7919,
+        "QNN_CPU": 93.9287,
+        "QNN_CPU_mean_conf": 88.2844,
+        "QNN_GPU": 94.2817,
+        "QNN_GPU_mean_conf": 88.7538
+      },
+      {
+        "level": 0.4,
+        "CNN": 88.0339,
+        "CNN_mean_conf": 82.0456,
+        "QNN_CPU": 89.4811,
+        "QNN_CPU_mean_conf": 84.4335,
+        "QNN_GPU": 89.4458,
+        "QNN_GPU_mean_conf": 84.7604
+      },
+      {
+        "level": 0.25,
+        "CNN": 70.7377,
+        "CNN_mean_conf": 73.2144,
+        "QNN_CPU": 70.0318,
+        "QNN_CPU_mean_conf": 74.5037,
+        "QNN_GPU": 71.0554,
+        "QNN_GPU_mean_conf": 74.2868
+      },
+      {
+        "level": 0.1,
+        "CNN": 30.9213,
+        "CNN_mean_conf": 64.1439,
+        "QNN_CPU": 28.8387,
+        "QNN_CPU_mean_conf": 69.0093,
+        "QNN_GPU": 25.3089,
+        "QNN_GPU_mean_conf": 69.1589
+      }
+    ],
+    "salt_pepper": [
+      {
+        "level": 0.0,
+        "CNN": 93.4698,
+        "CNN_mean_conf": 88.0359,
+        "QNN_CPU": 94.8818,
+        "QNN_CPU_mean_conf": 90.0827,
+        "QNN_GPU": 95.5877,
+        "QNN_GPU_mean_conf": 90.6653
+      },
+      {
+        "level": 0.005,
+        "CNN": 93.5404,
+        "CNN_mean_conf": 87.8097,
+        "QNN_CPU": 94.9876,
+        "QNN_CPU_mean_conf": 89.9526,
+        "QNN_GPU": 95.3759,
+        "QNN_GPU_mean_conf": 90.4822
+      },
+      {
+        "level": 0.01,
+        "CNN": 93.3992,
+        "CNN_mean_conf": 87.4573,
+        "QNN_CPU": 94.8112,
+        "QNN_CPU_mean_conf": 89.8531,
+        "QNN_GPU": 95.0582,
+        "QNN_GPU_mean_conf": 90.2277
+      },
+      {
+        "level": 0.02,
+        "CNN": 93.0109,
+        "CNN_mean_conf": 86.8722,
+        "QNN_CPU": 94.8818,
+        "QNN_CPU_mean_conf": 89.358,
+        "QNN_GPU": 94.9876,
+        "QNN_GPU_mean_conf": 89.9432
+      },
+      {
+        "level": 0.04,
+        "CNN": 91.4931,
+        "CNN_mean_conf": 85.3813,
+        "QNN_CPU": 94.0346,
+        "QNN_CPU_mean_conf": 88.2274,
+        "QNN_GPU": 93.6463,
+        "QNN_GPU_mean_conf": 88.6518
+      },
+      {
+        "level": 0.07,
+        "CNN": 88.5987,
+        "CNN_mean_conf": 82.0203,
+        "QNN_CPU": 90.3283,
+        "QNN_CPU_mean_conf": 85.0325,
+        "QNN_GPU": 91.0695,
+        "QNN_GPU_mean_conf": 86.1071
+      },
+      {
+        "level": 0.1,
+        "CNN": 83.4098,
+        "CNN_mean_conf": 78.7461,
+        "QNN_CPU": 84.8923,
+        "QNN_CPU_mean_conf": 80.4288,
+        "QNN_GPU": 85.4924,
+        "QNN_GPU_mean_conf": 81.9604
+      }
+    ],
+    "motion_blur": [
+      {
+        "level": 0,
+        "CNN": 93.4698,
+        "CNN_mean_conf": 88.0359,
+        "QNN_CPU": 94.8818,
+        "QNN_CPU_mean_conf": 90.0827,
+        "QNN_GPU": 95.5877,
+        "QNN_GPU_mean_conf": 90.6653
+      },
+      {
+        "level": 1,
+        "CNN": 93.611,
+        "CNN_mean_conf": 88.0947,
+        "QNN_CPU": 94.9876,
+        "QNN_CPU_mean_conf": 90.1494,
+        "QNN_GPU": 95.7642,
+        "QNN_GPU_mean_conf": 90.7963
+      },
+      {
+        "level": 2,
+        "CNN": 93.8934,
+        "CNN_mean_conf": 87.5891,
+        "QNN_CPU": 94.6347,
+        "QNN_CPU_mean_conf": 89.5715,
+        "QNN_GPU": 95.4818,
+        "QNN_GPU_mean_conf": 90.4155
+      },
+      {
+        "level": 3,
+        "CNN": 92.658,
+        "CNN_mean_conf": 86.4376,
+        "QNN_CPU": 93.5757,
+        "QNN_CPU_mean_conf": 88.4287,
+        "QNN_GPU": 94.67,
+        "QNN_GPU_mean_conf": 89.2589
+      },
+      {
+        "level": 4,
+        "CNN": 91.0695,
+        "CNN_mean_conf": 84.9084,
+        "QNN_CPU": 91.8814,
+        "QNN_CPU_mean_conf": 86.9912,
+        "QNN_GPU": 92.4815,
+        "QNN_GPU_mean_conf": 87.3994
+      },
+      {
+        "level": 6,
+        "CNN": 84.2217,
+        "CNN_mean_conf": 80.8137,
+        "QNN_CPU": 86.5867,
+        "QNN_CPU_mean_conf": 82.4587,
+        "QNN_GPU": 85.0335,
+        "QNN_GPU_mean_conf": 82.4487
+      },
+      {
+        "level": 8,
+        "CNN": 72.5732,
+        "CNN_mean_conf": 76.3624,
+        "QNN_CPU": 76.3149,
+        "QNN_CPU_mean_conf": 77.4198,
+        "QNN_GPU": 75.5383,
+        "QNN_GPU_mean_conf": 78.1847
+      },
+      {
+        "level": 10,
+        "CNN": 61.2425,
+        "CNN_mean_conf": 73.6507,
+        "QNN_CPU": 65.5136,
+        "QNN_CPU_mean_conf": 73.6484,
+        "QNN_GPU": 67.1373,
+        "QNN_GPU_mean_conf": 75.3403
+      }
+    ],
+    "jpeg_compression": [
+      {
+        "level": 100,
+        "CNN": 93.4698,
+        "CNN_mean_conf": 88.0359,
+        "QNN_CPU": 94.8818,
+        "QNN_CPU_mean_conf": 90.0827,
+        "QNN_GPU": 95.5877,
+        "QNN_GPU_mean_conf": 90.6653
+      },
+      {
+        "level": 85,
+        "CNN": 93.5404,
+        "CNN_mean_conf": 87.983,
+        "QNN_CPU": 94.8465,
+        "QNN_CPU_mean_conf": 90.0634,
+        "QNN_GPU": 95.5877,
+        "QNN_GPU_mean_conf": 90.6245
+      },
+      {
+        "level": 70,
+        "CNN": 93.611,
+        "CNN_mean_conf": 87.7928,
+        "QNN_CPU": 95.1641,
+        "QNN_CPU_mean_conf": 90.004,
+        "QNN_GPU": 95.6936,
+        "QNN_GPU_mean_conf": 90.4832
+      },
+      {
+        "level": 55,
+        "CNN": 93.1874,
+        "CNN_mean_conf": 87.2761,
+        "QNN_CPU": 94.9876,
+        "QNN_CPU_mean_conf": 89.7051,
+        "QNN_GPU": 95.3759,
+        "QNN_GPU_mean_conf": 90.2245
+      },
+      {
+        "level": 40,
+        "CNN": 93.3639,
+        "CNN_mean_conf": 87.1692,
+        "QNN_CPU": 94.8465,
+        "QNN_CPU_mean_conf": 89.6248,
+        "QNN_GPU": 95.27,
+        "QNN_GPU_mean_conf": 90.1025
+      },
+      {
+        "level": 25,
+        "CNN": 91.4578,
+        "CNN_mean_conf": 85.8289,
+        "QNN_CPU": 93.8228,
+        "QNN_CPU_mean_conf": 88.9363,
+        "QNN_GPU": 94.0346,
+        "QNN_GPU_mean_conf": 88.9117
+      },
+      {
+        "level": 10,
+        "CNN": 78.7504,
+        "CNN_mean_conf": 79.2197,
+        "QNN_CPU": 82.7744,
+        "QNN_CPU_mean_conf": 82.1136,
+        "QNN_GPU": 81.5743,
+        "QNN_GPU_mean_conf": 81.7666
+      }
+    ],
+    "lens_occlusion": [
+      {
+        "level": 0.0,
+        "CNN": 93.4698,
+        "CNN_mean_conf": 88.0359,
+        "QNN_CPU": 94.8818,
+        "QNN_CPU_mean_conf": 90.0827,
+        "QNN_GPU": 95.5877,
+        "QNN_GPU_mean_conf": 90.6653
+      },
+      {
+        "level": 0.02,
+        "CNN": 92.9756,
+        "CNN_mean_conf": 86.4618,
+        "QNN_CPU": 93.6463,
+        "QNN_CPU_mean_conf": 88.7672,
+        "QNN_GPU": 94.5994,
+        "QNN_GPU_mean_conf": 89.2867
+      },
+      {
+        "level": 0.04,
+        "CNN": 91.5284,
+        "CNN_mean_conf": 85.3421,
+        "QNN_CPU": 92.5874,
+        "QNN_CPU_mean_conf": 87.5601,
+        "QNN_GPU": 93.4345,
+        "QNN_GPU_mean_conf": 88.2175
+      },
+      {
+        "level": 0.08,
+        "CNN": 88.1398,
+        "CNN_mean_conf": 82.4055,
+        "QNN_CPU": 89.8341,
+        "QNN_CPU_mean_conf": 85.1543,
+        "QNN_GPU": 89.9047,
+        "QNN_GPU_mean_conf": 85.4049
+      },
+      {
+        "level": 0.12,
+        "CNN": 83.551,
+        "CNN_mean_conf": 79.4345,
+        "QNN_CPU": 85.916,
+        "QNN_CPU_mean_conf": 82.4034,
+        "QNN_GPU": 86.6573,
+        "QNN_GPU_mean_conf": 82.6106
+      },
+      {
+        "level": 0.16,
+        "CNN": 79.5623,
+        "CNN_mean_conf": 76.6603,
+        "QNN_CPU": 81.5743,
+        "QNN_CPU_mean_conf": 79.8722,
+        "QNN_GPU": 82.2803,
+        "QNN_GPU_mean_conf": 79.9951
+      },
+      {
+        "level": 0.2,
+        "CNN": 75.8913,
+        "CNN_mean_conf": 74.3162,
+        "QNN_CPU": 76.5972,
+        "QNN_CPU_mean_conf": 77.2042,
+        "QNN_GPU": 77.515,
+        "QNN_GPU_mean_conf": 77.7563
+      }
+    ]
+  },
+  "noise_maun_summary": {
+    "CNN": {
+      "gaussian": 58.1202,
+      "blur": 90.7244,
+      "contrast": 80.5053,
+      "salt_pepper": 90.9888,
+      "motion_blur": 85.3424,
+      "jpeg_compression": 91.0544,
+      "lens_occlusion": 86.4455
     },
-    {
-      "sigma": 0.05,
-      "CNN": 85.563,
-      "QNN_CPU": 86.2337,
-      "QNN_GPU": 85.9513
+    "QNN_CPU": {
+      "gaussian": 61.2329,
+      "blur": 91.9912,
+      "contrast": 80.9843,
+      "salt_pepper": 92.6882,
+      "motion_blur": 87.297,
+      "jpeg_compression": 93.0462,
+      "lens_occlusion": 87.8624
     },
-    {
-      "sigma": 0.1,
-      "CNN": 66.9255,
-      "QNN_CPU": 69.8553,
-      "QNN_GPU": 71.0554
-    },
-    {
-      "sigma": 0.15,
-      "CNN": 52.7356,
-      "QNN_CPU": 56.0537,
-      "QNN_GPU": 54.5711
-    },
-    {
-      "sigma": 0.2,
-      "CNN": 41.5814,
-      "QNN_CPU": 48.0762,
-      "QNN_GPU": 43.7699
-    },
-    {
-      "sigma": 0.25,
-      "CNN": 28.5916,
-      "QNN_CPU": 42.8521,
-      "QNN_GPU": 36.1807
-    },
-    {
-      "sigma": 0.3,
-      "CNN": 20.826,
-      "QNN_CPU": 39.887,
-      "QNN_GPU": 30.9919
-    },
-    {
-      "sigma": 0.4,
-      "CNN": 15.0018,
-      "QNN_CPU": 35.8983,
-      "QNN_GPU": 22.3085
-    },
-    {
-      "sigma": 0.5,
-      "CNN": 13.6251,
-      "QNN_CPU": 29.2976,
-      "QNN_GPU": 13.8369
-    },
-    {
-      "sigma": 0.6,
-      "CNN": 12.9192,
-      "QNN_CPU": 24.7088,
-      "QNN_GPU": 12.0014
-    },
-    {
-      "sigma": 0.75,
-      "CNN": 11.7896,
-      "QNN_CPU": 20.0141,
-      "QNN_GPU": 11.7543
+    "QNN_GPU": {
+      "gaussian": 58.4507,
+      "blur": 92.8423,
+      "contrast": 80.8986,
+      "salt_pepper": 93.0311,
+      "motion_blur": 87.7118,
+      "jpeg_compression": 93.3034,
+      "lens_occlusion": 88.5684
     }
-  ],
+  },
   "inference_latency_ms": {
-    "CNN": 7.569,
-    "QNN_CPU": 18.435,
-    "QNN_GPU": 60.225
+    "CNN": 11.67,
+    "QNN_CPU": 23.169,
+    "QNN_GPU": 166.327
   }
 }

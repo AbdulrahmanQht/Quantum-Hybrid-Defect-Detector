@@ -1,8 +1,7 @@
 """
-backend/utils/noise.py
+backend/models/noise.py
 ======================
-Shared noise-injection utilities for benchmark_runner.py and
-quantum_advantage_runner.py.
+Shared noise-injection utilities for benchmark.py and quantum_advantage.py.
 
 All public functions follow the same contract:
   - Input : float32 batch tensor in [0, 1], shape (B, C, H, W)
@@ -210,9 +209,11 @@ BENCHMARK_NOISE_LEVELS: dict[str, list] = {
 # Reduced subset — used by quantum_advantage.py Experiment 6.
 # Covers the same 5 types but at ~half the resolution to keep QA runtime reasonable.
 QA_NOISE_LEVELS: dict[str, list] = {
-    "gaussian":    [0.00, 0.10, 0.20, 0.30, 0.50],
-    "blur":        [0.00, 0.60, 1.50, 2.50],
-    "contrast":    [1.00, 0.70, 0.40, 0.10],
-    "salt_pepper": [0.00, 0.02, 0.04, 0.10],
-    "motion_blur": [0, 2, 4, 8],
+    "gaussian":         [0.00, 0.10, 0.20, 0.30, 0.50],
+    "blur":             [0.00, 1.50, 2.50, 3.00],
+    "contrast":         [1.00, 0.55, 0.40, 0.25, 0.10],
+    "salt_pepper":      [0.00, 0.02, 0.04, 0.07, 0.10],
+    "motion_blur":      [0, 2, 4, 6, 8, 10],
+    "jpeg_compression": [100, 40, 25, 10],
+    "lens_occlusion":   [0.00, 0.08, 0.12, 0.16, 0.20],
 }

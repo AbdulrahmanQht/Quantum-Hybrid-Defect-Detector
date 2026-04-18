@@ -1,0 +1,3 @@
+model,cka_classical_vs_quantum,n_samples
+QNN_CPU,0.464202,2833
+QNN_GPU,0.476847,2833

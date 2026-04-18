@@ -1,0 +1,4 @@
+model,gaussian,blur,contrast,salt_pepper,motion_blur,jpeg_compression,lens_occlusion,overall_maun
+CNN,58.1202,90.7244,80.5053,90.9888,85.3424,91.0544,86.4455,83.3116
+QNN_CPU,61.2329,91.9912,80.9843,92.6882,87.297,93.0462,87.8624,85.0146
+QNN_GPU,58.4507,92.8423,80.8986,93.0311,87.7118,93.3034,88.5684,84.9723

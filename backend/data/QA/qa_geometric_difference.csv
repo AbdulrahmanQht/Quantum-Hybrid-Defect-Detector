@@ -1,0 +1,3 @@
+model,geometric_difference_g,advantage_g_gt_1,n_samples
+QNN_CPU,233.00878,True,128
+QNN_GPU,269.571159,True,128

@@ -1,0 +1,3 @@
+model,fisher_criterion_z,fisher_criterion_q_emb,q_advantage,n_samples
+QNN_CPU,14.8616,5.9241,False,2833
+QNN_GPU,16.5203,5.7361,False,2833

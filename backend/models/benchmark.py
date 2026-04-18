@@ -90,8 +90,8 @@ CHECKPOINT_PATHS = {
 }
 
 CLASS_NAMES_PATH = os.path.join(BACKEND_ROOT, "data", "class_names.json")
-OUTPUT_PATH      = os.path.join(BACKEND_ROOT, "data", "benchmark", "V2", "benchmark_results.json")
-OUTPUT_DIR       = os.path.join(BACKEND_ROOT, "data", "benchmark", "V2")
+OUTPUT_PATH      = os.path.join(BACKEND_ROOT, "data", "benchmark", "benchmark_results.json")
+OUTPUT_DIR       = os.path.join(BACKEND_ROOT, "data", "benchmark")
 
 DATA_DIRS = {
     "train": os.path.join(BACKEND_ROOT, "data", "train"),
