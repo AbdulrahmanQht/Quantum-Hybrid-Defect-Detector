@@ -1,11 +1,21 @@
 {
-  "generated_at": "2026-04-07T13:15:27.130156+00:00",
+  "generated_at": "2026-04-18T06:18:19.742323+00:00",
   "device": "cuda",
   "config": {
     "n_qubits": 6,
     "q_depth": 2,
     "entropy_samples": 128,
     "grad_var_batches": 20,
+    "feature_samples": 2833,
+    "kernel_samples": 128,
+    "expr_pairs": 1000,
+    "fim_samples": 200,
+    "fim_n_sizes": [
+      50,
+      100,
+      500,
+      1000
+    ],
     "class_names": [
       "Deformation",
       "Deposition",
@@ -14,89 +24,833 @@
       "Obstacle",
       "Rupture"
     ],
+    "qa_noise_levels": {
+      "gaussian": [
+        0.0,
+        0.1,
+        0.2,
+        0.3,
+        0.5
+      ],
+      "blur": [
+        0.0,
+        1.5,
+        2.5,
+        3.0
+      ],
+      "contrast": [
+        1.0,
+        0.55,
+        0.4,
+        0.25,
+        0.1
+      ],
+      "salt_pepper": [
+        0.0,
+        0.02,
+        0.04,
+        0.07,
+        0.1
+      ],
+      "motion_blur": [
+        0,
+        2,
+        4,
+        6,
+        8,
+        10
+      ],
+      "jpeg_compression": [
+        100,
+        40,
+        25,
+        10
+      ],
+      "lens_occlusion": [
+        0.0,
+        0.08,
+        0.12,
+        0.16,
+        0.2
+      ]
+    },
     "notes": {
-      "entanglement_entropy": "QNN_GPU uses lightning.gpu with adjoint differentiation which does not expose intermediate statevectors. For this experiment, trained weights are loaded into an equivalent default.qubit circuit (same topology, same weights) to enable statevector extraction.",
-      "branch_ablation": "classical_only: quantum branch replaced with zero tensor. quantum_only: classical backbone branch replaced with zero tensor. quantum_gain = full_accuracy - classical_only_accuracy.",
-      "gradient_variance": "Gradient variance measured over frozen trained weights via forward+backward pass on test batches. No retraining occurs."
+      "entanglement_entropy": "QNN_GPU uses lightning.gpu; weights are mirrored onto default.qubit for statevector extraction.",
+      "expressibility": "Trained weights used \u2014 measures expressibility of the learned circuit, not just the ansatz capacity.",
+      "kernel_experiments": "Both K_Q and K_C are evaluated on the 6-dim pre-quantum inputs (post-selector, post-angle-scaling). The comparison is valid because the input space is identical.",
+      "fim": "QNN: full 36\u00d736 empirical FIM via per-sample backward. CNN: diagonal approximation due to large last-layer parameter count.",
+      "parameter_matched_ablation": "Not included \u2014 requires training a new classical MLP with identical parameter count to the VQC. Run separately in a dedicated training script."
     }
   },
   "experiment_1_feature_orthogonality": {
-    "QNN_CPU": 0.025711,
-    "QNN_GPU": 0.057853
+    "QNN_CPU": 0.002082,
+    "QNN_GPU": -0.023515
   },
   "experiment_2_branch_ablation": {
     "QNN_CPU": {
-      "full_accuracy": 90.1871,
-      "classical_only_accuracy": 87.7162,
-      "quantum_only_accuracy": 22.4144,
-      "quantum_gain_%": 2.4709
+      "full_accuracy": 94.8818,
+      "classical_only_accuracy": 92.1285,
+      "quantum_only_accuracy": 49.0999,
+      "quantum_gain_%": 2.7533
     },
     "QNN_GPU": {
-      "full_accuracy": 88.881,
-      "classical_only_accuracy": 85.8454,
-      "quantum_only_accuracy": 11.8602,
-      "quantum_gain_%": 3.0356
+      "full_accuracy": 95.5877,
+      "classical_only_accuracy": 93.258,
+      "quantum_only_accuracy": 53.4769,
+      "quantum_gain_%": 2.3297
     }
   },
   "experiment_3_reupload_ablation": {
     "QNN_CPU": {
-      "with_reupload_accuracy": 90.1871,
-      "without_reupload_accuracy": 89.8341,
-      "reupload_contribution_%": 0.353
+      "with_reupload_accuracy": 94.8818,
+      "without_reupload_accuracy": 93.9993,
+      "reupload_contribution_%": 0.8825
     },
     "QNN_GPU": {
-      "with_reupload_accuracy": 88.881,
-      "without_reupload_accuracy": 88.7752,
-      "reupload_contribution_%": 0.1058
+      "with_reupload_accuracy": 95.5877,
+      "without_reupload_accuracy": 94.9523,
+      "reupload_contribution_%": 0.6354
     }
   },
   "experiment_4_entanglement_entropy": {
     "QNN_CPU": {
       "mean_entropy_per_qubit": {
-        "qubit_0": 0.991728,
-        "qubit_1": 0.84987,
-        "qubit_2": 0.92613,
-        "qubit_3": 0.970891,
-        "qubit_4": 0.932372,
-        "qubit_5": 0.91819
+        "qubit_0": 0.989443,
+        "qubit_1": 0.99303,
+        "qubit_2": 0.992909,
+        "qubit_3": 0.992359,
+        "qubit_4": 0.99933,
+        "qubit_5": 0.998026
       },
-      "overall_mean_entropy": 0.93153,
-      "interpretation": "0.0 = no entanglement (classical separable state); 1.0 = maximally entangled qubit. Values above 0.3 confirm genuine quantum correlations from the CNOT ring."
+      "overall_mean_entropy": 0.994183,
+      "interpretation": "0.0 = no entanglement; 1.0 = maximally entangled. Values above 0.3 confirm genuine quantum correlations."
     },
     "QNN_GPU": {
       "mean_entropy_per_qubit": {
-        "qubit_0": 0.988028,
-        "qubit_1": 0.896459,
-        "qubit_2": 0.989025,
-        "qubit_3": 0.892507,
-        "qubit_4": 0.839863,
-        "qubit_5": 0.738586
+        "qubit_0": 0.991207,
+        "qubit_1": 0.992122,
+        "qubit_2": 0.989619,
+        "qubit_3": 0.994919,
+        "qubit_4": 0.999369,
+        "qubit_5": 0.997159
       },
-      "overall_mean_entropy": 0.890745,
-      "interpretation": "0.0 = no entanglement (classical separable state); 1.0 = maximally entangled qubit. Values above 0.3 confirm genuine quantum correlations from the CNOT ring."
+      "overall_mean_entropy": 0.994066,
+      "interpretation": "0.0 = no entanglement; 1.0 = maximally entangled. Values above 0.3 confirm genuine quantum correlations."
     }
   },
   "experiment_5_gradient_variance": {
     "QNN_CPU": {
       "target": "quantum_layer_weights",
-      "mean_grad_variance": 0.00018431,
-      "mean_grad_abs_mean": 0.00698399,
+      "mean_grad_variance": 0.00011858,
+      "mean_grad_abs_mean": 0.00643699,
       "n_batches": 20,
-      "interpretation": "Quantum layer gradient variance across test batches. Near-zero = barren plateau risk. Compare to CNN baseline \u2014 higher QNN variance = stronger quantum signal."
+      "interpretation": "Near-zero variance = barren plateau risk. Compare to CNN baseline \u2014 higher QNN variance = stronger quantum signal."
     },
     "QNN_GPU": {
       "target": "quantum_layer_weights",
-      "mean_grad_variance": 8.896e-05,
-      "mean_grad_abs_mean": 0.00425189,
+      "mean_grad_variance": 8.225e-05,
+      "mean_grad_abs_mean": 0.00504466,
       "n_batches": 20,
-      "interpretation": "Quantum layer gradient variance across test batches. Near-zero = barren plateau risk. Compare to CNN baseline \u2014 higher QNN variance = stronger quantum signal."
+      "interpretation": "Near-zero variance = barren plateau risk. Compare to CNN baseline \u2014 higher QNN variance = stronger quantum signal."
     },
     "CNN_baseline": {
       "target": "final_linear_layer_weights",
-      "mean_grad_variance": 0.00103827,
-      "mean_grad_abs_mean": 0.01691862,
+      "mean_grad_variance": 0.00054249,
+      "mean_grad_abs_mean": 0.01195558,
       "n_batches": 20,
       "interpretation": "CNN final-layer gradient variance for comparison."
     }
+  },
+  "experiment_6_noise_ablation": {
+    "QNN_CPU": {
+      "gaussian": [
+        {
+          "level": 0.0,
+          "full_accuracy_%": 94.8818,
+          "classical_only_%": 92.1285,
+          "quantum_only_%": 49.0999,
+          "quantum_noise_gain_%": 2.7533
+        },
+        {
+          "level": 0.1,
+          "full_accuracy_%": 92.658,
+          "classical_only_%": 89.1634,
+          "quantum_only_%": 45.8525,
+          "quantum_noise_gain_%": 3.4946
+        },
+        {
+          "level": 0.2,
+          "full_accuracy_%": 76.7031,
+          "classical_only_%": 74.9029,
+          "quantum_only_%": 34.7335,
+          "quantum_noise_gain_%": 1.8002
+        },
+        {
+          "level": 0.3,
+          "full_accuracy_%": 54.8535,
+          "classical_only_%": 58.4892,
+          "quantum_only_%": 22.5203,
+          "quantum_noise_gain_%": -3.6357
+        },
+        {
+          "level": 0.5,
+          "full_accuracy_%": 28.3798,
+          "classical_only_%": 33.0745,
+          "quantum_only_%": 13.2369,
+          "quantum_noise_gain_%": -4.6947
+        }
+      ],
+      "blur": [
+        {
+          "level": 0.0,
+          "full_accuracy_%": 94.8818,
+          "classical_only_%": 92.1285,
+          "quantum_only_%": 49.0999,
+          "quantum_noise_gain_%": 2.7533
+        },
+        {
+          "level": 1.5,
+          "full_accuracy_%": 94.0346,
+          "classical_only_%": 91.7402,
+          "quantum_only_%": 49.6294,
+          "quantum_noise_gain_%": 2.2944
+        },
+        {
+          "level": 2.5,
+          "full_accuracy_%": 87.8221,
+          "classical_only_%": 84.8923,
+          "quantum_only_%": 43.3463,
+          "quantum_noise_gain_%": 2.9298
+        },
+        {
+          "level": 3.0,
+          "full_accuracy_%": 79.88,
+          "classical_only_%": 78.7151,
+          "quantum_only_%": 38.934,
+          "quantum_noise_gain_%": 1.1649
+        }
+      ],
+      "contrast": [
+        {
+          "level": 1.0,
+          "full_accuracy_%": 94.8818,
+          "classical_only_%": 92.1285,
+          "quantum_only_%": 49.0999,
+          "quantum_noise_gain_%": 2.7533
+        },
+        {
+          "level": 0.55,
+          "full_accuracy_%": 93.9287,
+          "classical_only_%": 90.7872,
+          "quantum_only_%": 46.629,
+          "quantum_noise_gain_%": 3.1415
+        },
+        {
+          "level": 0.4,
+          "full_accuracy_%": 89.4811,
+          "classical_only_%": 85.8101,
+          "quantum_only_%": 41.5108,
+          "quantum_noise_gain_%": 3.671
+        },
+        {
+          "level": 0.25,
+          "full_accuracy_%": 70.0318,
+          "classical_only_%": 69.9612,
+          "quantum_only_%": 28.3445,
+          "quantum_noise_gain_%": 0.0706
+        },
+        {
+          "level": 0.1,
+          "full_accuracy_%": 28.8387,
+          "classical_only_%": 30.6036,
+          "quantum_only_%": 12.5662,
+          "quantum_noise_gain_%": -1.7649
+        }
+      ],
+      "salt_pepper": [
+        {
+          "level": 0.0,
+          "full_accuracy_%": 94.8818,
+          "classical_only_%": 92.1285,
+          "quantum_only_%": 49.0999,
+          "quantum_noise_gain_%": 2.7533
+        },
+        {
+          "level": 0.02,
+          "full_accuracy_%": 94.917,
+          "classical_only_%": 91.6696,
+          "quantum_only_%": 49.1352,
+          "quantum_noise_gain_%": 3.2474
+        },
+        {
+          "level": 0.04,
+          "full_accuracy_%": 93.6816,
+          "classical_only_%": 90.5401,
+          "quantum_only_%": 47.4056,
+          "quantum_noise_gain_%": 3.1415
+        },
+        {
+          "level": 0.07,
+          "full_accuracy_%": 90.2577,
+          "classical_only_%": 87.2926,
+          "quantum_only_%": 45.2171,
+          "quantum_noise_gain_%": 2.9651
+        },
+        {
+          "level": 0.1,
+          "full_accuracy_%": 85.1394,
+          "classical_only_%": 82.9156,
+          "quantum_only_%": 41.8637,
+          "quantum_noise_gain_%": 2.2238
+        }
+      ],
+      "motion_blur": [
+        {
+          "level": 0,
+          "full_accuracy_%": 94.8818,
+          "classical_only_%": 92.1285,
+          "quantum_only_%": 49.0999,
+          "quantum_noise_gain_%": 2.7533
+        },
+        {
+          "level": 2,
+          "full_accuracy_%": 94.6347,
+          "classical_only_%": 92.2344,
+          "quantum_only_%": 49.4882,
+          "quantum_noise_gain_%": 2.4003
+        },
+        {
+          "level": 4,
+          "full_accuracy_%": 91.8814,
+          "classical_only_%": 88.5281,
+          "quantum_only_%": 48.4998,
+          "quantum_noise_gain_%": 3.3533
+        },
+        {
+          "level": 6,
+          "full_accuracy_%": 86.5867,
+          "classical_only_%": 82.1744,
+          "quantum_only_%": 43.8052,
+          "quantum_noise_gain_%": 4.4123
+        },
+        {
+          "level": 8,
+          "full_accuracy_%": 76.3149,
+          "classical_only_%": 73.9499,
+          "quantum_only_%": 36.9573,
+          "quantum_noise_gain_%": 2.365
+        },
+        {
+          "level": 10,
+          "full_accuracy_%": 65.5136,
+          "classical_only_%": 64.8782,
+          "quantum_only_%": 30.9919,
+          "quantum_noise_gain_%": 0.6354
+        }
+      ],
+      "jpeg_compression": [
+        {
+          "level": 100,
+          "full_accuracy_%": 94.8818,
+          "classical_only_%": 92.1285,
+          "quantum_only_%": 49.0999,
+          "quantum_noise_gain_%": 2.7533
+        },
+        {
+          "level": 40,
+          "full_accuracy_%": 94.8465,
+          "classical_only_%": 91.8461,
+          "quantum_only_%": 48.9234,
+          "quantum_noise_gain_%": 3.0004
+        },
+        {
+          "level": 25,
+          "full_accuracy_%": 93.8228,
+          "classical_only_%": 90.9989,
+          "quantum_only_%": 47.1585,
+          "quantum_noise_gain_%": 2.8239
+        },
+        {
+          "level": 10,
+          "full_accuracy_%": 82.7744,
+          "classical_only_%": 79.88,
+          "quantum_only_%": 42.5697,
+          "quantum_noise_gain_%": 2.8944
+        }
+      ],
+      "lens_occlusion": [
+        {
+          "level": 0.0,
+          "full_accuracy_%": 94.8818,
+          "classical_only_%": 92.1285,
+          "quantum_only_%": 49.0999,
+          "quantum_noise_gain_%": 2.7533
+        },
+        {
+          "level": 0.08,
+          "full_accuracy_%": 89.8341,
+          "classical_only_%": 85.6336,
+          "quantum_only_%": 46.982,
+          "quantum_noise_gain_%": 4.2005
+        },
+        {
+          "level": 0.12,
+          "full_accuracy_%": 85.7042,
+          "classical_only_%": 81.7508,
+          "quantum_only_%": 46.276,
+          "quantum_noise_gain_%": 3.9534
+        },
+        {
+          "level": 0.16,
+          "full_accuracy_%": 81.7861,
+          "classical_only_%": 77.6915,
+          "quantum_only_%": 44.9347,
+          "quantum_noise_gain_%": 4.0946
+        },
+        {
+          "level": 0.2,
+          "full_accuracy_%": 76.9502,
+          "classical_only_%": 73.7734,
+          "quantum_only_%": 43.664,
+          "quantum_noise_gain_%": 3.1768
+        }
+      ]
+    },
+    "QNN_GPU": {
+      "gaussian": [
+        {
+          "level": 0.0,
+          "full_accuracy_%": 95.5877,
+          "classical_only_%": 93.258,
+          "quantum_only_%": 53.4769,
+          "quantum_noise_gain_%": 2.3297
+        },
+        {
+          "level": 0.1,
+          "full_accuracy_%": 93.0815,
+          "classical_only_%": 90.0812,
+          "quantum_only_%": 51.7473,
+          "quantum_noise_gain_%": 3.0003
+        },
+        {
+          "level": 0.2,
+          "full_accuracy_%": 74.9735,
+          "classical_only_%": 73.4557,
+          "quantum_only_%": 42.1461,
+          "quantum_noise_gain_%": 1.5178
+        },
+        {
+          "level": 0.3,
+          "full_accuracy_%": 52.5591,
+          "classical_only_%": 55.1359,
+          "quantum_only_%": 27.3915,
+          "quantum_noise_gain_%": -2.5768
+        },
+        {
+          "level": 0.5,
+          "full_accuracy_%": 20.7554,
+          "classical_only_%": 27.5327,
+          "quantum_only_%": 12.8839,
+          "quantum_noise_gain_%": -6.7773
+        }
+      ],
+      "blur": [
+        {
+          "level": 0.0,
+          "full_accuracy_%": 95.5877,
+          "classical_only_%": 93.258,
+          "quantum_only_%": 53.4769,
+          "quantum_noise_gain_%": 2.3297
+        },
+        {
+          "level": 1.5,
+          "full_accuracy_%": 94.5641,
+          "classical_only_%": 91.7755,
+          "quantum_only_%": 50.9707,
+          "quantum_noise_gain_%": 2.7886
+        },
+        {
+          "level": 2.5,
+          "full_accuracy_%": 88.0339,
+          "classical_only_%": 85.2806,
+          "quantum_only_%": 44.1228,
+          "quantum_noise_gain_%": 2.7533
+        },
+        {
+          "level": 3.0,
+          "full_accuracy_%": 82.1744,
+          "classical_only_%": 79.88,
+          "quantum_only_%": 39.7106,
+          "quantum_noise_gain_%": 2.2944
+        }
+      ],
+      "contrast": [
+        {
+          "level": 1.0,
+          "full_accuracy_%": 95.5877,
+          "classical_only_%": 93.258,
+          "quantum_only_%": 53.4769,
+          "quantum_noise_gain_%": 2.3297
+        },
+        {
+          "level": 0.55,
+          "full_accuracy_%": 94.2817,
+          "classical_only_%": 91.3166,
+          "quantum_only_%": 50.653,
+          "quantum_noise_gain_%": 2.9651
+        },
+        {
+          "level": 0.4,
+          "full_accuracy_%": 89.4458,
+          "classical_only_%": 86.7279,
+          "quantum_only_%": 46.8055,
+          "quantum_noise_gain_%": 2.7179
+        },
+        {
+          "level": 0.25,
+          "full_accuracy_%": 71.0554,
+          "classical_only_%": 70.5612,
+          "quantum_only_%": 37.1338,
+          "quantum_noise_gain_%": 0.4942
+        },
+        {
+          "level": 0.1,
+          "full_accuracy_%": 25.3089,
+          "classical_only_%": 28.3445,
+          "quantum_only_%": 18.7434,
+          "quantum_noise_gain_%": -3.0356
+        }
+      ],
+      "salt_pepper": [
+        {
+          "level": 0.0,
+          "full_accuracy_%": 95.5877,
+          "classical_only_%": 93.258,
+          "quantum_only_%": 53.4769,
+          "quantum_noise_gain_%": 2.3297
+        },
+        {
+          "level": 0.02,
+          "full_accuracy_%": 94.8112,
+          "classical_only_%": 91.952,
+          "quantum_only_%": 51.2531,
+          "quantum_noise_gain_%": 2.8592
+        },
+        {
+          "level": 0.04,
+          "full_accuracy_%": 93.8934,
+          "classical_only_%": 90.9989,
+          "quantum_only_%": 49.6294,
+          "quantum_noise_gain_%": 2.8945
+        },
+        {
+          "level": 0.07,
+          "full_accuracy_%": 90.5754,
+          "classical_only_%": 87.7162,
+          "quantum_only_%": 46.5231,
+          "quantum_noise_gain_%": 2.8592
+        },
+        {
+          "level": 0.1,
+          "full_accuracy_%": 85.5277,
+          "classical_only_%": 81.7861,
+          "quantum_only_%": 42.2167,
+          "quantum_noise_gain_%": 3.7416
+        }
+      ],
+      "motion_blur": [
+        {
+          "level": 0,
+          "full_accuracy_%": 95.5877,
+          "classical_only_%": 93.258,
+          "quantum_only_%": 53.4769,
+          "quantum_noise_gain_%": 2.3297
+        },
+        {
+          "level": 2,
+          "full_accuracy_%": 95.4818,
+          "classical_only_%": 92.3756,
+          "quantum_only_%": 52.7356,
+          "quantum_noise_gain_%": 3.1062
+        },
+        {
+          "level": 4,
+          "full_accuracy_%": 92.4815,
+          "classical_only_%": 89.9753,
+          "quantum_only_%": 49.347,
+          "quantum_noise_gain_%": 2.5062
+        },
+        {
+          "level": 6,
+          "full_accuracy_%": 85.0335,
+          "classical_only_%": 82.4568,
+          "quantum_only_%": 42.6403,
+          "quantum_noise_gain_%": 2.5767
+        },
+        {
+          "level": 8,
+          "full_accuracy_%": 75.5383,
+          "classical_only_%": 73.844,
+          "quantum_only_%": 36.7102,
+          "quantum_noise_gain_%": 1.6943
+        },
+        {
+          "level": 10,
+          "full_accuracy_%": 67.1373,
+          "classical_only_%": 67.102,
+          "quantum_only_%": 32.2979,
+          "quantum_noise_gain_%": 0.0353
+        }
+      ],
+      "jpeg_compression": [
+        {
+          "level": 100,
+          "full_accuracy_%": 95.5877,
+          "classical_only_%": 93.258,
+          "quantum_only_%": 53.4769,
+          "quantum_noise_gain_%": 2.3297
+        },
+        {
+          "level": 40,
+          "full_accuracy_%": 95.27,
+          "classical_only_%": 93.0815,
+          "quantum_only_%": 53.5828,
+          "quantum_noise_gain_%": 2.1885
+        },
+        {
+          "level": 25,
+          "full_accuracy_%": 94.0346,
+          "classical_only_%": 91.7049,
+          "quantum_only_%": 53.1239,
+          "quantum_noise_gain_%": 2.3297
+        },
+        {
+          "level": 10,
+          "full_accuracy_%": 81.5743,
+          "classical_only_%": 78.9975,
+          "quantum_only_%": 49.0646,
+          "quantum_noise_gain_%": 2.5768
+        }
+      ],
+      "lens_occlusion": [
+        {
+          "level": 0.0,
+          "full_accuracy_%": 95.5877,
+          "classical_only_%": 93.258,
+          "quantum_only_%": 53.4769,
+          "quantum_noise_gain_%": 2.3297
+        },
+        {
+          "level": 0.08,
+          "full_accuracy_%": 90.0459,
+          "classical_only_%": 87.4338,
+          "quantum_only_%": 50.4059,
+          "quantum_noise_gain_%": 2.6121
+        },
+        {
+          "level": 0.12,
+          "full_accuracy_%": 86.3396,
+          "classical_only_%": 83.6922,
+          "quantum_only_%": 50.0882,
+          "quantum_noise_gain_%": 2.6474
+        },
+        {
+          "level": 0.16,
+          "full_accuracy_%": 82.4215,
+          "classical_only_%": 79.527,
+          "quantum_only_%": 48.2174,
+          "quantum_noise_gain_%": 2.8945
+        },
+        {
+          "level": 0.2,
+          "full_accuracy_%": 77.7621,
+          "classical_only_%": 75.1853,
+          "quantum_only_%": 46.8761,
+          "quantum_noise_gain_%": 2.5768
+        }
+      ]
+    }
+  },
+    "experiment_7_vqc_expressibility": {
+          "QNN_CPU": {
+            "kl_divergence_from_haar": 0.198511,
+            "mean_fidelity": 0.017307,
+            "std_fidelity": 0.034728,
+            "haar_reference": "Beta(1, 63)",
+            "n_pairs": 1000,
+            "interpretation": "Lower KL = circuit explores Hilbert space more uniformly = higher expressibility. Haar reference for 6 qubits: Beta(1, 63). Values < 0.05 indicate near-Haar expressibility."
+          },
+          "QNN_GPU": {
+            "kl_divergence_from_haar": 0.237965,
+            "mean_fidelity": 0.017161,
+            "std_fidelity": 0.036244,
+            "haar_reference": "Beta(1, 63)",
+            "n_pairs": 1000,
+            "interpretation": "Lower KL = circuit explores Hilbert space more uniformly = higher expressibility. Haar reference for 6 qubits: Beta(1, 63). Values < 0.05 indicate near-Haar expressibility."
+          }
+        },
+        "experiment_8_kernel_target_alignment": {
+          "QNN_CPU": {
+            "kta_quantum": 0.21662,
+            "kta_classical": 0.334464,
+            "kta_difference": -0.117843,
+            "quantum_wins": false,
+            "n_samples": 128,
+            "q_in_global_std_raw": 0.406551,
+            "normalisation_applied": true,
+            "interpretation": "KTA measures kernel alignment to the label structure. kta_difference > 0 means the quantum kernel is better aligned to the classification task on these specific 6-dim inputs \u2014 a rigorous, data-driven claim (Cortes & Mohri). Inputs were per-dim standardised before kernel evaluation."
+          },
+          "QNN_GPU": {
+            "kta_quantum": 0.223662,
+            "kta_classical": 0.345232,
+            "kta_difference": -0.12157,
+            "quantum_wins": false,
+            "n_samples": 128,
+            "q_in_global_std_raw": 0.394309,
+            "normalisation_applied": true,
+            "interpretation": "KTA measures kernel alignment to the label structure. kta_difference > 0 means the quantum kernel is better aligned to the classification task on these specific 6-dim inputs \u2014 a rigorous, data-driven claim (Cortes & Mohri). Inputs were per-dim standardised before kernel evaluation."
+          }
+        },
+        "experiment_9_geometric_difference": {
+          "QNN_CPU": {
+            "geometric_difference": 233.00878,
+            "advantage": true,
+            "n_samples": 128,
+            "normalisation_applied": true,
+            "interpretation": "g > 1 means the quantum kernel spans feature directions the classical RBF kernel cannot represent (Huang et al. 2021). g = 233.0088 \u2014 quantum advantage confirmed. Inputs were per-dim standardised before kernel evaluation."
+          },
+          "QNN_GPU": {
+            "geometric_difference": 269.571159,
+            "advantage": true,
+            "n_samples": 128,
+            "normalisation_applied": true,
+            "interpretation": "g > 1 means the quantum kernel spans feature directions the classical RBF kernel cannot represent (Huang et al. 2021). g = 269.5712 \u2014 quantum advantage confirmed. Inputs were per-dim standardised before kernel evaluation."
+          }
+        },
+        "experiment_10_fisher_effective_dim": {
+          "QNN_CPU": {
+            "n_quantum_params": 36,
+            "effective_dimension": {
+              "50": 4.2468,
+              "100": 3.3719,
+              "500": 2.4527,
+              "1000": 2.2465
+            },
+            "d_eff_per_param": {
+              "50": 0.117967,
+              "100": 0.093664,
+              "500": 0.068131,
+              "1000": 0.062403
+            },
+            "fim_trace": 0.068205,
+            "fim_rank": 36,
+            "n_samples": 200,
+            "interpretation": "Higher d_eff per parameter means the model uses its parameters more efficiently. Compare QNN d_eff/m vs CNN_baseline d_eff/m at the same n to make the headline efficiency claim."
+          },
+          "QNN_GPU": {
+            "n_quantum_params": 36,
+            "effective_dimension": {
+              "50": 4.2059,
+              "100": 3.3359,
+              "500": 2.4251,
+              "1000": 2.2217
+            },
+            "d_eff_per_param": {
+              "50": 0.116831,
+              "100": 0.092664,
+              "500": 0.067364,
+              "1000": 0.061714
+            },
+            "fim_trace": 0.055482,
+            "fim_rank": 36,
+            "n_samples": 200,
+            "interpretation": "Higher d_eff per parameter means the model uses its parameters more efficiently. Compare QNN d_eff/m vs CNN_baseline d_eff/m at the same n to make the headline efficiency claim."
+          },
+          "CNN_baseline": {
+            "n_quantum_params": 1536,
+            "effective_dimension": {
+              "50": 7.9325,
+              "100": 6.148,
+              "500": 4.2231,
+              "1000": 3.7782
+            },
+            "d_eff_per_param": {
+              "50": 0.005164,
+              "100": 0.004003,
+              "500": 0.002749,
+              "1000": 0.00246
+            },
+            "fim_trace": 5.317347,
+            "fim_rank": 1536,
+            "n_samples": 200,
+            "approximation": "diagonal FIM (g\u00b2 only) due to large m",
+            "interpretation": "CNN final linear layer d_eff/m for comparison."
+          }
+        },
+        "experiment_11_feature_effective_rank": {
+          "QNN_CPU": {
+            "z_eff_rank": 246.6883,
+            "z_dim": 512,
+            "z_utilisation": 0.4818,
+            "q_emb_eff_rank": 39.7518,
+            "q_emb_dim": 128,
+            "q_emb_utilisation": 0.3106,
+            "interpretation": "utilisation = eff_rank / embedding_dim. Higher utilisation on q_emb relative to z argues the quantum branch uses its dimensions more efficiently."
+          },
+          "QNN_GPU": {
+            "z_eff_rank": 252.1062,
+            "z_dim": 512,
+            "z_utilisation": 0.4924,
+            "q_emb_eff_rank": 39.2988,
+            "q_emb_dim": 128,
+            "q_emb_utilisation": 0.307,
+            "interpretation": "utilisation = eff_rank / embedding_dim. Higher utilisation on q_emb relative to z argues the quantum branch uses its dimensions more efficiently."
+          }
+        },
+        "experiment_12_intrinsic_dimension": {
+          "QNN_CPU": {
+            "intrinsic_dim_z": 2.1504,
+            "intrinsic_dim_q_emb": 2.5844,
+            "n_samples": 2833,
+            "interpretation": "TwoNN intrinsic dimension (Facco 2017). Lower intrinsic dim on q_emb vs z with competitive accuracy = the quantum circuit compresses class-relevant information more efficiently."
+          },
+          "QNN_GPU": {
+            "intrinsic_dim_z": 2.1166,
+            "intrinsic_dim_q_emb": 2.8804,
+            "n_samples": 2833,
+            "interpretation": "TwoNN intrinsic dimension (Facco 2017). Lower intrinsic dim on q_emb vs z with competitive accuracy = the quantum circuit compresses class-relevant information more efficiently."
+          }
+        },
+        "experiment_13_linear_cka": {
+          "QNN_CPU": {
+            "cka_classical_vs_quantum": 0.464202,
+            "n_samples": 2833,
+            "interpretation": "CKA in [0,1]. 0 = orthogonal (ideal), 1 = identical geometry. Low CKA(z, q_emb) is the formal claim that the quantum branch learns complementary representational structure (invariant to rotation and isotropic scaling \u2014 stronger than cosine similarity)."
+          },
+          "QNN_GPU": {
+            "cka_classical_vs_quantum": 0.476847,
+            "n_samples": 2833,
+            "interpretation": "CKA in [0,1]. 0 = orthogonal (ideal), 1 = identical geometry. Low CKA(z, q_emb) is the formal claim that the quantum branch learns complementary representational structure (invariant to rotation and isotropic scaling \u2014 stronger than cosine similarity)."
+          }
+        },
+        "experiment_14_class_separability": {
+          "QNN_CPU": {
+            "fisher_criterion_z": 14.8616,
+            "fisher_criterion_z_proj": 9.8884,
+            "fisher_criterion_q_emb": 5.9241,
+            "q_advantage": false,
+            "n_samples": 2833,
+            "interpretation": "Fisher criterion J = tr(S_W^{-1} S_B). Higher J = tighter within-class clusters and wider between-class margins. q_advantage=True means the quantum embedding provides better class separability than classical features after dimension matching with PCA."
+          },
+          "QNN_GPU": {
+            "fisher_criterion_z": 16.5203,
+            "fisher_criterion_z_proj": 10.9987,
+            "fisher_criterion_q_emb": 5.7361,
+            "q_advantage": false,
+            "n_samples": 2833,
+            "interpretation": "Fisher criterion J = tr(S_W^{-1} S_B). Higher J = tighter within-class clusters and wider between-class margins. q_advantage=True means the quantum embedding provides better class separability than classical features after dimension matching with PCA."
+          }
+        }
+      }
+    }
   }
-}

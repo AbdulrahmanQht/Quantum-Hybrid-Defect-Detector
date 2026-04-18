@@ -792,7 +792,7 @@ if __name__ == "__main__":
     quantum_lr_mult = 3.5
     n_qubits = 6
     q_depth = 2
-    checkpoint = "models/qnn_cpu_75_epochs.pth"
+    checkpoint = "models/qnn_cpu.pth"
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"PyTorch device: {device}")

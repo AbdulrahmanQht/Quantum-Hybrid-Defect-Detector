@@ -1,7 +1,7 @@
 true \ predicted,Deformation,Deposition,Disconnect,Misalignment,Obstacle,Rupture
-Deformation,450,10,3,13,12,22
-Deposition,6,523,0,2,47,4
-Disconnect,2,1,314,10,5,4
-Misalignment,13,1,5,311,7,1
-Obstacle,6,51,7,14,550,7
-Rupture,21,1,5,12,5,388
+Deformation,481,7,3,4,3,12
+Deposition,3,543,1,1,27,7
+Disconnect,2,0,329,2,1,2
+Misalignment,8,1,7,317,2,3
+Obstacle,9,36,4,9,569,8
+Rupture,11,0,9,2,1,409

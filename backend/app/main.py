@@ -99,7 +99,7 @@ async def lifespan(app: FastAPI):
 
     # Load Hybrid QNN-GPU (CUDA required)
     if torch.cuda.is_available():
-        qnn_gpu_path = os.path.join(models_dir, "qnn_gpu_6_qubits.pth")
+        qnn_gpu_path = os.path.join(models_dir, "qnn_gpu.pth")
         if not os.path.exists(qnn_gpu_path):
             raise RuntimeError(f"QNN-GPU checkpoint not found: {qnn_gpu_path}")
         try:
