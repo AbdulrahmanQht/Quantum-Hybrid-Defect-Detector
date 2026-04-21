@@ -12,7 +12,23 @@ const messages = {
       about: 'About',
       contact: 'Contact'
     },
-    home: {},
+    home: {
+      hero: {
+        title: 'Quantum-Hybrid Defect Detector',
+        subtitle: 'Revolutionizing Industrial Defect Detection',
+        description: 'Our hybrid quantum-classical system identifies corrosion, cracks, and leaks in pipelines and industrial equipment with high accuracy and efficiency.',
+        button: 'Start Classification'
+      },
+      slider: [
+        { title: 'Project Overview', text: 'This project explores the integration of classical CNNs with Quantum Machine Learning to improve pipeline defect detection.' },
+        { title: 'Hybrid Quantum Approach', text: 'A hybrid model with a quantum layer within a classical CNN enhances robustness, reduces noise sensitivity, and accelerates processing.' },
+        { title: 'Industrial Application', text: 'Designed for the oil and gas industry, detecting defects such as corrosion, cracks, and leaks to improve safety and efficiency.' }
+      ],
+      credits: {
+        value: 'Our values: Academically demonstrates hybrid quantum-classical integration. Practically improves inspection accuracy, noise robustness, and processing speed.',
+        team: 'Supervised by Dr. Mustafa Youldash and Dr. Naya Nagy. Developed by a team of six students from Imam Abdulrahman Bin Faisal University.'
+      }
+    },
     classify: {
       title: 'Defect Detection',
       subtitle: 'Upload an industrial image to run inference across all three models simultaneously',
@@ -73,9 +89,9 @@ const messages = {
       sending: 'Opening...',
       required: 'This field is required',
       successTitle: 'Success',
-    successMsg: 'Your message has been sent successfully.',
-    errorTitle: 'Error',
-    errorMsg: 'Failed to send message. Please try again later.'
+      successMsg: 'Your message has been sent successfully.',
+      errorTitle: 'Error',
+      errorMsg: 'Failed to send message. Please try again later.'
     }
   },
   AR: {
@@ -87,7 +103,23 @@ const messages = {
       about: 'من نحن',
       contact: 'اتصل بنا'
     },
-    home: {},
+    home: {
+      hero: {
+        title: 'كاشف العيوب الكمّي-الكلاسيكي',
+        subtitle: ' تعريف عصري لكشف العيوب الصناعية',
+        description: 'نظامنا الهجين الكمّي-الكلاسيكي يكتشف التآكل، التشققات، والعيوب في خطوط الأنابيب والمعدات الصناعية بدقة وكفاءة عالية',
+        button: 'ابدأ التصنيف'
+      },
+      slider: [
+        { title: 'نظرة عامة على المشروع', text: 'يستكشف هذا المشروع دمج الشبكات العصبية التقليدية مع التعلم الكمّي لتحسين كشف العيوب في خطوط الأنابيب' },
+        { title: 'النهج الكمّي الهجين', text: 'يستخدم نموذج هجين طبقة كمّية ضمن شبكة عصبية تقليدية لتعزيز المتانة، تقليل الحساسية التشويش، وتسريع المعالجة' },
+        { title: 'التطبيق الصناعي', text: 'مصمم لصناعات النفط والغاز، لاكتشاف عيوب الأنابيب مثل التآكل والتشققات لتحسين السلامة والكفاءة' }
+      ],
+      credits: {
+        value: '.القيم: أكاديميا يوضح دمج النماذج الكمّية والكلاسيكية. عملياً يحسن دقة الفحص، مقاومة التشويش الصور ، وسرعة المعالجة',
+        team:'.اشراف الدكتور مصطفى يولداش والدكتورة نايا ناجي. تم تطويره بواسطة فريق من ستة طلاب من جامعة الإمام عبدالرحمن بن فيصل'
+      }
+    },
     classify: {
       title: 'كشف العيوب',
       subtitle: 'قم بتحميل صورة صناعية لتشغيل الاستدلال عبر النماذج الثلاثة في وقت واحد',
@@ -98,9 +130,9 @@ const messages = {
       running: 'جاري تشغيل النماذج...',
       max_size: 'الحد الأقصى لحجم الملف هو 5 ميجابايت.',
       max_dimensions: 'حتى 4096×4096 بكسل.',
-        choose: 'اختر صورة',
-        top_prediction: 'التوقع الأفضل',
-        results_defect: 'تم اكتشاف خلل',
+      choose: 'اختر صورة',
+      top_prediction: 'التوقع الأفضل',
+      results_defect: 'تم اكتشاف خلل',
       "Deformation": "تشوه",
       "Deposition": "ترسبات",
       "Disconnect": "انفصال",
@@ -119,7 +151,7 @@ const messages = {
       prediction: 'التوقع',
       safe: 'سليم',
       defect: 'خلل',
-        err_format: 'صيغة غير صالحة. يرجى تحميل صورة PNG أو JPG أو WEBP.',
+      err_format: 'صيغة غير صالحة. يرجى تحميل صورة PNG أو JPG أو WEBP.',
       err_size: 'حجم الملف يتجاوز 5 ميجابايت.',
       err_spoof: 'محتوى الملف لا يتطابق مع امتداده.',
       err_upload: 'فشل التحميل. يرجى المحاولة مرة أخرى.',
@@ -148,15 +180,15 @@ const messages = {
       sending: 'جاري الإرسال...',
       required: 'هذا الحقل مطلوب',
       successTitle: 'نجاح',
-    successMsg: 'تم إرسال رسالتك بنجاح.',
-    errorTitle: 'خطأ',
-    errorMsg: 'فشل إرسال الرسالة. يرجى المحاولة مرة أخرى لاحقاً.'
+      successMsg: 'تم أرسال رسالتك بنجاح.',
+      errorTitle: 'خطأ',
+      errorMsg: 'فشل إرسال الرسالة. يرجى المحاولة مرة أخرى لاحقاً.'
     }
   }
 }
 
 export const i18n = createI18n({
-  legacy: false, // Use Composition API
+  legacy: false, 
   locale: Cookies.get('app_lang') || 'EN',
   fallbackLocale: 'EN',
   messages,
