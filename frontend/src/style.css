@@ -1,6 +1,104 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@500;600;700&family=DM+Sans:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@500;600;700&family=DM+Sans:wght@400;500;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap');
 
 /* You can add global styles below */
 body { @apply bg-white; }
+.lang-ar h1,
+.lang-ar h2,
+.lang-ar h3,
+.lang-ar h4,
+.lang-ar h5,
+.lang-ar h6,
+.lang-ar p,
+.lang-ar span,
+.lang-ar label,
+.lang-ar li,
+.lang-ar td,
+.lang-ar th,
+.lang-ar .p-card-title,
+.lang-ar .p-card-content,
+.lang-ar .p-button-label,
+.lang-ar .p-inputtext,
+.lang-ar .p-dropdown-label,
+.lang-ar .p-tag,
+.lang-ar .p-panel-title,
+.lang-ar .p-accordion-header-link {
+    direction: rtl;
+    unicode-bidi: plaintext;
+}
+
+:root {
+    --q-teal: #2ab8b8;
+    --q-teal-soft: rgba(42, 184, 184, 0.12);
+    --q-teal-glow: rgba(42, 184, 184, 0.35);
+
+    --q-navy: #0d1f2d;
+    --q-navy-mid: #152536;
+    --q-navy-deep: #08131d;
+
+    --q-bar-bg: rgba(255, 255, 255, 0.88);
+    --q-bar-border: rgba(13, 31, 45, 0.08);
+
+    --q-surface: rgba(255, 255, 255, 0.66);
+    --q-surface-strong: rgba(255, 255, 255, 0.84);
+    --q-surface-soft: rgba(42, 184, 184, 0.08);
+
+    --q-text: #0d1f2d;
+    --q-muted: #4a6678;
+    --q-error: #d93025;
+
+    --q-shadow: 0 20px 60px rgba(13, 31, 45, 0.08);
+
+    --q-radius-lg: 32px;
+    --q-radius-md: 24px;
+    --q-radius-sm: 16px;
+
+    --q-font-display: 'Oxanium', sans-serif;
+    --q-font-body: 'DM Sans', sans-serif;
+}
+
+.p-dark {
+    --q-bar-bg: rgba(12, 22, 34, 0.82);
+    --q-bar-border: rgba(42, 184, 184, 0.14);
+
+    --q-surface: rgba(14, 28, 41, 0.74);
+    --q-surface-strong: rgba(12, 24, 36, 0.9);
+    --q-surface-soft: rgba(42, 184, 184, 0.12);
+
+    --q-text: #cde8ec;
+    --q-muted: #8db4bf;
+
+    --q-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+body {
+    margin: 0;
+    font-family: var(--q-font-body);
+    color: var(--q-text);
+}
+
+.q-glass {
+    border: 1px solid var(--q-bar-border);
+    background: var(--q-surface);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: var(--q-shadow);
+}
+
+.q-input {
+    background: var(--q-surface-strong);
+    border: 1px solid var(--q-bar-border);
+    color: var(--q-text);
+}
+
+.q-section-title {
+    color: var(--q-text);
+    font-family: var(--q-font-display);
+}
+
+.q-section-text {
+    color: var(--q-muted);
+}
