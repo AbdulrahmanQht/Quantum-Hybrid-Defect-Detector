@@ -1,0 +1,102 @@
+{
+  "generated_at": "2026-04-22T03:46:36Z",
+  "backend_dir": "/home/abood/Quantum-Hybrid-Defect-Detector/backend",
+  "source": "real_yolo",
+  "n_images": 5,
+  "n_correct": 5,
+  "overall_accuracy": 1.0,
+  "per_class": {
+    "Deformation": {
+      "correct": 5,
+      "total": 5,
+      "recall": 1.0
+    }
+  },
+  "records": [
+    {
+      "image_id": "real_Deformation_000001_1",
+      "true_class": "Deformation",
+      "true_class_idx": 0,
+      "predicted_class": "Deformation",
+      "predicted_class_idx": 0,
+      "confidence": 0.9702,
+      "correct": true,
+      "all_scores": {
+        "Deformation": 0.9702,
+        "Deposition": 0.0007,
+        "Disconnect": 0.0229,
+        "Misalignment": 0.0047,
+        "Obstacle": 0.0006,
+        "Rupture": 0.0008
+      }
+    },
+    {
+      "image_id": "real_Deformation_000004",
+      "true_class": "Deformation",
+      "true_class_idx": 0,
+      "predicted_class": "Deformation",
+      "predicted_class_idx": 0,
+      "confidence": 0.951,
+      "correct": true,
+      "all_scores": {
+        "Deformation": 0.951,
+        "Deposition": 0.0024,
+        "Disconnect": 0.0102,
+        "Misalignment": 0.0029,
+        "Obstacle": 0.0008,
+        "Rupture": 0.0327
+      }
+    },
+    {
+      "image_id": "real_Deformation_000005_0",
+      "true_class": "Deformation",
+      "true_class_idx": 0,
+      "predicted_class": "Deformation",
+      "predicted_class_idx": 0,
+      "confidence": 0.8937,
+      "correct": true,
+      "all_scores": {
+        "Deformation": 0.8937,
+        "Deposition": 0.0024,
+        "Disconnect": 0.0324,
+        "Misalignment": 0.0146,
+        "Obstacle": 0.0521,
+        "Rupture": 0.0048
+      }
+    },
+    {
+      "image_id": "real_Deformation_000005_1",
+      "true_class": "Deformation",
+      "true_class_idx": 0,
+      "predicted_class": "Deformation",
+      "predicted_class_idx": 0,
+      "confidence": 0.8437,
+      "correct": true,
+      "all_scores": {
+        "Deformation": 0.8437,
+        "Deposition": 0.0116,
+        "Disconnect": 0.0194,
+        "Misalignment": 0.0111,
+        "Obstacle": 0.0972,
+        "Rupture": 0.017
+      }
+    },
+    {
+      "image_id": "real_Deformation_000008_1",
+      "true_class": "Deformation",
+      "true_class_idx": 0,
+      "predicted_class": "Deformation",
+      "predicted_class_idx": 0,
+      "confidence": 0.9204,
+      "correct": true,
+      "all_scores": {
+        "Deformation": 0.9204,
+        "Deposition": 0.0034,
+        "Disconnect": 0.0222,
+        "Misalignment": 0.0017,
+        "Obstacle": 0.0508,
+        "Rupture": 0.0014
+      }
+    }
+  ]
+}

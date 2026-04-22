@@ -321,7 +321,7 @@ class HybridQnnGPU(nn.Module):
         return main_logits
 
 
-    # EMA helpers (correct save/restore pattern — Kimi's bug fixed)
+    # EMA helpers (correct save/restore pattern)
     def _update_ema(self) -> None:
         """Accumulate EMA shadow alongside live quantum weights each step."""
         for name, param in self.q_layer.named_parameters():

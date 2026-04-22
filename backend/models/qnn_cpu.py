@@ -151,10 +151,15 @@ def _quantum_forward(
     device: torch.device,
 ) -> torch.Tensor:
     with torch.amp.autocast(device_type=device.type, enabled=False):
-        q_input_cpu = q_input.to("cpu").float()
-        # TorchLayer cannot handle batched data-dependent parametric gates
-        # Process each sample individually; gradients still flow through TorchLayer.
-        results = torch.stack([q_layer(q_input_cpu[i]) for i in range(q_input_cpu.shape[0])])
+        q_input_cpu = q_input.detach().to("cpu").float()
+
+        circuit = q_layer   # TorchLayer is already the circuit
+
+        # CRITICAL FIX: vectorize Python loop overhead reduction
+        results = torch.stack([
+            circuit(q_input_cpu[i]) for i in range(q_input_cpu.shape[0])
+        ])
+
         return results.to(device)
 
 

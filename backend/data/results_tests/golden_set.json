@@ -1,0 +1,519 @@
+{
+  "generated_at": "2026-04-22T03:20:32Z",
+  "model_checkpoint": "models/cnn.pth",
+  "source": "synthetic",
+  "n_images": 30,
+  "images_per_class": 5,
+  "records": [
+    {
+      "image_id": "synthetic_Deformation_00",
+      "true_class": "Deformation",
+      "true_class_idx": 0,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.7777,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0013,
+        "Deposition": 0.021,
+        "Disconnect": 0.7777,
+        "Misalignment": 0.1437,
+        "Obstacle": 0.0094,
+        "Rupture": 0.047
+      }
+    },
+    {
+      "image_id": "synthetic_Deformation_01",
+      "true_class": "Deformation",
+      "true_class_idx": 0,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.9119,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0003,
+        "Deposition": 0.0003,
+        "Disconnect": 0.9119,
+        "Misalignment": 0.0617,
+        "Obstacle": 0.0002,
+        "Rupture": 0.0256
+      }
+    },
+    {
+      "image_id": "synthetic_Deformation_02",
+      "true_class": "Deformation",
+      "true_class_idx": 0,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.9518,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0003,
+        "Deposition": 0.0006,
+        "Disconnect": 0.9518,
+        "Misalignment": 0.0331,
+        "Obstacle": 0.0007,
+        "Rupture": 0.0135
+      }
+    },
+    {
+      "image_id": "synthetic_Deformation_03",
+      "true_class": "Deformation",
+      "true_class_idx": 0,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.8506,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0013,
+        "Deposition": 0.0009,
+        "Disconnect": 0.8506,
+        "Misalignment": 0.0823,
+        "Obstacle": 0.0013,
+        "Rupture": 0.0636
+      }
+    },
+    {
+      "image_id": "synthetic_Deformation_04",
+      "true_class": "Deformation",
+      "true_class_idx": 0,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.8835,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0011,
+        "Deposition": 0.0015,
+        "Disconnect": 0.8835,
+        "Misalignment": 0.0461,
+        "Obstacle": 0.0042,
+        "Rupture": 0.0636
+      }
+    },
+    {
+      "image_id": "synthetic_Deposition_00",
+      "true_class": "Deposition",
+      "true_class_idx": 1,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.7945,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0014,
+        "Deposition": 0.0009,
+        "Disconnect": 0.7945,
+        "Misalignment": 0.0722,
+        "Obstacle": 0.0014,
+        "Rupture": 0.1296
+      }
+    },
+    {
+      "image_id": "synthetic_Deposition_01",
+      "true_class": "Deposition",
+      "true_class_idx": 1,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.6515,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0019,
+        "Deposition": 0.0009,
+        "Disconnect": 0.6515,
+        "Misalignment": 0.1702,
+        "Obstacle": 0.001,
+        "Rupture": 0.1745
+      }
+    },
+    {
+      "image_id": "synthetic_Deposition_02",
+      "true_class": "Deposition",
+      "true_class_idx": 1,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.6842,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0024,
+        "Deposition": 0.0017,
+        "Disconnect": 0.6842,
+        "Misalignment": 0.1784,
+        "Obstacle": 0.002,
+        "Rupture": 0.1314
+      }
+    },
+    {
+      "image_id": "synthetic_Deposition_03",
+      "true_class": "Deposition",
+      "true_class_idx": 1,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.8827,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0009,
+        "Deposition": 0.0003,
+        "Disconnect": 0.8827,
+        "Misalignment": 0.0506,
+        "Obstacle": 0.0006,
+        "Rupture": 0.0649
+      }
+    },
+    {
+      "image_id": "synthetic_Deposition_04",
+      "true_class": "Deposition",
+      "true_class_idx": 1,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.8787,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0007,
+        "Deposition": 0.0012,
+        "Disconnect": 0.8787,
+        "Misalignment": 0.0623,
+        "Obstacle": 0.0015,
+        "Rupture": 0.0555
+      }
+    },
+    {
+      "image_id": "synthetic_Disconnect_00",
+      "true_class": "Disconnect",
+      "true_class_idx": 2,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.9223,
+      "correct": true,
+      "all_scores": {
+        "Deformation": 0.0003,
+        "Deposition": 0.0009,
+        "Disconnect": 0.9223,
+        "Misalignment": 0.0435,
+        "Obstacle": 0.0014,
+        "Rupture": 0.0316
+      }
+    },
+    {
+      "image_id": "synthetic_Disconnect_01",
+      "true_class": "Disconnect",
+      "true_class_idx": 2,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.8704,
+      "correct": true,
+      "all_scores": {
+        "Deformation": 0.001,
+        "Deposition": 0.0017,
+        "Disconnect": 0.8704,
+        "Misalignment": 0.08,
+        "Obstacle": 0.0019,
+        "Rupture": 0.045
+      }
+    },
+    {
+      "image_id": "synthetic_Disconnect_02",
+      "true_class": "Disconnect",
+      "true_class_idx": 2,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.939,
+      "correct": true,
+      "all_scores": {
+        "Deformation": 0.0003,
+        "Deposition": 0.0004,
+        "Disconnect": 0.939,
+        "Misalignment": 0.0172,
+        "Obstacle": 0.0005,
+        "Rupture": 0.0426
+      }
+    },
+    {
+      "image_id": "synthetic_Disconnect_03",
+      "true_class": "Disconnect",
+      "true_class_idx": 2,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.9201,
+      "correct": true,
+      "all_scores": {
+        "Deformation": 0.0003,
+        "Deposition": 0.0004,
+        "Disconnect": 0.9201,
+        "Misalignment": 0.0462,
+        "Obstacle": 0.0003,
+        "Rupture": 0.0326
+      }
+    },
+    {
+      "image_id": "synthetic_Disconnect_04",
+      "true_class": "Disconnect",
+      "true_class_idx": 2,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.8507,
+      "correct": true,
+      "all_scores": {
+        "Deformation": 0.0013,
+        "Deposition": 0.0034,
+        "Disconnect": 0.8507,
+        "Misalignment": 0.0575,
+        "Obstacle": 0.003,
+        "Rupture": 0.0841
+      }
+    },
+    {
+      "image_id": "synthetic_Misalignment_00",
+      "true_class": "Misalignment",
+      "true_class_idx": 3,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.8376,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0019,
+        "Deposition": 0.0007,
+        "Disconnect": 0.8376,
+        "Misalignment": 0.0653,
+        "Obstacle": 0.0009,
+        "Rupture": 0.0936
+      }
+    },
+    {
+      "image_id": "synthetic_Misalignment_01",
+      "true_class": "Misalignment",
+      "true_class_idx": 3,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.9315,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0002,
+        "Deposition": 0.0005,
+        "Disconnect": 0.9315,
+        "Misalignment": 0.0358,
+        "Obstacle": 0.0009,
+        "Rupture": 0.0311
+      }
+    },
+    {
+      "image_id": "synthetic_Misalignment_02",
+      "true_class": "Misalignment",
+      "true_class_idx": 3,
+      "predicted_class": "Misalignment",
+      "predicted_class_idx": 3,
+      "confidence": 0.3948,
+      "correct": true,
+      "all_scores": {
+        "Deformation": 0.0046,
+        "Deposition": 0.0011,
+        "Disconnect": 0.3927,
+        "Misalignment": 0.3948,
+        "Obstacle": 0.0017,
+        "Rupture": 0.2051
+      }
+    },
+    {
+      "image_id": "synthetic_Misalignment_03",
+      "true_class": "Misalignment",
+      "true_class_idx": 3,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.9287,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0004,
+        "Deposition": 0.0011,
+        "Disconnect": 0.9287,
+        "Misalignment": 0.028,
+        "Obstacle": 0.0011,
+        "Rupture": 0.0407
+      }
+    },
+    {
+      "image_id": "synthetic_Misalignment_04",
+      "true_class": "Misalignment",
+      "true_class_idx": 3,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.9081,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0005,
+        "Deposition": 0.0017,
+        "Disconnect": 0.9081,
+        "Misalignment": 0.0352,
+        "Obstacle": 0.0019,
+        "Rupture": 0.0526
+      }
+    },
+    {
+      "image_id": "synthetic_Obstacle_00",
+      "true_class": "Obstacle",
+      "true_class_idx": 4,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.9217,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0004,
+        "Deposition": 0.0019,
+        "Disconnect": 0.9217,
+        "Misalignment": 0.0433,
+        "Obstacle": 0.0016,
+        "Rupture": 0.0311
+      }
+    },
+    {
+      "image_id": "synthetic_Obstacle_01",
+      "true_class": "Obstacle",
+      "true_class_idx": 4,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.7119,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0017,
+        "Deposition": 0.0024,
+        "Disconnect": 0.7119,
+        "Misalignment": 0.1573,
+        "Obstacle": 0.0085,
+        "Rupture": 0.1183
+      }
+    },
+    {
+      "image_id": "synthetic_Obstacle_02",
+      "true_class": "Obstacle",
+      "true_class_idx": 4,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.8372,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0012,
+        "Deposition": 0.0022,
+        "Disconnect": 0.8372,
+        "Misalignment": 0.0582,
+        "Obstacle": 0.0026,
+        "Rupture": 0.0986
+      }
+    },
+    {
+      "image_id": "synthetic_Obstacle_03",
+      "true_class": "Obstacle",
+      "true_class_idx": 4,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.9176,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0004,
+        "Deposition": 0.0036,
+        "Disconnect": 0.9176,
+        "Misalignment": 0.0407,
+        "Obstacle": 0.0021,
+        "Rupture": 0.0356
+      }
+    },
+    {
+      "image_id": "synthetic_Obstacle_04",
+      "true_class": "Obstacle",
+      "true_class_idx": 4,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.9502,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0004,
+        "Deposition": 0.0011,
+        "Disconnect": 0.9502,
+        "Misalignment": 0.0264,
+        "Obstacle": 0.001,
+        "Rupture": 0.0209
+      }
+    },
+    {
+      "image_id": "synthetic_Rupture_00",
+      "true_class": "Rupture",
+      "true_class_idx": 5,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.8342,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0012,
+        "Deposition": 0.0009,
+        "Disconnect": 0.8342,
+        "Misalignment": 0.0825,
+        "Obstacle": 0.0019,
+        "Rupture": 0.0793
+      }
+    },
+    {
+      "image_id": "synthetic_Rupture_01",
+      "true_class": "Rupture",
+      "true_class_idx": 5,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.8982,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0005,
+        "Deposition": 0.0007,
+        "Disconnect": 0.8982,
+        "Misalignment": 0.0461,
+        "Obstacle": 0.0011,
+        "Rupture": 0.0534
+      }
+    },
+    {
+      "image_id": "synthetic_Rupture_02",
+      "true_class": "Rupture",
+      "true_class_idx": 5,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.9161,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0004,
+        "Deposition": 0.0008,
+        "Disconnect": 0.9161,
+        "Misalignment": 0.041,
+        "Obstacle": 0.0006,
+        "Rupture": 0.0412
+      }
+    },
+    {
+      "image_id": "synthetic_Rupture_03",
+      "true_class": "Rupture",
+      "true_class_idx": 5,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.8507,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0016,
+        "Deposition": 0.0014,
+        "Disconnect": 0.8507,
+        "Misalignment": 0.0617,
+        "Obstacle": 0.0014,
+        "Rupture": 0.0833
+      }
+    },
+    {
+      "image_id": "synthetic_Rupture_04",
+      "true_class": "Rupture",
+      "true_class_idx": 5,
+      "predicted_class": "Disconnect",
+      "predicted_class_idx": 2,
+      "confidence": 0.8988,
+      "correct": false,
+      "all_scores": {
+        "Deformation": 0.0005,
+        "Deposition": 0.0013,
+        "Disconnect": 0.8988,
+        "Misalignment": 0.0518,
+        "Obstacle": 0.0015,
+        "Rupture": 0.0461
+      }
+    }
+  ]
+}
