@@ -1,51 +1,56 @@
 <script setup>
-import { ref, computed, markRaw } from "vue";
-import Cookies from 'js-cookie';
-import { useI18n } from 'vue-i18n';
-import { Atom, Home, Search, ChartColumn, Info, Mail, Languages, Sun, Moon, Menu, X } from 'lucide-vue-next';
+import { ref, computed, markRaw } from 'vue'
+import Cookies from 'js-cookie'
+import { useI18n } from 'vue-i18n'
+import { Atom, Home, Search, ChartColumn, Mail, Languages, Sun, Moon, Menu, X } from 'lucide-vue-next'
 
-const { t, locale } = useI18n();
+const { t, locale } = useI18n()
 
-const LANG_KEY = 'app_lang';
-const THEME_KEY = 'theme';
+const LANG_KEY = 'app_lang'
+const THEME_KEY = 'theme'
 
-const currentLang = computed(() => locale.value);
-const isDark = ref(Cookies.get(THEME_KEY) === 'dark');
-const menuOpen = ref(false);
+const currentLang = computed(() => locale.value)
+const isDark = ref(Cookies.get(THEME_KEY) === 'dark')
+const menuOpen = ref(false)
 
 const items = computed(() => [
-  { label: t('navbar.home'),             lucideIcon: markRaw(Home),        to: '/' },
-  { label: t('navbar.classify'),         lucideIcon: markRaw(Search),      to: '/classify' },
-  { label: t('navbar.benchmark'),        lucideIcon: markRaw(ChartColumn), to: '/benchmark' },
-  { label: t('navbar.quantum_advantage'),lucideIcon: markRaw(Atom),        to: '/quantum-advantage', isQuantum: true },
-  { label: t('navbar.contact'),          lucideIcon: markRaw(Mail),        to: '/contact' },
-]);
+  { label: t('navbar.home'), lucideIcon: markRaw(Home), to: '/' },
+  { label: t('navbar.classify'), lucideIcon: markRaw(Search), to: '/classify' },
+  { label: t('navbar.benchmark'), lucideIcon: markRaw(ChartColumn), to: '/benchmark' },
+  { label: t('navbar.quantum_advantage'), lucideIcon: markRaw(Atom), to: '/quantum-advantage', isQuantum: true },
+  { label: t('navbar.contact'), lucideIcon: markRaw(Mail), to: '/contact' },
+])
 
 const toggleLanguage = () => {
-  const next = locale.value === 'EN' ? 'AR' : 'EN';
-  locale.value = next;
-  Cookies.set(LANG_KEY, next, { expires: 365, path: '/' });
-};
+  const next = locale.value === 'EN' ? 'AR' : 'EN'
+  locale.value = next
+  Cookies.set(LANG_KEY, next, { expires: 365, path: '/' })
+
+  document.documentElement.classList.toggle('lang-ar', next === 'AR')
+}
 
 const toggleTheme = () => {
-  isDark.value = !isDark.value;
-  document.documentElement.classList.toggle('p-dark', isDark.value);
-  Cookies.set(THEME_KEY, isDark.value ? 'dark' : 'light', { expires: 365, path: '/' });
-};
+  isDark.value = !isDark.value
+  document.documentElement.classList.toggle('p-dark', isDark.value)
+  Cookies.set(THEME_KEY, isDark.value ? 'dark' : 'light', { expires: 365, path: '/' })
+}
 
-const closeMenu = () => { menuOpen.value = false; };
+const closeMenu = () => {
+  menuOpen.value = false
+}
 </script>
 
 <template>
   <header class="qnn-bar">
     <div class="qnn-inner">
-
-      <!-- ── Logo ── -->
       <router-link to="/" class="qnn-logo" @click="closeMenu">
-        <img src="/public/qnn_logo_final_no_text.svg" alt="QNN" />
+        <img src="/qnn_logo_final_no_text.svg" alt="QNN" />
+        <div class="qnn-logo-copy">
+          <span class="qnn-logo-title">Quantum-Hybrid</span>
+          <span class="qnn-logo-subtitle">Defect Detector</span>
+        </div>
       </router-link>
 
-      <!-- ── Desktop nav ── -->
       <nav class="qnn-nav" :class="{ 'qnn-nav--open': menuOpen }">
         <router-link
           v-for="item in items"
@@ -60,14 +65,17 @@ const closeMenu = () => { menuOpen.value = false; };
         </router-link>
       </nav>
 
-      <!-- ── Controls ── -->
       <div class="qnn-actions">
         <button class="qnn-lang-btn" @click="toggleLanguage">
           <Languages :size="14" />
           <span>{{ currentLang === 'EN' ? 'العربية' : 'English' }}</span>
         </button>
 
-        <button class="qnn-icon-btn" @click="toggleTheme" :aria-label="isDark ? 'Light mode' : 'Dark mode'">
+        <button
+          class="qnn-icon-btn"
+          @click="toggleTheme"
+          :aria-label="isDark ? 'Light mode' : 'Dark mode'"
+        >
           <component :is="isDark ? markRaw(Sun) : markRaw(Moon)" :size="16" />
         </button>
 
@@ -77,51 +85,42 @@ const closeMenu = () => { menuOpen.value = false; };
       </div>
     </div>
 
-    <!-- Teal accent line -->
     <div class="qnn-accent-line" />
   </header>
 
-  <!-- Page offset -->
-  <div class="h-[85px]" />
+  <div class="h-[78px] md:h-[88px]" />
 </template>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@500;600&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@500;600;700&family=DM+Sans:wght@400;500;700&display=swap');
 
-/* ────────────────────────────────────────────
-   Design tokens — logo palette
-──────────────────────────────────────────── */
 :root {
-  --q-teal:        #2ab8b8;
-  --q-teal-soft:   rgba(42, 184, 184, 0.12);
-  --q-teal-glow:   rgba(42, 184, 184, 0.35);
-  --q-navy:        #0d1f2d;
-  --q-navy-mid:    #152536;
-
-  --q-bar-bg:      rgba(255, 255, 255, 0.88);
-  --q-bar-border:  rgba(13, 31, 45, 0.08);
-  --q-text:        #0d1f2d;
-  --q-muted:       #4a6678;
-  --q-h:           58px;
+  --q-teal: #2ab8b8;
+  --q-teal-soft: rgba(42, 184, 184, 0.12);
+  --q-teal-glow: rgba(42, 184, 184, 0.35);
+  --q-navy: #0d1f2d;
+  --q-navy-mid: #152536;
+  --q-bar-bg: rgba(255, 255, 255, 0.88);
+  --q-bar-border: rgba(13, 31, 45, 0.08);
+  --q-text: #0d1f2d;
+  --q-muted: #4a6678;
+  --q-h: 64px;
 }
 
 .p-dark {
-  --q-bar-bg:     rgba(9, 18, 28, 0.90);
-  --q-bar-border: rgba(42, 184, 184, 0.08);
-  --q-text:       #cde8ec;
-  --q-muted:      #6a9aaa;
+  --q-bar-bg: rgba(9, 18, 28, 0.82);
+  --q-bar-border: rgba(42, 184, 184, 0.12);
+  --q-text: #cde8ec;
+  --q-muted: #8db4bf;
 }
 
-/* ────────────────────────────────────────────
-   Bar shell
-──────────────────────────────────────────── */
 .qnn-bar {
   position: fixed;
   inset: 0 0 auto 0;
   z-index: 999;
   background: var(--q-bar-bg);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid var(--q-bar-border);
   font-family: 'DM Sans', sans-serif;
 }
@@ -130,35 +129,22 @@ const closeMenu = () => { menuOpen.value = false; };
   display: flex;
   align-items: center;
   height: var(--q-h);
-  padding: 0 1.75rem;
+  padding: 0 1rem;
   max-width: 1400px;
   margin: 0 auto;
   position: relative;
 }
 
-/* Teal gradient accent line at bottom */
 .qnn-accent-line {
   height: 2px;
-  background: linear-gradient(
-    90deg,
-    transparent      0%,
-    var(--q-teal)   25%,
-    #1eb0c8         55%,
-    transparent    100%
-  );
+  background: linear-gradient(90deg, transparent 0%, var(--q-teal) 25%, #1eb0c8 55%, transparent 100%);
   opacity: 0.55;
 }
 
-.qnn-spacer {
-  height: calc(var(--q-h) + 2px);
-}
-
-/* ────────────────────────────────────────────
-   Logo
-──────────────────────────────────────────── */
 .qnn-logo {
   display: flex;
   align-items: center;
+  gap: 0.8rem;
   flex-shrink: 0;
   z-index: 2;
   text-decoration: none;
@@ -173,50 +159,59 @@ const closeMenu = () => { menuOpen.value = false; };
 }
 
 .qnn-logo:hover img {
-  transform: scale(1.06);
+  transform: scale(1.05);
   filter: drop-shadow(0 0 8px var(--q-teal-glow));
 }
 
-/* ────────────────────────────────────────────
-   Desktop nav (centered)
-──────────────────────────────────────────── */
+.qnn-logo-copy {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.qnn-logo-title {
+  font-family: 'Oxanium', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--q-text);
+}
+
+.qnn-logo-subtitle {
+  font-size: 0.72rem;
+  color: var(--q-muted);
+  margin-top: 0.22rem;
+}
+
 .qnn-nav {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 0.1rem;
+  gap: 0.25rem;
+  padding: 0.3rem;
+  border: 1px solid var(--q-bar-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.p-dark .qnn-nav {
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .qnn-link {
   display: flex;
   align-items: center;
-  gap: 0.38rem;
-  padding: 0.42rem 0.8rem;
-  border-radius: 7px;
-  font-size: 0.855rem;
+  gap: 0.45rem;
+  padding: 0.58rem 0.95rem;
+  border-radius: 999px;
+  font-size: 0.88rem;
   font-weight: 500;
   color: var(--q-muted);
   text-decoration: none;
   position: relative;
   white-space: nowrap;
-  transition: color 0.18s, background 0.18s;
-}
-
-/* Sliding teal underline */
-.qnn-link::after {
-  content: '';
-  position: absolute;
-  bottom: 3px;
-  left: 50%;
-  width: 55%;
-  height: 1.5px;
-  background: var(--q-teal);
-  border-radius: 2px;
-  transform: translateX(-50%) scaleX(0);
-  transform-origin: center;
-  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: color 0.2s, background 0.2s, transform 0.2s;
 }
 
 .qnn-link:hover,
@@ -225,51 +220,23 @@ const closeMenu = () => { menuOpen.value = false; };
   background: var(--q-teal-soft);
 }
 
-.qnn-link:hover::after,
-.qnn-link.router-link-active::after {
-  transform: translateX(-50%) scaleX(1);
+.qnn-link.router-link-active {
+  box-shadow: inset 0 0 0 1px rgba(42, 184, 184, 0.15);
 }
 
-/* Quantum Advantage — special teal treatment */
 .qnn-link--quantum {
   color: var(--q-teal);
   font-family: 'Oxanium', sans-serif;
   font-weight: 600;
-  font-size: 0.84rem;
-  letter-spacing: 0.015em;
-}
-
-.qnn-link--quantum::after {
-  width: 75%;
-  background: var(--q-teal);
-}
-
-.qnn-link--quantum:hover {
-  color: var(--q-teal);
-  background: var(--q-teal-soft);
 }
 
 .qnn-link-icon {
   width: 14px;
   height: 14px;
-  opacity: 0.65;
+  opacity: 0.85;
   flex-shrink: 0;
-  transition: opacity 0.18s;
 }
 
-.qnn-link:hover .qnn-link-icon,
-.qnn-link.router-link-active .qnn-link-icon {
-  opacity: 1;
-}
-
-.qnn-link--quantum .qnn-link-icon {
-  opacity: 1;
-  color: var(--q-teal);
-}
-
-/* ────────────────────────────────────────────
-   Controls (right side)
-──────────────────────────────────────────── */
 .qnn-actions {
   margin-left: auto;
   display: flex;
@@ -278,34 +245,33 @@ const closeMenu = () => { menuOpen.value = false; };
   z-index: 2;
 }
 
-.qnn-lang-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.38rem;
-  padding: 0.38rem 0.7rem;
-  border: none;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--q-muted);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.82rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: color 0.18s, background 0.18s;
-}
-
+.qnn-lang-btn,
 .qnn-icon-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  gap: 0.38rem;
   border: none;
-  border-radius: 50%;
+  cursor: pointer;
+  transition: color 0.18s, background 0.18s, transform 0.18s;
+}
+
+.qnn-lang-btn {
+  padding: 0.55rem 0.8rem;
+  border-radius: 999px;
   background: transparent;
   color: var(--q-muted);
-  cursor: pointer;
-  transition: color 0.18s, background 0.18s;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.qnn-icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--q-muted);
 }
 
 .qnn-lang-btn:hover,
@@ -314,65 +280,57 @@ const closeMenu = () => { menuOpen.value = false; };
   background: var(--q-teal-soft);
 }
 
-/* Hamburger — hidden on desktop */
 .qnn-burger {
   display: none;
-  border-radius: 7px;
-  width: 36px;
-  height: 36px;
 }
 
-/* ────────────────────────────────────────────
-   Mobile / Zoom breakpoint
-──────────────────────────────────────────── */
-@media (max-width: 960px) {
-  .qnn-burger {
-    display: flex;
+@media (max-width: 1100px) {
+  .qnn-logo-copy {
+    display: none;
   }
 
   .qnn-nav {
-    /* Reset desktop centering */
     position: fixed;
-    top: calc(var(--q-h) + 2px);
-    left: 0;
-    right: 0;
+    top: calc(var(--q-h) + 8px);
+    left: 1rem;
+    right: 1rem;
     transform: none;
     flex-direction: column;
     align-items: stretch;
-    gap: 0.25rem;
-    padding: 0.75rem 1rem 1.25rem;
+    gap: 0.35rem;
+    padding: 0.85rem;
+    border-radius: 22px;
     background: var(--q-bar-bg);
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    border-bottom: 1px solid var(--q-bar-border);
-    z-index: 998;
-
-    /* Hidden by default */
+    border: 1px solid var(--q-bar-border);
     opacity: 0;
     pointer-events: none;
-    transform: translateY(-6px);
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    translate: 0 -8px;
+    transition: opacity 0.22s ease, translate 0.22s ease;
   }
 
   .qnn-nav--open {
     opacity: 1;
     pointer-events: auto;
-    transform: translateY(0);
+    translate: 0 0;
   }
 
   .qnn-link {
-    padding: 0.75rem 1rem;
-    border-radius: 8px;
-    font-size: 0.93rem;
+    justify-content: flex-start;
+    border-radius: 14px;
   }
 
-  .qnn-link::after {
+  .qnn-burger {
+    display: flex;
+  }
+}
+
+@media (max-width: 640px) {
+  .qnn-inner {
+    padding: 0 0.8rem;
+  }
+
+  .qnn-lang-btn span {
     display: none;
-  }
-
-  .qnn-link:hover,
-  .qnn-link.router-link-active {
-    background: var(--q-teal-soft);
   }
 }
 </style>

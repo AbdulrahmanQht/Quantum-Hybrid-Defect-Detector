@@ -49,6 +49,14 @@ if (savedTheme === 'dark') {
 
 app.config.globalProperties.$cookies = Cookies
 
+const currentLang = Cookies.get('app_lang') || 'EN'
+
+if (currentLang === 'AR') {
+  document.documentElement.classList.add('lang-ar')
+} else {
+  document.documentElement.classList.remove('lang-ar')
+}
+
 // --- Initialize PrimeVue ---
 app.use(PrimeVue, {
     theme: {
