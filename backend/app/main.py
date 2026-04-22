@@ -110,7 +110,7 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             raise RuntimeError(f"Failed to load QNN-GPU: {e}")
     else:
-        logger.warning("CUDA not available. QNN-GPU will not be loaded.")
+        logger.warn("CUDA not available. QNN-GPU will not be loaded.")
 
     logger.info("Warming up models to prevent cold-start latency.")
     dummy_tensor = torch.zeros((1, 3, 384, 384), dtype=torch.float32)

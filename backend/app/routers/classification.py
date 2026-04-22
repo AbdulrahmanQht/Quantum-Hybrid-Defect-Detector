@@ -10,6 +10,12 @@ from fastapi import APIRouter, Request, UploadFile, File, Form, HTTPException
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
+from backend.utils.validate import (
+    check_content_type,
+    check_file_size,
+    check_dimensions,
+    check_magic_bytes,
+)
 from backend.utils.logger import Logger
 
 # Schema for prediction output for each model
@@ -164,17 +170,16 @@ async def classify_image(
         raise HTTPException(status_code=503, detail=f"Server is not ready. Missing: {', '.join(missing_models)}",)
     
     # Fast fail checks for file type and size before processing to save resources
-    allowed_mimes = ["image/jpeg", "image/png", "image/webp", "image/bmp", "image/tiff"]
-    if file.content_type not in allowed_mimes:
+    if not check_content_type(file.content_type):
         raise HTTPException(status_code=415, detail="Unsupported media type. Only images are allowed.")
 
     # Reading all bytes at once for performance, reading 1 byte at a time was causing a bottleneck.
     file_bytes = await file.read()
-    if len(file_bytes) > MAX_FILE_SIZE:
+    if not check_file_size(len(file_bytes)):
         raise HTTPException(status_code=413, detail="File too large")
     
     # Magic bytes check: rejects files whose content doesn't match their claimed type
-    if not validate_magic_bytes(file_bytes):
+    if not check_magic_bytes(file_bytes, file.content_type):
         raise HTTPException(status_code=415, detail="File content does not match a supported image format.")
 
     try:
@@ -185,7 +190,7 @@ async def classify_image(
 
         # Validate dimensions manually since we aren't using PIL
         _, height, width = img_tensor.shape
-        if height > MAX_DIMENSION or width > MAX_DIMENSION:
+        if not check_dimensions(width, height):
             raise HTTPException(status_code=400, detail="Image dimensions exceed 4096x4096.")
 
     except Exception as e:

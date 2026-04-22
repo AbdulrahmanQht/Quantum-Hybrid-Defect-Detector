@@ -138,7 +138,7 @@ except ImportError:
     SKLEARN_AVAILABLE = False
 
 from backend.data.data_loader import DataLoaderManager
-from backend.models.noise import apply_noise, QA_NOISE_LEVELS
+from backend.utils.noise import apply_noise, QA_NOISE_LEVELS
 from backend.models.cnn import CNN
 from backend.models.qnn_cpu import HybridQnnCPU
 from backend.models.qnn_gpu import HybridQnnGPU

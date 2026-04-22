@@ -63,7 +63,7 @@ from backend.data.data_loader import DataLoaderManager
 from backend.models.cnn import CNN
 from backend.models.qnn_cpu import HybridQnnCPU
 from backend.models.qnn_gpu import HybridQnnGPU
-from backend.models.noise import apply_noise, BENCHMARK_NOISE_LEVELS
+from backend.utils.noise import apply_noise, BENCHMARK_NOISE_LEVELS
 from backend.utils.logger import Logger
 
 logger = Logger()
@@ -73,7 +73,7 @@ CONFIG = {
     "img_width":       384,
     "img_height":      384,
     "batch_size":      16,
-    "training_epochs": 50,
+    "training_epochs": 75,
     "n_qubits":        6,
     "q_depth":         2,
     "noise_levels":    BENCHMARK_NOISE_LEVELS,

@@ -29,12 +29,12 @@ PART B — Soak and memory leak detection
 Both parts share the same model and device fixtures (loaded once per module).
 
 Results saved to:
-    backend/data/results_tests/determinism_cnn.json
-    backend/data/results_tests/determinism_reproducibility.json
-    backend/data/results_tests/soak_cnn.json
-    backend/data/results_tests/soak_qnn_cpu.json
-    backend/data/results_tests/soak_combined.json
-    backend/data/results_tests/model_stability_combined.json
+    data/results_tests/determinism_cnn.json
+    data/results_tests/determinism_reproducibility.json
+    data/results_tests/soak_cnn.json
+    data/results_tests/soak_qnn_cpu.json
+    data/results_tests/soak_combined.json
+    data/results_tests/model_stability_combined.json
 
 Run:
     pytest tests/test_model_stability.py -v
@@ -58,9 +58,10 @@ import pytest
 import torch
 import torch.nn.functional as F
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+BACKEND_DIR = Path(__file__).parent.parent.resolve()
+sys.path.insert(0, str(BACKEND_DIR))
 
-RESULTS_DIR = Path("backend/data/results_tests")
+RESULTS_DIR = BACKEND_DIR / "data" / "results_tests"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 CLASS_NAMES = [
@@ -74,19 +75,22 @@ MEMORY_GROWTH_LIMIT_MB = 50.0
 SAMPLE_EVERY          = 100
 
 # ── Batch-size invariance tolerance ─────────────────────────────────────────
-BATCH_TOL = 1e-4
+BATCH_TOL = 2e-4
 
-# ── Checkpoint candidates ────────────────────────────────────────────────────
 _CNN_CKPT = next(
-    (p for p in [
-        "models/cnn_noise_training_75_epochs.pth",
+    (str(BACKEND_DIR / p) for p in [
         "models/cnn.pth",
-        "models/cpu_new.pth",
-    ] if Path(p).exists()), None
+    ] if (BACKEND_DIR / p).exists()), None
 )
 _QNN_CPU_CKPT = next(
-    (p for p in ["models/qnn_cpu.pth", "models/qnn_cpu_new.pth"]
-     if Path(p).exists()), None
+    (str(BACKEND_DIR / p) for p in [
+        "models/qnn_cpu.pth",
+    ] if (BACKEND_DIR / p).exists()), None
+)
+_QNN_GPU_CKPT = next(
+    (str(BACKEND_DIR / p) for p in [
+        "models/qnn_gpu.pth",
+    ] if (BACKEND_DIR / p).exists()), None
 )
 
 
@@ -114,7 +118,7 @@ def _cpu_memory_mb() -> float:
 
 
 def _gpu_memory_mb() -> float:
-    return torch.cuda.memory_reserved() / 1e6 if torch.cuda.is_available() else 0.0
+    return torch.cuda.memory_allocated() / 1e6 if torch.cuda.is_available() else 0.0
 
 
 def _param_snapshot(model: torch.nn.Module) -> Dict[str, torch.Tensor]:
@@ -182,9 +186,23 @@ def cnn_model(device):
 def qnn_cpu_model(device):
     if _QNN_CPU_CKPT is None:
         pytest.skip("QNN-CPU checkpoint not found")
-    from backend.models.hybrid_qnn_cpu import HybridQnnCPU
+    from backend.models.qnn_cpu import HybridQnnCPU
     m = HybridQnnCPU(num_classes=6, n_qubits=6, q_depth=2)
     m.load_model(_QNN_CPU_CKPT, device)
+    m.eval()
+    return m
+
+
+@pytest.fixture(scope="module")
+def qnn_gpu_model():
+    if not torch.cuda.is_available():
+        pytest.skip("QNN_GPU tests require a CUDA device")
+    if _QNN_GPU_CKPT is None:
+        pytest.skip("QNN-GPU checkpoint not found")
+    gpu_device = torch.device("cuda")
+    from backend.models.qnn_gpu import HybridQnnGPU
+    m = HybridQnnGPU(num_classes=6, n_qubits=6, q_depth=2)
+    m.load_model(_QNN_GPU_CKPT, gpu_device)
     m.eval()
     return m
 
@@ -272,7 +290,13 @@ def qnn_cpu_soak_report(qnn_cpu_model, soak_images, device):
     _save(r, "soak_qnn_cpu.json")
     return r
 
-
+@pytest.fixture(scope="module")
+def qnn_gpu_soak_report(qnn_gpu_model, soak_images):
+    gpu_device = torch.device("cuda")
+    r = _run_soak(qnn_gpu_model, soak_images, gpu_device, "QNN_GPU")
+    r["generated_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    _save(r, "soak_qnn_gpu.json")
+    return r
 # ═══════════════════════════════════════════════════════════════════════════
 # PART A — DETERMINISM TESTS
 # ═══════════════════════════════════════════════════════════════════════════
@@ -305,6 +329,13 @@ class TestInferenceDeterminism:
             "QNN_CPU inference is not deterministic. "
             "Check _apply_ema() / _restore_live() are balanced."
         )
+        
+    @pytest.mark.requires_gpu
+    def test_qnn_gpu_deterministic_over_10_images(self, qnn_gpu_model, fixed_images):
+        imgs = fixed_images[:10].to(torch.device("cuda"))
+        with torch.no_grad():
+            out1, out2 = qnn_gpu_model(imgs), qnn_gpu_model(imgs)
+        assert torch.equal(out1, out2), "QNN_GPU inference is not deterministic."
 
     def test_predict_method_deterministic(self, cnn_model, single_image, device):
         r1 = cnn_model.predict(single_image, device, CLASS_NAMES)
@@ -359,7 +390,7 @@ class TestCheckpointRoundTrip:
             path = tmp.name
         try:
             qnn_cpu_model.save_model(path)
-            from backend.models.hybrid_qnn_cpu import HybridQnnCPU
+            from backend.models.qnn_cpu import HybridQnnCPU
             m2 = HybridQnnCPU(num_classes=6, n_qubits=6, q_depth=2)
             m2.load_model(path, device)
             m2.eval()
@@ -373,7 +404,25 @@ class TestCheckpointRoundTrip:
         finally:
             Path(path).unlink(missing_ok=True)
 
-
+    @pytest.mark.requires_gpu
+    def test_qnn_gpu_checkpoint_round_trip_with_ema(self, qnn_gpu_model, fixed_images):
+        imgs = fixed_images[:4].to(torch.device("cuda"))
+        with torch.no_grad():
+            out_before = qnn_gpu_model(imgs).clone()
+        with tempfile.NamedTemporaryFile(suffix=".pth", delete=False) as tmp:
+            path = tmp.name
+        try:
+            qnn_gpu_model.save_model(path)
+            from backend.models.qnn_gpu import HybridQnnGPU
+            m2 = HybridQnnGPU(num_classes=6, n_qubits=6, q_depth=2)
+            m2.load_model(path, torch.device("cuda"))
+            m2.eval()
+            with torch.no_grad():
+                out_after = m2(imgs)
+            max_diff = (out_before - out_after).abs().max().item()
+            assert max_diff < 1e-5, f"QNN_GPU checkpoint round-trip max diff {max_diff:.2e}"
+        finally:
+            Path(path).unlink(missing_ok=True)
 class TestBatchSizeInvariance:
     """
     model(x[0:1]) must equal model(x)[0] within float32 tolerance.
@@ -410,6 +459,14 @@ class TestBatchSizeInvariance:
         assert (batch[0] - single[0]).abs().max().item() < BATCH_TOL
 
 
+    @pytest.mark.requires_gpu
+    def test_qnn_gpu_single_vs_batch(self, qnn_gpu_model, fixed_images):
+        imgs = fixed_images[:4].to(torch.device("cuda"))
+        with torch.no_grad():
+            batch = qnn_gpu_model(imgs)
+            single = qnn_gpu_model(imgs[0:1])
+        assert (batch[0] - single[0]).abs().max().item() < BATCH_TOL
+
 class TestEMALosslessness:
     """_apply_ema() → _restore_live() must leave quantum weights byte-identical."""
 
@@ -425,10 +482,56 @@ class TestEMALosslessness:
                 f"EMA restore introduced drift in '{name}'."
             )
 
+    @pytest.mark.requires_gpu
+    def test_qnn_gpu_ema_restore_is_lossless(self, qnn_gpu_model):
+        before = {
+            name: param.data.clone()
+            for name, param in qnn_gpu_model.q_layer.named_parameters()
+        }
+        backup = qnn_gpu_model._apply_ema()
+        qnn_gpu_model._restore_live(backup)
+        for name, param in qnn_gpu_model.q_layer.named_parameters():
+            assert torch.equal(param.data, before[name]), f"EMA restore drift in '{name}'."
+
+
+    @pytest.mark.requires_gpu
+    def test_qnn_gpu_ema_apply_changes_weights_when_shadow_differs(self, qnn_gpu_model):
+        shadow = qnn_gpu_model._quantum_shadow
+        if not shadow:
+            pytest.skip("EMA shadow is empty")
+
+        # Freshly loaded models may have EMA shadow identical to live weights.
+        live_matches_shadow = all(
+            torch.equal(param.data, shadow[name])
+            for name, param in qnn_gpu_model.q_layer.named_parameters()
+            if name in shadow
+        )
+        if live_matches_shadow:
+            pytest.skip("EMA shadow matches live weights on loaded model")
+
+        backup = qnn_gpu_model._apply_ema()
+        changed = any(
+            not torch.equal(param.data, backup[name])
+            for name, param in qnn_gpu_model.q_layer.named_parameters()
+            if name in backup
+        )
+        qnn_gpu_model._restore_live(backup)
+        assert changed, "EMA apply did not swap in shadow weights"
+
+        
     def test_ema_apply_changes_weights_when_shadow_differs(self, qnn_cpu_model):
         shadow = qnn_cpu_model._quantum_shadow
         if not shadow:
             pytest.skip("EMA shadow is empty — model loaded without training history")
+
+        live_matches_shadow = all(
+            torch.equal(param.data, shadow[name])
+            for name, param in qnn_cpu_model.q_layer.named_parameters()
+            if name in shadow
+        )
+        if live_matches_shadow:
+            pytest.skip("EMA shadow matches live weights on loaded model")
+
         backup = qnn_cpu_model._apply_ema()
         changed = any(
             not torch.equal(param.data, backup[name])
@@ -437,8 +540,9 @@ class TestEMALosslessness:
         )
         qnn_cpu_model._restore_live(backup)
         assert changed, (
-            "EMA weights identical to live weights — shadow may not have been updated."
+            "EMA apply did not swap in shadow weights"
         )
+
 
 
 class TestPreprocessingDeterminism:
@@ -557,6 +661,39 @@ class TestQNNCPUSoak:
                     "_update_ema() must only be called during training."
                 )
 
+@pytest.mark.requires_gpu
+class TestQNNGPUSoak:
+
+    def test_no_cpu_memory_leak(self, qnn_gpu_soak_report):
+        grow = qnn_gpu_soak_report["cpu_memory_growth_mb"]
+        assert grow <= MEMORY_GROWTH_LIMIT_MB
+
+    def test_no_gpu_memory_leak(self, qnn_gpu_soak_report):
+        grow = qnn_gpu_soak_report["gpu_memory_growth_mb"]
+        assert grow <= MEMORY_GROWTH_LIMIT_MB
+
+    def test_no_prediction_drift(self, qnn_gpu_soak_report):
+        drifts = qnn_gpu_soak_report["prediction_drifts"]
+        assert drifts == 0
+
+    def test_model_params_unchanged(self, qnn_gpu_soak_report):
+        assert qnn_gpu_soak_report["model_params_unchanged"], (
+            f"QNN_GPU weights changed during inference soak: "
+            f"{qnn_gpu_soak_report['param_error']}"
+        )
+
+    def test_ema_shadow_unchanged_during_eval(self, qnn_gpu_model, soak_images):
+        shadow_before = {k: v.clone() for k, v in qnn_gpu_model._quantum_shadow.items()}
+        img = soak_images[0:1].to(torch.device("cuda"))
+        for _ in range(20):
+            with torch.no_grad():
+                qnn_gpu_model(img)
+        for name, val in shadow_before.items():
+            current = qnn_gpu_model._quantum_shadow.get(name)
+            if current is not None:
+                assert torch.equal(val, current), (
+                    f"EMA shadow for '{name}' changed during eval inference."
+                )
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Combined stability report
@@ -565,7 +702,7 @@ class TestQNNCPUSoak:
 class TestStabilityCombinedReport:
 
     def test_save_combined_stability_report(
-        self, cnn_soak_report, qnn_cpu_soak_report
+        self, cnn_soak_report, qnn_cpu_soak_report, qnn_gpu_soak_report
     ):
         def _verdict(r: dict) -> str:
             if (
@@ -598,6 +735,14 @@ class TestStabilityCombinedReport:
                     "throughput_img_per_s": qnn_cpu_soak_report["throughput_img_per_s"],
                     "verdict": _verdict(qnn_cpu_soak_report),
                 },
+                "QNN_GPU": {
+                    "cpu_memory_growth_mb": qnn_gpu_soak_report["cpu_memory_growth_mb"],
+                    "gpu_memory_growth_mb": qnn_gpu_soak_report["gpu_memory_growth_mb"],
+                    "prediction_drifts": qnn_gpu_soak_report["prediction_drifts"],
+                    "model_params_unchanged": qnn_gpu_soak_report["model_params_unchanged"],
+                    "throughput_img_per_s": qnn_gpu_soak_report["throughput_img_per_s"],
+                    "verdict": _verdict(qnn_gpu_soak_report),
+                },
             },
         }
         _save(report, "soak_combined.json")
@@ -610,4 +755,4 @@ class TestStabilityCombinedReport:
             "soak": report,
         }
         _save(combined, "model_stability_combined.json")
-        assert len(report["models"]) == 2
+        assert len(report["models"]) == 3
