@@ -12,23 +12,123 @@ const messages = {
       about: 'About',
       contact: 'Contact'
     },
+   footer: {
+    navigationTitle: 'Navigation',
+    teamTitle: 'Research Team',
+    contactTitle: 'Contact',
+    emailLabel: 'Contact Us',
+    emailHref: 'mailto:your-email@example.com',
+    githubLabel: 'Project Repository',
+    githubHref: 'https://github.com/AbdulrahmanQht/Quantum-Hybrid-Defect-Detector',
+    copy: '© 2026 Quantum-Hybrid Defect Detector. All rights reserved.',
+    teamLinks: [
+      { name: 'Fawaz altahini', linkedin: 'https://linkedin.com/in/your-link' },
+      { name: 'Abdulrahman alqahtani', linkedin: 'https://www.linkedin.com/in/abdulrahmanqht/' },
+      { name: 'Ali alhushayyish', linkedin: 'https://linkedin.com/in/your-link' },
+      { name: 'Azzam alzahrani', linkedin: 'https://www.linkedin.com/in/azzam-alzahrani-52926b36b/' },
+      { name: 'Talal altowijri', linkedin: 'https://linkedin.com/in/your-link' },
+      { name: 'Omar almalki', linkedin: 'https://linkedin.com/in/your-link' }
+    ]
+  },
     home: {
-      hero: {
-        title: 'Quantum-Hybrid Defect Detector',
-        subtitle: 'Revolutionizing Industrial Defect Detection',
-        description: 'Our hybrid quantum-classical system identifies corrosion, cracks, and leaks in pipelines and industrial equipment with high accuracy and efficiency.',
-        button: 'Start Classification'
-      },
-      slider: [
-        { title: 'Project Overview', text: 'This project explores the integration of classical CNNs with Quantum Machine Learning to improve pipeline defect detection.' },
-        { title: 'Hybrid Quantum Approach', text: 'A hybrid model with a quantum layer within a classical CNN enhances robustness, reduces noise sensitivity, and accelerates processing.' },
-        { title: 'Industrial Application', text: 'Designed for the oil and gas industry, detecting defects such as corrosion, cracks, and leaks to improve safety and efficiency.' }
-      ],
-      credits: {
-        value: 'Our values: Academically demonstrates hybrid quantum-classical integration. Practically improves inspection accuracy, noise robustness, and processing speed.',
-        team: 'Supervised by Dr. Mustafa Youldash and Dr. Naya Nagy. Developed by a team of six students from Imam Abdulrahman Bin Faisal University.'
-      }
+  hero: {
+    badge: 'Quantum-Classical Industrial AI',
+    title: 'Quantum-Hybrid Defect Detector',
+    subtitle: 'A stronger landing experience for industrial inspection and quantum-enhanced analysis.',
+    description: 'Our hybrid quantum-classical system identifies corrosion, cracks, leaks, and structural defects in pipelines and industrial equipment with a design focused on clarity, credibility, and technical depth.',
+        button: 'Start Classification',
+        secondaryButton: 'View Benchmark',
+    tertiaryButton: 'See Quantum Advantage'
+
+  },
+  quickLinks: [
+    { label: 'Go to Classify', to: '/classify' },
+    { label: 'Benchmark', to: '/benchmark' },
+    { label: 'Quantum Advantage', to: '/quantum-advantage' }
+  ],
+  stats: [
+    { value: 'Hybrid AI', label: 'Quantum + Classical' },
+    { value: 'Industrial', label: 'Pipeline Defect Focus' },
+    { value: 'Research-led', label: 'Academic Project' }
+  ],
+  slider: [
+    { title: 'Project Overview', text: 'This project explores the integration of classical CNNs with Quantum Machine Learning to improve pipeline defect detection.' },
+    { title: 'Hybrid Quantum Approach', text: 'A hybrid model with a quantum layer inside a classical CNN improves robustness, supports noisy conditions, and strengthens model behavior in difficult inspection settings.' },
+    { title: 'Industrial Application', text: 'Designed for oil and gas inspection scenarios, the system targets practical defect categories such as corrosion, cracks, leaks, and structural anomalies.' }
+  ],
+  highlights: [
+    {
+      title: 'Inspection-Oriented Design',
+      text: 'Built for a serious industrial use case instead of a generic ML demo, with a landing page that explains the actual value of the system.'
     },
+    {
+      title: 'Hybrid Quantum Pipeline',
+      text: 'The project presents a clear quantum-classical architecture that supports experimentation, benchmarking, and comparison.'
+    },
+    {
+      title: 'Usable Product Flow',
+      text: 'Visitors can move directly to classification, benchmark results, or the quantum advantage page without friction.'
+    }
+  ],
+  sections: {
+    overviewEyebrow: 'Platform',
+    overviewTitle: 'Built for modern defect detection',
+    overviewText: 'This landing page positions the project as both a serious academic effort and a practical industrial system. It gives the user a clear path into the core product experience while preserving your existing visual identity.',
+    sliderEyebrow: 'Highlights',
+    highlightsEyebrow: 'Strengths',
+    highlightsTitle: 'What this homepage should communicate'
+  },
+  team: {
+    eyebrow: 'Team',
+    title: 'Project Supervisors and Research Team',
+    supervisorsTitle: 'Project Supervisors',
+    researchersTitle: 'Research Team',
+    github: 'GitHub',
+    linkedin: 'LinkedIn',
+    supervisors: [
+      { name: 'Dr. Mustafa Youldash', role: 'Principal Supervisor' },
+      { name: 'Dr. Naya Nagy', role: 'Co-Supervisor' }
+    ],
+    researchers: [
+      {
+        name: 'Fawaz altahini',
+        role: 'Team Leader',
+        github: 'https://github.com/Tafawaz',
+        linkedin: 'https://linkedin.com/in/your-link'
+      },
+      {
+        name: 'Abdulrahman alqahtani',
+        role: 'Team Member',
+        github: 'https://github.com/AbdulrahmanQht',
+        linkedin: 'https://www.linkedin.com/in/abdulrahmanqht/'
+      },
+      {
+        name: 'Ali alhushayyish',
+        role: 'Team Member',
+        github: 'https://github.com/AliHamad13',
+        linkedin: 'https://linkedin.com/in/your-link'
+      },
+      {
+        name: 'Azzam alzahrani',
+        role: 'Team Member',
+        github: 'https://github.com/xAzzamx',
+        linkedin: 'https://www.linkedin.com/in/azzam-alzahrani-52926b36b/'
+      },
+      {
+        name: 'Talal altowijri',
+        role: 'Team Member',
+        github: 'https://github.com/TalalAlt',
+        linkedin: 'https://linkedin.com/in/your-link'
+      },
+      {
+        name: 'Omar almalki',
+        role: 'Team Member',
+        github: 'https://github.com/your-link',
+        linkedin: 'https://linkedin.com/in/your-link'
+      }
+    ]
+  }
+},
     classify: {
       title: 'Defect Detection',
       subtitle: 'Upload an industrial image to run inference across all three models simultaneously',
@@ -72,7 +172,15 @@ const messages = {
       noise_high: "Severe",
       noisy_results: "Noisy Inference",
       noisy_top_prediction: "Top Prediction Under Noise",
-      noisy_label: "Noisy"
+      noisy_label: "Noisy",
+      eyebrow: 'Quantum · Classical · Hybrid',
+      models: {
+        cnn: 'CNN',
+        qnn_cpu: 'QNN-CPU',
+        qnn_gpu: 'QNN-GPU'
+      },
+export_csv_success: 'Results exported to CSV successfully!',
+export_json_success: 'Results exported to JSON successfully!',
     },
     benchmark: {},
     quantum_advantage: {},
@@ -91,7 +199,10 @@ const messages = {
       successTitle: 'Success',
       successMsg: 'Your message has been sent successfully.',
       errorTitle: 'Error',
-      errorMsg: 'Failed to send message. Please try again later.'
+      errorMsg: 'Failed to send message. Please try again later.',
+      sideEyebrow: 'Contact',
+  sideTitle: 'Let’s talk about the project.',
+  sideText: 'Use the form to reach the team for questions, collaboration, or feedback about the Quantum-Hybrid Defect Detector.',
     }
   },
   AR: {
@@ -103,23 +214,127 @@ const messages = {
       about: 'من نحن',
       contact: 'اتصل بنا'
     },
+      footer: {
+    navigationTitle: 'التنقل',
+    teamTitle: 'الفريق البحثي',
+    contactTitle: 'التواصل',
+    emailLabel: 'تواصل معنا',
+    emailHref: 'mailto:your-email@example.com',
+    githubLabel: 'مستودع المشروع',
+    githubHref: 'https://github.com/AbdulrahmanQht/Quantum-Hybrid-Defect-Detector',
+    copy: '© 2026 كاشف العيوب الكمّي-الكلاسيكي. جميع الحقوق محفوظة.',
+    teamLinks: [
+      { name: 'فواز الطحيني', linkedin: 'https://linkedin.com/in/your-link' },
+      { name: 'عبدالرحمن القحطاني', linkedin: 'https://linkedin.com/in/your-link' },
+      { name: 'علي الحشيّش', linkedin: 'https://linkedin.com/in/your-link' },
+      { name: 'عزام الزهراني', linkedin: 'https://linkedin.com/in/your-link' },
+      { name: 'طلال النويجري', linkedin: 'https://linkedin.com/in/your-link' },
+      { name: 'عمر المالكي', linkedin: 'https://linkedin.com/in/your-link' }
+    ]
+  },
+
     home: {
-      hero: {
-        title: 'كاشف العيوب الكمّي-الكلاسيكي',
-        subtitle: ' تعريف عصري لكشف العيوب الصناعية',
-        description: 'نظامنا الهجين الكمّي-الكلاسيكي يكتشف التآكل، التشققات، والعيوب في خطوط الأنابيب والمعدات الصناعية بدقة وكفاءة عالية',
-        button: 'ابدأ التصنيف'
-      },
-      slider: [
-        { title: 'نظرة عامة على المشروع', text: 'يستكشف هذا المشروع دمج الشبكات العصبية التقليدية مع التعلم الكمّي لتحسين كشف العيوب في خطوط الأنابيب' },
-        { title: 'النهج الكمّي الهجين', text: 'يستخدم نموذج هجين طبقة كمّية ضمن شبكة عصبية تقليدية لتعزيز المتانة، تقليل الحساسية التشويش، وتسريع المعالجة' },
-        { title: 'التطبيق الصناعي', text: 'مصمم لصناعات النفط والغاز، لاكتشاف عيوب الأنابيب مثل التآكل والتشققات لتحسين السلامة والكفاءة' }
-      ],
-      credits: {
-        value: '.القيم: أكاديميا يوضح دمج النماذج الكمّية والكلاسيكية. عملياً يحسن دقة الفحص، مقاومة التشويش الصور ، وسرعة المعالجة',
-        team:'.اشراف الدكتور مصطفى يولداش والدكتورة نايا ناجي. تم تطويره بواسطة فريق من ستة طلاب من جامعة الإمام عبدالرحمن بن فيصل'
-      }
+  hero: {
+    badge: 'ذكاء صناعي كمّي-كلاسيكي',
+    title: 'كاشف العيوب الكمّي-الكلاسيكي',
+    subtitle: 'واجهة رئيسية أقوى للفحص الصناعي والتحليل المعزز بالحوسبة الكمّية.',
+    description: 'نظامنا الهجين الكمّي-الكلاسيكي يكتشف التآكل والتشققات والتسربات والعيوب الهيكلية في خطوط الأنابيب والمعدات الصناعية ضمن تجربة أكثر وضوحاً واحترافية.',
+    button: 'ابدأ التصنيف',
+        secondaryButton: 'عرض المقارنة',
+    tertiaryButton: 'استكشف التفوق الكمّي'
+  },
+  quickLinks: [
+    { label: 'الانتقال إلى التصنيف', to: '/classify' },
+    { label: 'المقارنة', to: '/benchmark' },
+    { label: 'التفوق الكمّي', to: '/quantum-advantage' }
+  ],
+  stats: [
+    { value: 'ذكاء هجين', label: 'كمّي + كلاسيكي' },
+    { value: 'صناعي', label: 'يركز على عيوب الأنابيب' },
+    { value: 'بحثي', label: 'مشروع أكاديمي' }
+  ],
+  slider: [
+    { title: 'نظرة عامة على المشروع', text: 'يستكشف هذا المشروع دمج الشبكات العصبية التقليدية مع التعلم الآلي الكمّي لتحسين كشف العيوب في خطوط الأنابيب.' },
+    { title: 'النهج الكمّي الهجين', text: 'يستخدم النموذج طبقة كمّية داخل شبكة عصبية تقليدية لتحسين المتانة ودعم الحالات المشوشة وتعزيز الأداء في ظروف الفحص الصعبة.' },
+    { title: 'التطبيق الصناعي', text: 'تم تصميم النظام لسيناريوهات الفحص في قطاع النفط والغاز، مع التركيز على فئات العيوب العملية مثل التآكل والتشققات والتسربات والاضطرابات الهيكلية.' }
+  ],
+  highlights: [
+    {
+      title: 'تصميم موجه للفحص',
+      text: 'الواجهة تعرض المشروع كنظام صناعي وبحثي فعلي بدلاً من كونه عرضاً عاماً لتعلم الآلة فقط.'
     },
+    {
+      title: 'مسار كمّي هجين',
+      text: 'يعرض المشروع بنية واضحة تدمج بين الحوسبة التقليدية والكمّية وتدعم التجربة والمقارنة والشرح.'
+    },
+    {
+      title: 'تدفق استخدام واضح',
+      text: 'يمكن للزائر الانتقال مباشرة إلى التصنيف أو المقارنة أو صفحة التفوق الكمّي بسهولة.'
+    }
+  ],
+  sections: {
+    overviewEyebrow: 'المنصة',
+    overviewTitle: 'مصمم لكشف العيوب الحديث',
+    overviewText: 'تجعل هذه الواجهة الرئيسية المشروع يبدو كمجهود أكاديمي جاد ونظام صناعي عملي في الوقت نفسه، مع المحافظة على هويتكم البصرية الحالية.',
+    sliderEyebrow: 'أبرز النقاط',
+    highlightsEyebrow: 'نقاط القوة',
+    highlightsTitle: 'ما الذي يجب أن توضحه هذه الصفحة'
+  },
+  team: {
+    eyebrow: 'الفريق',
+    title: 'المشرفون على المشروع والفريق البحثي',
+    supervisorsTitle: 'المشرفون على المشروع',
+    researchersTitle: 'الفريق البحثي',
+    github: 'جيت هب',
+    linkedin: 'لينكدإن',
+    supervisors: [
+      { name: 'Dr. Mustafa Youldash', role: 'المشرف الرئيسي' },
+      { name: 'Dr. Naya Nagy', role: 'المشرف المشارك' }
+    ],
+    researchers: [
+      {
+        name: 'فواز الطحيني',
+        role: 'قائد الفريق',
+        github: 'https://github.com/Tafawaz',
+        linkedin: 'https://linkedin.com/in/your-link'
+      },
+      {
+        name: 'عبدالرحمن القحطاني',
+        role: 'عضو فريق',
+        github: 'https://github.com/AbdulrahmanQht',
+        linkedin: 'https://www.linkedin.com/in/abdulrahmanqht/'
+      },
+      {
+        name: 'علي الحشيّش',
+        role: 'عضو فريق',
+        github: 'https://github.com/AliHamad13',
+        linkedin: 'https://linkedin.com/in/your-link'
+      },
+      {
+        name: 'عزام الزهراني',
+        role: 'عضو فريق',
+        github: 'https://github.com/xAzzamx',
+        linkedin: 'https://www.linkedin.com/in/azzam-alzahrani-52926b36b/'
+      },
+      {
+        name: 'طلال النويجري',
+        role: 'عضو فريق',
+        github: 'https://github.com/TalalAlt',
+        linkedin: 'https://linkedin.com/in/your-link'
+      },
+      {
+        name: 'عمر المالكي',
+        role: 'عضو فريق',
+        github: 'https://github.com/your-link',
+        linkedin: 'https://linkedin.com/in/your-link'
+      }
+    ]
+  },
+  credits: {
+    value: 'قيمنا: إظهار التكامل بين النماذج الكمّية والكلاسيكية أكاديمياً، وتحسين دقة الفحص والموثوقية وتجربة الاستخدام عملياً.',
+    team: 'بإشراف الدكتور مصطفى يولداش والدكتورة نايا ناجي. تم تطوير المشروع بواسطة فريق بحثي من جامعة الإمام عبدالرحمن بن فيصل.'
+  }
+},
     classify: {
       title: 'كشف العيوب',
       subtitle: 'قم بتحميل صورة صناعية لتشغيل الاستدلال عبر النماذج الثلاثة في وقت واحد',
@@ -163,7 +378,15 @@ const messages = {
       noise_high: "عالي",
       noisy_results: "نتائج مشوشة",
       noisy_top_prediction: "أفضل توقع مع التشويش",
-      noisy_label: "مشوش"
+      noisy_label: "مشوش",
+      eyebrow: 'كمّي · كلاسيكي · هجين',
+      models: {
+        cnn: 'CNN',
+        qnn_cpu: 'QNN-CPU',
+        qnn_gpu: 'QNN-GPU'
+      },
+export_csv_success: 'تم تصدير النتائج إلى CSV بنجاح!',
+export_json_success: 'تم تصدير النتائج إلى JSON بنجاح!',
     },
     benchmark: {},
     quantum_advantage: {},
@@ -182,7 +405,12 @@ const messages = {
       successTitle: 'نجاح',
       successMsg: 'تم أرسال رسالتك بنجاح.',
       errorTitle: 'خطأ',
-      errorMsg: 'فشل إرسال الرسالة. يرجى المحاولة مرة أخرى لاحقاً.'
+      errorMsg: 'فشل إرسال الرسالة. يرجى المحاولة مرة أخرى لاحقاً.',
+      sideEyebrow: 'تواصل',
+      
+  sideTitle: 'لنتحدث عن المشروع.',
+  sideText: 'استخدم النموذج للتواصل مع الفريق بخصوص الأسئلة أو التعاون أو الملاحظات حول كاشف العيوب الكمّي-الكلاسيكي.',
+
     }
   }
 }
