@@ -796,7 +796,7 @@ def run_gradient_variance(
             if q_weights.grad is not None:
                 g = q_weights.grad.detach().cpu().float()
                 if torch.isnan(g).any() or torch.isinf(g).any():
-                    logger.warning(f"  [{label}] NaN/Inf gradient detected at batch {i}, skipping.")
+                    logger.warn(f"  [{label}] NaN/Inf gradient detected at batch {i}, skipping.")
                     continue
                 grad_vars.append(g.var().item())
                 grad_means.append(g.abs().mean().item())
@@ -941,7 +941,7 @@ def run_vqc_expressibility(
     of the learned circuit, not just the ansatz capacity.
     """
     if not SCIPY_AVAILABLE:
-        logger.warning("scipy not available — skipping Experiment 7 (VQC Expressibility).")
+        logger.warn("scipy not available — skipping Experiment 7 (VQC Expressibility).")
         return {k: {"error": "scipy not installed"} for k in models}
 
     haar_b = (2 ** n_qubits) - 1   # Beta(1, 63) for 6 qubits
@@ -1330,7 +1330,7 @@ def run_intrinsic_dimension(
     classical backbone.
     """
     if not SKLEARN_AVAILABLE:
-        logger.warning("sklearn not available — skipping Experiment 12 (Intrinsic Dimension).")
+        logger.warn("sklearn not available — skipping Experiment 12 (Intrinsic Dimension).")
         return {k: {"error": "sklearn not installed"} for k in collected_features}
 
     results: dict[str, dict] = {}
@@ -1695,7 +1695,7 @@ def load_models(
         qnn_models["QNN_GPU"] = qnn_gpu
         logger.info("QNN_GPU loaded")
     else:
-        logger.warning("CUDA unavailable — QNN_GPU excluded.")
+        logger.warn("CUDA unavailable — QNN_GPU excluded.")
 
     return qnn_models, cnn
 

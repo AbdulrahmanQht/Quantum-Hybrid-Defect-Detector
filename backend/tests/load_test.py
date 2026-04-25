@@ -172,7 +172,7 @@ class DefectDetectorUser(HttpUser):
             elif resp.status_code == 500:
                 resp.failure("Got 500 for invalid input — error handling is broken")
             else:
-                resp.success()
+                resp.failure(f"Expected 422, got {resp.status_code}")
 
     @task(1)
     def classify_oversized(self) -> None:
@@ -189,7 +189,7 @@ class DefectDetectorUser(HttpUser):
             elif resp.status_code == 500:
                 resp.failure("Got 500 for oversized file — should be 413")
             else:
-                resp.success()
+                resp.failure(f"Expected 413, got {resp.status_code}")
 
     # ── /api/v1/health ────────────────────────────────────────────────────────
 

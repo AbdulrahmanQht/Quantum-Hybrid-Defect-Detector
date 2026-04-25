@@ -14,7 +14,7 @@ from backend.utils.validate import (
     check_content_type,
     check_file_size,
     check_dimensions,
-    check_magic_bytes,
+    check_magic_bytes
 )
 from backend.utils.logger import Logger
 
@@ -47,23 +47,6 @@ class ClassificationResponse(BaseModel):
 logger = Logger()
 router = APIRouter(prefix="/api/v1", tags=["Classification"])
 limiter = Limiter(key_func=get_remote_address)
-
-# Constraints for images
-Image.MAX_IMAGE_PIXELS = 16777216
-MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-MAX_DIMENSION = 4096  # 4096x4096px
-
-def validate_magic_bytes(data: bytes) -> bool:
-    if len(data) < 12:
-        return False
-    signatures = [
-        data[:3] == b'\xff\xd8\xff',                               # JPEG
-        data[:8] == b'\x89PNG\r\n\x1a\n',                         # PNG (full sig)
-        data[:4] == b'RIFF' and data[8:12] == b'WEBP',             # WebP (correct)
-        data[:2] == b'BM',                                          # BMP
-        data[:4] in (b'\x49\x49\x2A\x00', b'\x4D\x4D\x00\x2A'),   # TIFF LE/BE
-    ]
-    return any(signatures)
 
 def apply_inference_noise(tensor: torch.Tensor, noise_level: float) -> torch.Tensor:
     """
@@ -181,6 +164,7 @@ async def classify_image(
     # Magic bytes check: rejects files whose content doesn't match their claimed type
     if not check_magic_bytes(file_bytes, file.content_type):
         raise HTTPException(status_code=415, detail="File content does not match a supported image format.")
+    
 
     try:
         # Decode bytes DIRECTLY to a PyTorch Tensor (Bypasses PIL entirely)

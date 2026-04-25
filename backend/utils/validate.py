@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Iterable
-
 from PIL import Image
 
 Image.MAX_IMAGE_PIXELS = 16777216
@@ -15,8 +13,6 @@ ALLOWED_MIME_TYPES = {
     "image/bmp",
     "image/tiff",
 }
-ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP", "BMP", "TIFF"}
-
 
 def check_file_size(size: int) -> bool:
     return size < MAX_FILE_SIZE

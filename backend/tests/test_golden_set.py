@@ -114,7 +114,19 @@ def _build_real_golden_set(
     data_dir: Optional[str] = None,
 ) -> Optional[Tuple[List[Tuple[torch.Tensor, int, str]], str]]:
     """
-    Build the golden set from YOLO-style structure inside class subfolders.
+    Build the golden set from a YOLO-style dataset with per-class subfolders.
+
+    Expected layout:
+        <data_dir>/
+            Images/
+                <class_name>/
+                    img1.jpg
+            Labels/
+                <class_name>/
+                    img1.txt   ← first token = YOLO class index
+
+    Images are skipped if: the label file is missing, the class index is
+    out of range, or the subfolder name does not match the label's class.
     """
     base = BACKEND_DIR / (data_dir or "data/test")
     
