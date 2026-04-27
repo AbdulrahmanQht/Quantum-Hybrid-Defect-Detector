@@ -285,8 +285,8 @@ export_json_success: 'Results exported to JSON successfully!',
     title: 'المشرفون على المشروع والفريق البحثي',
     supervisorsTitle: 'المشرفون على المشروع',
     researchersTitle: 'الفريق البحثي',
-    github: 'جيت هب',
-    linkedin: 'لينكدإن',
+    github: 'قيت هب',
+    linkedin: 'لينكد إن',
     supervisors: [
       { name: 'Dr. Mustafa Youldash', role: 'المشرف الرئيسي' },
       { name: 'Dr. Naya Nagy', role: 'المشرف المشارك' }

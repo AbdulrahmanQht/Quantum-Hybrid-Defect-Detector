@@ -180,7 +180,7 @@ onUnmounted(() => {
   <Users class="section-icon" />
 </div>
 
-      <div class="team-group">
+      <div class="team-group center">
         <h4 class="team-group-title">{{ t('home.team.supervisorsTitle') }}</h4>
         <div class="team-grid team-grid--supervisors">
           <Card v-for="person in supervisors" :key="person.name" class="team-card">
@@ -241,7 +241,9 @@ onUnmounted(() => {
   min-height: calc(100vh - 110px);
   padding: 2rem 0 3rem;
 }
-
+.home-page--ar .hero-visual {
+  order: -1;
+}
 .hero-copy {
   max-width: 720px;
 }

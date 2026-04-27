@@ -794,7 +794,7 @@ onUnmounted(() => {
 }
 
 .upload-dropzone:hover {
-  border-color: rgba(42, 184, 184, 0.35);
+  border-color: 1px dashed rgba(42, 184, 184, 0.411);
   background: var(--q-teal-soft);
   transform: translateY(-2px);
 }

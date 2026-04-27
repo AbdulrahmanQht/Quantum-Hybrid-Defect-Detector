@@ -185,7 +185,7 @@ const formatExponential = (val) => val ? val.toExponential(2) : 'N/A';
 </script>
 
 <template>
-  <div :class="[`min-h-screen bg-[#F8FAFC] dark:bg-[#0F172A] transition-colors pb-10`, isAr ? 'text-right' : 'text-left']" :dir="isAr ? 'rtl' : 'ltr'">
+  <div>
     
     <div class="px-4 pt-10 mx-auto mb-10 max-w-7xl sm:px-6 lg:px-8">
       <div class="flex items-center gap-3 mb-2">
@@ -367,7 +367,7 @@ const formatExponential = (val) => val ? val.toExponential(2) : 'N/A';
           </div>
         </div>
       </div>
-
+ 
       <div class="bg-white dark:bg-[#1E293B] rounded-xl border border-[#E2E8F0] dark:border-[#334155] p-6 shadow-sm">
         <div class="flex items-center gap-3 mb-6">
           <div class="p-2 bg-[#14B8A6]/10 rounded-lg text-[#14B8A6]"><FlaskConical class="w-5 h-5" /></div>

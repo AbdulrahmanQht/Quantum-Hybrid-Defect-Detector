@@ -25,8 +25,9 @@ const toggleLanguage = () => {
   const next = locale.value === 'EN' ? 'AR' : 'EN'
   locale.value = next
   Cookies.set(LANG_KEY, next, { expires: 365, path: '/' })
-
+  
   document.documentElement.classList.toggle('lang-ar', next === 'AR')
+  document.documentElement.lang = locale.value
 }
 
 const toggleTheme = () => {
@@ -45,9 +46,9 @@ const closeMenu = () => {
     <div class="qnn-inner">
       <router-link to="/" class="qnn-logo" @click="closeMenu">
         <img src="/qnn_logo_final_no_text.svg" alt="QNN" />
-        <div class="qnn-logo-copy">
-          <span class="qnn-logo-title">Quantum-Hybrid</span>
-          <span class="qnn-logo-subtitle">Defect Detector</span>
+        <div class="qnn-logo-copy" lang="en" translate="no">
+          <span class="qnn-logo-title" lang="en" translate="no">Quantum-Hybrid</span>
+          <span class="qnn-logo-subtitle" lang="en" translate="no">Defect Detector</span>
         </div>
       </router-link>
 
@@ -174,12 +175,16 @@ const closeMenu = () => {
   font-size: 0.95rem;
   font-weight: 700;
   color: var(--q-text);
+  direction: ltr !important;
+  text-align: left !important;
 }
 
 .qnn-logo-subtitle {
   font-size: 0.72rem;
   color: var(--q-muted);
   margin-top: 0.22rem;
+  direction: ltr !important;
+  text-align: left !important;
 }
 
 .qnn-nav {
