@@ -184,7 +184,121 @@ const messages = {
       restored_hint: "Results restored from last session — reset or re-select image to run again."
     },
     benchmark: {},
-    quantum_advantage: {},
+    qa: {
+      title: 'Quantum Advantage Report',
+      subtitle: 'Empirical validation of quantum mechanisms in the hybrid architecture.',
+      generatedAt: 'Generated',
+      qubits: 'Qubits',
+      depth: 'Depth',
+      loading: 'Loading quantum metrics...',
+      errorTitle: 'Data Unavailable',
+      errorMsg: 'Failed to load quantum advantage data. Please ensure the backend is running.',
+      model: 'Model',
+      confirmed: 'Advantage Confirmed',
+      notConfirmed: 'Not Confirmed',
+      exp2: {
+        title: 'Quantum Gain (Branch Ablation)',
+        desc: 'How much accuracy does the quantum branch add over classical-only inference?',
+        quantumGain: 'Quantum Gain',
+        fullModel: 'Full Model',
+        classicalOnly: 'Classical Only',
+        quantumOnly: 'Quantum Only',
+        tooltip: 'Quantum Gain = Full Accuracy − Classical Only Accuracy'
+      },
+      exp6: {
+        title: 'Noise Robustness',
+        desc: 'Does the quantum branch become more valuable as input quality degrades?',
+        gaussian: 'Gaussian',
+        blur: 'Blur',
+        contrast: 'Contrast',
+        salt_pepper: 'Salt & Pepper',
+        insight: 'A rising quantum gain under increasing noise confirms the quantum branch improves robustness in degraded inspection conditions.'
+      },
+      exp1: {
+        title: 'Feature Orthogonality',
+        desc: 'Are the quantum and classical branches learning different things?',
+        score: 'Cosine Similarity Score',
+        target: 'Target: Near 0.0 (Orthogonal)',
+        explanation: 'Very low similarity confirms the quantum branch learns unique, complementary features distinct from the classical branch.'
+      },
+      exp13: {
+        title: 'Linear CKA',
+        desc: 'Are the learned representations structurally different?',
+        scale: '0 = orthogonal, 1 = identical',
+        insight: 'Low CKA confirms the quantum branch learns complementary representational structure, invariant to rotation and isotropic scaling — a stronger claim than cosine similarity.'
+      },
+      exp3: {
+        title: 'Re-upload Contribution',
+        desc: 'How much does the data re-uploading technique improve accuracy?',
+        with: 'With Re-upload',
+        without: 'Without Re-upload',
+        contribution: 'Contribution'
+      },
+      exp4: {
+        title: 'Entanglement Entropy',
+        desc: 'Is the quantum circuit generating real quantum correlations?',
+        overallMean: 'Overall Mean Entropy'
+      },
+      exp5: {
+        title: 'Gradient Variance (Barren Plateau Check)',
+        desc: 'Can the quantum circuit still learn, or have gradients vanished?',
+        target: 'Target Layer',
+        meanVar: 'Mean Grad Variance',
+        absMean: 'Abs Mean',
+        batches: 'Batches'
+      },
+      exp7: {
+        title: 'VQC Expressibility',
+        desc: 'How well does the quantum circuit explore the available Hilbert space?',
+        klDiv: 'KL Divergence from Haar',
+        ref: 'Haar Reference',
+        insight: 'Lower KL divergence means the circuit explores the Hilbert space more uniformly. Values below 0.05 indicate near-Haar expressibility.'
+      },
+      exp9: {
+        title: 'Geometric Difference',
+        desc: 'Does the quantum kernel span directions the classical kernel cannot?',
+        insight: 'g > 1 means the quantum kernel spans feature directions the classical RBF kernel cannot represent (Huang et al. 2021). This is a rigorous, data-driven quantum advantage claim.'
+      },
+      exp8: {
+        title: 'Kernel Target Alignment',
+        desc: 'Which kernel better aligns with the classification labels?',
+        quantum: 'KTA Quantum',
+        classical: 'KTA Classical',
+        diff: 'Difference',
+        insight: 'KTA measures how well a kernel aligns with the label structure. A positive difference means the quantum kernel is better aligned to the task.'
+      },
+      exp10: {
+        title: 'Fisher Effective Dimension',
+        desc: 'How efficiently does each model use its parameters?',
+        params: 'Parameters',
+        dEff1000: 'd_eff (n=1000)',
+        dEffPerParam: 'd_eff / param',
+        insight: 'Higher d_eff per parameter means the model uses its parameters more efficiently. The QNN achieves comparable effective dimension with far fewer parameters.'
+      },
+      exp11: {
+        title: 'Feature Effective Rank',
+        desc: 'How much of the embedding space is each branch actually using?',
+        classical: 'Classical',
+        quantum: 'Quantum',
+        insight: 'Utilisation = effective rank / embedding dim. The comparison shows how efficiently each branch uses its available dimensions.'
+      },
+      exp12: {
+        title: 'Intrinsic Dimension',
+        desc: 'How much information compression does each branch achieve?',
+        classical: 'Classical (z)',
+        quantum: 'Quantum (q_emb)',
+        insight: 'Lower intrinsic dimension on q_emb vs z with competitive accuracy means the quantum circuit compresses class-relevant information more efficiently (TwoNN, Facco 2017).'
+      },
+      exp14: {
+        title: 'Class Separability',
+        desc: 'How well does each embedding separate the six defect classes?',
+        advantage: 'Q. Advantage',
+        insight: 'Fisher criterion J = tr(S_W⁻¹ S_B). Higher J means tighter within-class clusters and wider between-class margins.'
+      },
+      methodology: {
+        title: 'Experiment Notes & Methodology'
+      }
+    },
     contact: {
       pageTitle: 'Get in Touch',
       pageSubtitle: "We'd love to hear from you. Send us a message and we'll respond as soon as possible.",
@@ -392,7 +506,121 @@ const messages = {
 
     },
     benchmark: {},
-    quantum_advantage: {},
+    qa: {
+      title: 'تقرير التفوق الكمّي',
+      subtitle: 'التحقق التجريبي من الآليات الكمّية في البنية الهجينة.',
+      generatedAt: 'تاريخ التوليد',
+      qubits: 'كيوبت',
+      depth: 'العمق',
+      loading: 'جاري تحميل المقاييس الكمّية...',
+      errorTitle: 'البيانات غير متوفرة',
+      errorMsg: 'فشل تحميل بيانات التفوق الكمّي. تأكد من تشغيل الخادم.',
+      model: 'النموذج',
+      confirmed: 'تفوق مؤكّد',
+      notConfirmed: 'غير مؤكّد',
+      exp2: {
+        title: 'الكسب الكمّي (إزالة الفرع)',
+        desc: 'كم تضيف الدقة عند استخدام الفرع الكمّي مقارنة بالفرع الكلاسيكي فقط؟',
+        quantumGain: 'كسب كمّي',
+        fullModel: 'النموذج الكامل',
+        classicalOnly: 'كلاسيكي فقط',
+        quantumOnly: 'كمّي فقط',
+        tooltip: 'الكسب الكمّي = دقة النموذج الكامل − دقة الكلاسيكي فقط'
+      },
+      exp6: {
+        title: 'المتانة ضد التشويش',
+        desc: 'هل يزداد دور الفرع الكمّي عند تدهور جودة المدخلات؟',
+        gaussian: 'ضوضاء غاوسية',
+        blur: 'ضبابية',
+        contrast: 'تباين',
+        salt_pepper: 'ملح وفلفل',
+        insight: 'ارتفاع الكسب الكمّي مع زيادة التشويش يؤكد أن الفرع الكمّي يحسّن المتانة في ظروف الفحص الصعبة.'
+      },
+      exp1: {
+        title: 'تعامد الميزات',
+        desc: 'هل يتعلم الفرعان الكمّي والكلاسيكي أشياء مختلفة؟',
+        score: 'درجة تشابه جيب التمام',
+        target: 'الهدف: قريب من 0.0 (متعامد)',
+        explanation: 'التشابه المنخفض جداً يؤكد أن الفرع الكمّي يتعلم ميزات فريدة ومكملة مختلفة عن الفرع الكلاسيكي.'
+      },
+      exp13: {
+        title: 'تحليل CKA الخطي',
+        desc: 'هل التمثيلات المتعلّمة مختلفة هيكلياً؟',
+        scale: '0 = متعامد، 1 = متطابق',
+        insight: 'انخفاض CKA يؤكد أن الفرع الكمّي يتعلم بنية تمثيلية مكملة، وهذا أقوى من تشابه جيب التمام لأنه ثابت تحت الدوران والقياس.'
+      },
+      exp3: {
+        title: 'مساهمة إعادة التحميل',
+        desc: 'كم تحسّن تقنية إعادة تحميل البيانات من الدقة؟',
+        with: 'مع إعادة التحميل',
+        without: 'بدون إعادة التحميل',
+        contribution: 'المساهمة'
+      },
+      exp4: {
+        title: 'إنتروبيا التشابك',
+        desc: 'هل تولّد الدائرة الكمّية ارتباطات كمّية حقيقية؟',
+        overallMean: 'متوسط الإنتروبيا الكلي'
+      },
+      exp5: {
+        title: 'تباين التدرج (فحص الهضبة)',
+        desc: 'هل لا تزال الدائرة الكمّية قادرة على التعلم أم اختفت التدرجات؟',
+        target: 'الطبقة المستهدفة',
+        meanVar: 'متوسط تباين التدرج',
+        absMean: 'المتوسط المطلق',
+        batches: 'الدفعات'
+      },
+      exp7: {
+        title: 'قابلية تعبير الدائرة الكمّية',
+        desc: 'ما مدى تغطية الدائرة الكمّية لفضاء هيلبرت المتاح؟',
+        klDiv: 'تباعد KL من هار',
+        ref: 'مرجع هار',
+        insight: 'انخفاض تباعد KL يعني أن الدائرة تستكشف فضاء هيلبرت بشكل أكثر انتظاماً. القيم أقل من 0.05 تشير إلى قابلية تعبير قريبة من هار.'
+      },
+      exp9: {
+        title: 'الفرق الهندسي',
+        desc: 'هل تمتد نواة الكمّية لاتجاهات لا تستطيع النواة الكلاسيكية تمثيلها؟',
+        insight: 'g > 1 يعني أن النواة الكمّية تمتد لاتجاهات لا تستطيع نواة RBF الكلاسيكية تمثيلها (Huang et al. 2021). هذا إثبات صارم للتفوق الكمّي.'
+      },
+      exp8: {
+        title: 'محاذاة النواة المستهدفة',
+        desc: 'أي نواة أفضل في التوافق مع تصنيفات البيانات؟',
+        quantum: 'KTA كمّي',
+        classical: 'KTA كلاسيكي',
+        diff: 'الفرق',
+        insight: 'يقيس KTA مدى توافق النواة مع بنية التصنيفات. الفرق الموجب يعني أن النواة الكمّية أفضل توافقاً مع المهمة.'
+      },
+      exp10: {
+        title: 'البعد الفعّال لفيشر',
+        desc: 'ما مدى كفاءة كل نموذج في استخدام معاملاته؟',
+        params: 'المعاملات',
+        dEff1000: 'd_eff (n=1000)',
+        dEffPerParam: 'd_eff / معامل',
+        insight: 'ارتفاع d_eff لكل معامل يعني أن النموذج يستخدم معاملاته بكفاءة أعلى. يحقق QNN بُعداً فعّالاً مماثلاً بعدد معاملات أقل بكثير.'
+      },
+      exp11: {
+        title: 'الرتبة الفعّالة للميزات',
+        desc: 'كم من فضاء التضمين يستخدمه كل فرع فعلياً؟',
+        classical: 'كلاسيكي',
+        quantum: 'كمّي',
+        insight: 'الاستخدام = الرتبة الفعّالة / بُعد التضمين. المقارنة توضح كفاءة كل فرع في استخدام أبعاده المتاحة.'
+      },
+      exp12: {
+        title: 'البعد الجوهري',
+        desc: 'ما مقدار ضغط المعلومات الذي يحققه كل فرع؟',
+        classical: 'كلاسيكي (z)',
+        quantum: 'كمّي (q_emb)',
+        insight: 'انخفاض البعد الجوهري في q_emb مقارنة بـ z مع دقة تنافسية يعني أن الدائرة الكمّية تضغط المعلومات المتعلقة بالفئات بكفاءة أعلى.'
+      },
+      exp14: {
+        title: 'قابلية فصل الفئات',
+        desc: 'ما مدى فصل كل تضمين لفئات العيوب الست؟',
+        advantage: 'تفوق كمّي',
+        insight: 'معيار فيشر J = tr(S_W⁻¹ S_B). ارتفاع J يعني تجمعات أضيق داخل الفئة وفواصل أوسع بين الفئات.'
+      },
+      methodology: {
+        title: 'ملاحظات المنهجية والتجارب'
+      }
+    },
     contact: {
       pageTitle: 'تواصل معنا',
       pageSubtitle: 'يسعدنا سماع رأيك. أرسل لنا رسالة وسنرد عليك في أقرب وقت ممكن.',
