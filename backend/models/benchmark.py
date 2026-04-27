@@ -63,7 +63,7 @@ from backend.data.data_loader import DataLoaderManager
 from backend.models.cnn import CNN
 from backend.models.qnn_cpu import HybridQnnCPU
 from backend.models.qnn_gpu import HybridQnnGPU
-from backend.models.noise import apply_noise, BENCHMARK_NOISE_LEVELS
+from backend.utils.noise import apply_noise, BENCHMARK_NOISE_LEVELS
 from backend.utils.logger import Logger
 
 logger = Logger()
@@ -73,7 +73,7 @@ CONFIG = {
     "img_width":       384,
     "img_height":      384,
     "batch_size":      16,
-    "training_epochs": 50,
+    "training_epochs": 75,
     "n_qubits":        6,
     "q_depth":         2,
     "noise_levels":    BENCHMARK_NOISE_LEVELS,
@@ -140,7 +140,7 @@ def load_models(
     if torch.cuda.is_available():
         path = _ckpt("QNN_GPU")
         if not os.path.exists(path):
-            logger.warning(f"QNN_GPU checkpoint not found: {path}. Skipping.")
+            logger.warn(f"QNN_GPU checkpoint not found: {path}. Skipping.")
         else:
             qnn_gpu = HybridQnnGPU(num_classes=num_classes)
             qnn_gpu.load_model(path, device)
@@ -148,7 +148,7 @@ def load_models(
             models["QNN_GPU"] = qnn_gpu
             logger.info(f"QNN_GPU loaded from {path}")
     else:
-        logger.warning("CUDA unavailable — QNN_GPU will be excluded from benchmark.")
+        logger.warn("CUDA unavailable — QNN_GPU will be excluded from benchmark.")
 
     return models
 

@@ -56,7 +56,7 @@ def sanitize_for_log(value: str, max_len: int = 100) -> str:
     return value.replace('\n', '\\n').replace('\r', '\\r')[:max_len]
 
 @router.post("/contact")
-@limiter.limit("5/minute")
+@limiter.limit("10/minute")
 async def handle_contact_form(request: Request, form: ContactForm):
     # Log the start of the request
     logger.info(f"Contact form from: {sanitize_for_log(form.name)} | Subject: {sanitize_for_log(form.subject)}")

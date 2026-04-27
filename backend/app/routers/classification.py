@@ -10,6 +10,12 @@ from fastapi import APIRouter, Request, UploadFile, File, Form, HTTPException
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
+from backend.utils.validate import (
+    check_content_type,
+    check_file_size,
+    check_dimensions,
+    check_magic_bytes
+)
 from backend.utils.logger import Logger
 
 # Schema for prediction output for each model
@@ -41,23 +47,6 @@ class ClassificationResponse(BaseModel):
 logger = Logger()
 router = APIRouter(prefix="/api/v1", tags=["Classification"])
 limiter = Limiter(key_func=get_remote_address)
-
-# Constraints for images
-Image.MAX_IMAGE_PIXELS = 16777216
-MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-MAX_DIMENSION = 4096  # 4096x4096px
-
-def validate_magic_bytes(data: bytes) -> bool:
-    if len(data) < 12:
-        return False
-    signatures = [
-        data[:3] == b'\xff\xd8\xff',                               # JPEG
-        data[:8] == b'\x89PNG\r\n\x1a\n',                         # PNG (full sig)
-        data[:4] == b'RIFF' and data[8:12] == b'WEBP',             # WebP (correct)
-        data[:2] == b'BM',                                          # BMP
-        data[:4] in (b'\x49\x49\x2A\x00', b'\x4D\x4D\x00\x2A'),   # TIFF LE/BE
-    ]
-    return any(signatures)
 
 def apply_inference_noise(tensor: torch.Tensor, noise_level: float) -> torch.Tensor:
     """
@@ -136,7 +125,7 @@ def apply_inference_noise(tensor: torch.Tensor, noise_level: float) -> torch.Ten
     return t
 
 @router.post("/classify", response_model=ClassificationResponse)
-@limiter.limit("5/minute")
+@limiter.limit("10/minute")
 async def classify_image(
     request: Request,
     file: UploadFile = File(...),
@@ -164,18 +153,18 @@ async def classify_image(
         raise HTTPException(status_code=503, detail=f"Server is not ready. Missing: {', '.join(missing_models)}",)
     
     # Fast fail checks for file type and size before processing to save resources
-    allowed_mimes = ["image/jpeg", "image/png", "image/webp", "image/bmp", "image/tiff"]
-    if file.content_type not in allowed_mimes:
+    if not check_content_type(file.content_type):
         raise HTTPException(status_code=415, detail="Unsupported media type. Only images are allowed.")
 
     # Reading all bytes at once for performance, reading 1 byte at a time was causing a bottleneck.
     file_bytes = await file.read()
-    if len(file_bytes) > MAX_FILE_SIZE:
+    if not check_file_size(len(file_bytes)):
         raise HTTPException(status_code=413, detail="File too large")
     
     # Magic bytes check: rejects files whose content doesn't match their claimed type
-    if not validate_magic_bytes(file_bytes):
+    if not check_magic_bytes(file_bytes, file.content_type):
         raise HTTPException(status_code=415, detail="File content does not match a supported image format.")
+    
 
     try:
         # Decode bytes DIRECTLY to a PyTorch Tensor (Bypasses PIL entirely)
@@ -185,7 +174,7 @@ async def classify_image(
 
         # Validate dimensions manually since we aren't using PIL
         _, height, width = img_tensor.shape
-        if height > MAX_DIMENSION or width > MAX_DIMENSION:
+        if not check_dimensions(width, height):
             raise HTTPException(status_code=400, detail="Image dimensions exceed 4096x4096.")
 
     except Exception as e:

@@ -1,0 +1,399 @@
+{
+  "generated_at": "2026-04-22T03:14:03Z",
+  "endpoint": "GET /api/v1/quantum-advantage",
+  "top_level_keys": [
+    "generated_at",
+    "device",
+    "config",
+    "experiment_1_feature_orthogonality",
+    "experiment_2_branch_ablation",
+    "experiment_3_reupload_ablation",
+    "experiment_4_entanglement_entropy",
+    "experiment_5_gradient_variance",
+    "experiment_6_noise_ablation",
+    "experiment_7_vqc_expressibility",
+    "experiment_8_kernel_target_alignment",
+    "experiment_9_geometric_difference",
+    "experiment_10_fisher_effective_dim",
+    "experiment_11_feature_effective_rank",
+    "experiment_12_intrinsic_dimension",
+    "experiment_13_linear_cka",
+    "experiment_14_class_separability"
+  ],
+  "experiment_keys_present": [
+    "experiment_1_feature_orthogonality",
+    "experiment_2_branch_ablation",
+    "experiment_3_reupload_ablation",
+    "experiment_4_entanglement_entropy",
+    "experiment_5_gradient_variance",
+    "experiment_6_noise_ablation",
+    "experiment_7_vqc_expressibility",
+    "experiment_8_kernel_target_alignment",
+    "experiment_9_geometric_difference",
+    "experiment_10_fisher_effective_dim",
+    "experiment_11_feature_effective_rank",
+    "experiment_12_intrinsic_dimension",
+    "experiment_13_linear_cka",
+    "experiment_14_class_separability"
+  ],
+  "schema": {
+    "generated_at": "str",
+    "device": "str",
+    "config": {
+      "n_qubits": "int",
+      "q_depth": "int",
+      "entropy_samples": "int",
+      "grad_var_batches": "int",
+      "feature_samples": "int",
+      "kernel_samples": "int",
+      "expr_pairs": "int",
+      "fim_samples": "int",
+      "fim_n_sizes": [
+        "int"
+      ],
+      "class_names": [
+        "str"
+      ],
+      "qa_noise_levels": {
+        "gaussian": [
+          "<float>"
+        ],
+        "blur": [
+          "<float>"
+        ],
+        "contrast": [
+          "<float>"
+        ],
+        "salt_pepper": [
+          "<float>"
+        ],
+        "motion_blur": [
+          "<float>"
+        ],
+        "jpeg_compression": [
+          "<float>"
+        ],
+        "lens_occlusion": [
+          "<float>"
+        ]
+      },
+      "notes": {
+        "entanglement_entropy": "str",
+        "expressibility": "str",
+        "kernel_experiments": "str",
+        "fim": "str",
+        "parameter_matched_ablation": "str",
+        "noise_ablation": "NoneType"
+      }
+    },
+    "experiment_1_feature_orthogonality": {
+      "QNN_CPU": "float",
+      "QNN_GPU": "float"
+    },
+    "experiment_2_branch_ablation": {
+      "QNN_CPU": {
+        "full_accuracy": "float",
+        "classical_only_accuracy": "float",
+        "quantum_only_accuracy": "float",
+        "quantum_gain_%": "float"
+      },
+      "QNN_GPU": {
+        "full_accuracy": "float",
+        "classical_only_accuracy": "float",
+        "quantum_only_accuracy": "float",
+        "quantum_gain_%": "float"
+      }
+    },
+    "experiment_3_reupload_ablation": {
+      "QNN_CPU": {
+        "with_reupload_accuracy": "float",
+        "without_reupload_accuracy": "float",
+        "reupload_contribution_%": "float"
+      },
+      "QNN_GPU": {
+        "with_reupload_accuracy": "float",
+        "without_reupload_accuracy": "float",
+        "reupload_contribution_%": "float"
+      }
+    },
+    "experiment_4_entanglement_entropy": {
+      "QNN_CPU": {
+        "mean_entropy_per_qubit": {
+          "qubit_0": "<float>",
+          "qubit_1": "<float>",
+          "qubit_2": "<float>",
+          "qubit_3": "<float>",
+          "qubit_4": "<float>",
+          "qubit_5": "<float>"
+        },
+        "overall_mean_entropy": "float",
+        "interpretation": "str"
+      },
+      "QNN_GPU": {
+        "mean_entropy_per_qubit": {
+          "qubit_0": "<float>",
+          "qubit_1": "<float>",
+          "qubit_2": "<float>",
+          "qubit_3": "<float>",
+          "qubit_4": "<float>",
+          "qubit_5": "<float>"
+        },
+        "overall_mean_entropy": "float",
+        "interpretation": "str"
+      }
+    },
+    "experiment_5_gradient_variance": {
+      "QNN_CPU": {
+        "target": "str",
+        "mean_grad_variance": "float",
+        "mean_grad_abs_mean": "float",
+        "n_batches": "int",
+        "interpretation": "str"
+      },
+      "QNN_GPU": {
+        "target": "str",
+        "mean_grad_variance": "float",
+        "mean_grad_abs_mean": "float",
+        "n_batches": "int",
+        "interpretation": "str"
+      },
+      "CNN_baseline": {
+        "target": "str",
+        "mean_grad_variance": "float",
+        "mean_grad_abs_mean": "float",
+        "n_batches": "int",
+        "interpretation": "str"
+      }
+    },
+    "experiment_6_noise_ablation": {
+      "QNN_CPU": {
+        "gaussian": [
+          "<dict>"
+        ],
+        "blur": [
+          "<dict>"
+        ],
+        "contrast": [
+          "<dict>"
+        ],
+        "salt_pepper": [
+          "<dict>"
+        ],
+        "motion_blur": [
+          "<dict>"
+        ],
+        "jpeg_compression": [
+          "<dict>"
+        ],
+        "lens_occlusion": [
+          "<dict>"
+        ]
+      },
+      "QNN_GPU": {
+        "gaussian": [
+          "<dict>"
+        ],
+        "blur": [
+          "<dict>"
+        ],
+        "contrast": [
+          "<dict>"
+        ],
+        "salt_pepper": [
+          "<dict>"
+        ],
+        "motion_blur": [
+          "<dict>"
+        ],
+        "jpeg_compression": [
+          "<dict>"
+        ],
+        "lens_occlusion": [
+          "<dict>"
+        ]
+      }
+    },
+    "experiment_7_vqc_expressibility": {
+      "QNN_CPU": {
+        "kl_divergence_from_haar": "float",
+        "mean_fidelity": "float",
+        "std_fidelity": "float",
+        "haar_reference": "str",
+        "n_pairs": "int",
+        "interpretation": "str"
+      },
+      "QNN_GPU": {
+        "kl_divergence_from_haar": "float",
+        "mean_fidelity": "float",
+        "std_fidelity": "float",
+        "haar_reference": "str",
+        "n_pairs": "int",
+        "interpretation": "str"
+      }
+    },
+    "experiment_8_kernel_target_alignment": {
+      "QNN_CPU": {
+        "kta_quantum": "float",
+        "kta_classical": "float",
+        "kta_difference": "float",
+        "quantum_wins": "bool",
+        "n_samples": "int",
+        "q_in_global_std_raw": "float",
+        "normalisation_applied": "bool",
+        "interpretation": "str"
+      },
+      "QNN_GPU": {
+        "kta_quantum": "float",
+        "kta_classical": "float",
+        "kta_difference": "float",
+        "quantum_wins": "bool",
+        "n_samples": "int",
+        "q_in_global_std_raw": "float",
+        "normalisation_applied": "bool",
+        "interpretation": "str"
+      }
+    },
+    "experiment_9_geometric_difference": {
+      "QNN_CPU": {
+        "geometric_difference": "float",
+        "advantage": "bool",
+        "n_samples": "int",
+        "normalisation_applied": "bool",
+        "interpretation": "str"
+      },
+      "QNN_GPU": {
+        "geometric_difference": "float",
+        "advantage": "bool",
+        "n_samples": "int",
+        "normalisation_applied": "bool",
+        "interpretation": "str"
+      }
+    },
+    "experiment_10_fisher_effective_dim": {
+      "QNN_CPU": {
+        "n_quantum_params": "int",
+        "effective_dimension": {
+          "50": "<float>",
+          "100": "<float>",
+          "500": "<float>",
+          "1000": "<float>"
+        },
+        "d_eff_per_param": {
+          "50": "<float>",
+          "100": "<float>",
+          "500": "<float>",
+          "1000": "<float>"
+        },
+        "fim_trace": "float",
+        "fim_rank": "int",
+        "n_samples": "int",
+        "approximation": "NoneType",
+        "interpretation": "str"
+      },
+      "QNN_GPU": {
+        "n_quantum_params": "int",
+        "effective_dimension": {
+          "50": "<float>",
+          "100": "<float>",
+          "500": "<float>",
+          "1000": "<float>"
+        },
+        "d_eff_per_param": {
+          "50": "<float>",
+          "100": "<float>",
+          "500": "<float>",
+          "1000": "<float>"
+        },
+        "fim_trace": "float",
+        "fim_rank": "int",
+        "n_samples": "int",
+        "approximation": "NoneType",
+        "interpretation": "str"
+      },
+      "CNN_baseline": {
+        "n_quantum_params": "int",
+        "effective_dimension": {
+          "50": "<float>",
+          "100": "<float>",
+          "500": "<float>",
+          "1000": "<float>"
+        },
+        "d_eff_per_param": {
+          "50": "<float>",
+          "100": "<float>",
+          "500": "<float>",
+          "1000": "<float>"
+        },
+        "fim_trace": "float",
+        "fim_rank": "int",
+        "n_samples": "int",
+        "approximation": "str",
+        "interpretation": "str"
+      }
+    },
+    "experiment_11_feature_effective_rank": {
+      "QNN_CPU": {
+        "z_eff_rank": "float",
+        "z_dim": "int",
+        "z_utilisation": "float",
+        "q_emb_eff_rank": "float",
+        "q_emb_dim": "int",
+        "q_emb_utilisation": "float",
+        "interpretation": "str"
+      },
+      "QNN_GPU": {
+        "z_eff_rank": "float",
+        "z_dim": "int",
+        "z_utilisation": "float",
+        "q_emb_eff_rank": "float",
+        "q_emb_dim": "int",
+        "q_emb_utilisation": "float",
+        "interpretation": "str"
+      }
+    },
+    "experiment_12_intrinsic_dimension": {
+      "QNN_CPU": {
+        "intrinsic_dim_z": "float",
+        "intrinsic_dim_q_emb": "float",
+        "n_samples": "int",
+        "interpretation": "str"
+      },
+      "QNN_GPU": {
+        "intrinsic_dim_z": "float",
+        "intrinsic_dim_q_emb": "float",
+        "n_samples": "int",
+        "interpretation": "str"
+      }
+    },
+    "experiment_13_linear_cka": {
+      "QNN_CPU": {
+        "cka_classical_vs_quantum": "float",
+        "n_samples": "int",
+        "interpretation": "str"
+      },
+      "QNN_GPU": {
+        "cka_classical_vs_quantum": "float",
+        "n_samples": "int",
+        "interpretation": "str"
+      }
+    },
+    "experiment_14_class_separability": {
+      "QNN_CPU": {
+        "fisher_criterion_z": "float",
+        "fisher_criterion_z_proj": "float",
+        "fisher_criterion_q_emb": "float",
+        "q_advantage": "bool",
+        "n_samples": "int",
+        "interpretation": "str"
+      },
+      "QNN_GPU": {
+        "fisher_criterion_z": "float",
+        "fisher_criterion_z_proj": "float",
+        "fisher_criterion_q_emb": "float",
+        "q_advantage": "bool",
+        "n_samples": "int",
+        "interpretation": "str"
+      }
+    }
+  }
+}

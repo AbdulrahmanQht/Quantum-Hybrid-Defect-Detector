@@ -152,11 +152,11 @@ def _quantum_forward(
 ) -> torch.Tensor:
     with torch.amp.autocast(device_type=device.type, enabled=False):
         q_input_cpu = q_input.to("cpu").float()
-        # TorchLayer cannot handle batched data-dependent parametric gates
-        # Process each sample individually; gradients still flow through TorchLayer.
-        results = torch.stack([q_layer(q_input_cpu[i]) for i in range(q_input_cpu.shape[0])])
+        circuit = q_layer
+        results = torch.stack([
+            circuit(q_input_cpu[i]) for i in range(q_input_cpu.shape[0])
+        ])
         return results.to(device)
-
 
 
 # HybridQnnCPU
