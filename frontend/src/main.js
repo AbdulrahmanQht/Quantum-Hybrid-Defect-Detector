@@ -51,10 +51,13 @@ app.config.globalProperties.$cookies = Cookies
 
 const currentLang = Cookies.get('app_lang') || 'EN'
 
+
 if (currentLang === 'AR') {
-  document.documentElement.classList.add('lang-ar')
+    document.documentElement.classList.add('lang-ar')
+    document.documentElement.lang = 'ar'
 } else {
-  document.documentElement.classList.remove('lang-ar')
+    document.documentElement.classList.remove('lang-ar')
+    document.documentElement.lang = 'en'
 }
 
 // --- Initialize PrimeVue ---
@@ -95,6 +98,20 @@ app.component('AccordionTab', AccordionTab);
 app.component('ProgressSpinner', ProgressSpinner);
 app.component('ToggleSwitch', ToggleSwitch)
 app.component('Slider', Slider)
+
+window.addEventListener('beforeunload', () => {
+    localStorage.setItem('scrollRestore', JSON.stringify({
+        path: router.currentRoute.value.fullPath,
+        top: window.scrollY,
+        left: window.scrollX,
+    }))
+})
+
+router.afterEach((to, from) => {
+    if (from !== START_LOCATION) {
+        localStorage.removeItem('scrollRestore')
+    }
+})
 
 app.use(router)
 app.use(i18n);

@@ -179,8 +179,9 @@ const messages = {
         qnn_cpu: 'QNN-CPU',
         qnn_gpu: 'QNN-GPU'
       },
-export_csv_success: 'Results exported to CSV successfully!',
-export_json_success: 'Results exported to JSON successfully!',
+      export_csv_success: 'Results exported to CSV successfully!',
+      export_json_success: 'Results exported to JSON successfully!',
+      restored_hint: "Results restored from last session — reset or re-select image to run again."
     },
     benchmark: {},
     qa: {
@@ -399,8 +400,8 @@ export_json_success: 'Results exported to JSON successfully!',
     title: 'المشرفون على المشروع والفريق البحثي',
     supervisorsTitle: 'المشرفون على المشروع',
     researchersTitle: 'الفريق البحثي',
-    github: 'جيت هب',
-    linkedin: 'لينكدإن',
+    github: 'قيت هب',
+    linkedin: 'لينكد إن',
     supervisors: [
       { name: 'Dr. Mustafa Youldash', role: 'المشرف الرئيسي' },
       { name: 'Dr. Naya Nagy', role: 'المشرف المشارك' }
@@ -499,8 +500,10 @@ export_json_success: 'Results exported to JSON successfully!',
         qnn_cpu: 'QNN-CPU',
         qnn_gpu: 'QNN-GPU'
       },
-export_csv_success: 'تم تصدير النتائج إلى CSV بنجاح!',
-export_json_success: 'تم تصدير النتائج إلى JSON بنجاح!',
+      export_csv_success: 'تم تصدير النتائج إلى CSV بنجاح!',
+      export_json_success: 'تم تصدير النتائج إلى JSON بنجاح!',
+      restored_hint: ".تم استعادة النتائج من الجلسة السابقة. أعد الاختيار أو انقر إعادة تعيين للتشغيل من جديد"
+
     },
     benchmark: {},
     qa: {

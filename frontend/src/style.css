@@ -1,8 +1,12 @@
+/* English */
+@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@500;600;700&family=DM+Sans:wght@400;500;700&display=swap');
+/* Arabic */
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@500;600;700&family=DM+Sans:wght@400;500;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@500;600;700&family=DM+Sans:wght@400;500;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap');
+
 
 /* You can add global styles below */
 body { @apply bg-white; }
@@ -60,6 +64,29 @@ body { @apply bg-white; }
     --q-font-body: 'DM Sans', sans-serif;
 }
 
+body {
+    margin: 0;
+    font-family: var(--q-font-body);
+    color: var(--q-text);
+}
+
+.lang-ar * {
+    font-family: 'Tajawal', sans-serif;
+}
+
+.lang-ar .pi {
+    font-family: 'primeicons' !important;
+}
+
+.lang-ar .qnn-logo-title,
+.lang-ar .qnn-logo-title * {
+    font-family: 'Oxanium', sans-serif;
+}
+.lang-ar .qnn-logo-subtitle,
+.lang-ar .qnn-logo-subtitle * {
+    font-family: 'DM Sans', sans-serif;
+}
+
 .p-dark {
     --q-bar-bg: rgba(12, 22, 34, 0.82);
     --q-bar-border: rgba(42, 184, 184, 0.14);
@@ -74,14 +101,65 @@ body { @apply bg-white; }
     --q-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 }
 
-body {
-    margin: 0;
-    font-family: var(--q-font-body);
-    color: var(--q-text);
+
+@layer base {
+    html {
+        
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+}
+@layer base {
+    *:focus-visible {
+        outline: 2px solid #0D9488;
+        /* your teal brand color */
+        outline-offset: 3px;
+        border-radius: 4px;
+    }
+
+    *:focus:not(:focus-visible) {
+        outline: none;
+    }
+}
+@layer base {
+
+    img,
+    video,
+    svg {
+        display: block;
+        max-width: 100%;
+    }
+}
+.lang-ar  {
+    text-align: right;
+}
+
+html[lang="en"] {
+    direction: ltr;
+    text-align: left;
+}
+
+::selection {
+    background-color: rgba(13, 148, 136, 0.2);
+    color: inherit;
+
+}
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #0D9488;
+    border-radius: 99px;
 }
 
 .q-glass {
-    border: 1px solid var(--q-bar-border);
+    border: 1.5px solid var(--q-bar-border);
     background: var(--q-surface);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);

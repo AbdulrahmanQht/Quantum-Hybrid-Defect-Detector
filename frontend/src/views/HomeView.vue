@@ -241,7 +241,9 @@ onUnmounted(() => {
   min-height: calc(100vh - 110px);
   padding: 2rem 0 3rem;
 }
-
+.home-page--ar .hero-visual {
+  order: -1;
+}
 .hero-copy {
   max-width: 720px;
 }
