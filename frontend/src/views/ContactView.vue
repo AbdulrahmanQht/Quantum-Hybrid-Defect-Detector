@@ -1,21 +1,42 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import Cookies from 'js-cookie';
 import { useI18n } from 'vue-i18n'
 
 const { t, locale } = useI18n()
 const dir = computed(() => locale.value === 'AR' ? 'rtl' : 'ltr')
+const isArabic = computed(() => locale.value === 'AR')
 const toast = useToast();
 
-const THEME_KEY = 'theme';
-const isDark = ref(Cookies.get(THEME_KEY) === 'dark');
-
+const STORAGE_KEY = 'contactForm'
 
 //  Form state 
 const contact = ref({ name: '', subject: '', message: '' });
 const touched = ref({ name: false, subject: false, message: false });
 const isSending = ref(false);
+
+onMounted(() => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      // Assign all at once → single watcher trigger, prevents mid-hydration wipe
+      contact.value = {
+        name:    parsed.name    ?? '',
+        subject: parsed.subject ?? '',
+        message: parsed.message ?? '',
+      }
+    }
+  } catch (e) {
+    // ignore corrupted data
+  }
+})
+
+// Always persist — resetEmail() handles explicit removal
+watch(contact, (newVal) => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(newVal))
+}, { deep: true })
 
 const errors = computed(() => ({
   name: touched.value.name && !contact.value.name.trim(),
@@ -32,6 +53,12 @@ const isValid = computed(
 
 function touch(field) {
   touched.value[field] = true;
+}
+
+function resetEmail() {
+  contact.value = { name: '', subject: '', message: '' };
+  touched.value = { name: false, subject: false, message: false };
+  localStorage.removeItem(STORAGE_KEY)
 }
 
 async function sendEmail() {
@@ -68,8 +95,7 @@ async function sendEmail() {
     });
 
     // Reset Form
-    contact.value = { name: '', subject: '', message: '' };
-    touched.value = { name: false, subject: false, message: false };
+    resetEmail()
 
   } catch (error) {
     console.error('Contact form error:', error);
@@ -88,34 +114,45 @@ async function sendEmail() {
 </script>
 
 <template>
-  <!-- Root wrapper — applies dark class based on isDark -->
-  <div :class="['contact-root', { dark: isDark }]">
-  <Toast />
-    <!-- Page layout -->
-    <div class="contact-layout">
+  <div class="contact-root" :class="{ 'contact-root--ar': isArabic }">
+    <Toast />
 
-      <!-- Left accent panel (decorative) -->
-      <aside class="accent-panel" aria-hidden="true">
-        <div class="accent-circle accent-circle--1" />
-        <div class="accent-circle accent-circle--2" />
-        <div class="accent-tagline">
-          <span class="tagline-word">Hello.</span>
-          <span class="tagline-word">مرحباً.</span>
+    <section class="contact-shell">
+      <aside
+        class="contact-side q-glass"
+        :dir="locale === 'AR' ? 'rtl' : 'ltr'"
+        aria-hidden="true"
+      >
+        <div class="contact-side__orb contact-side__orb--one" />
+        <div class="contact-side__orb contact-side__orb--two" />
+        <div class="contact-side__content">
+          <span class="contact-side__eyebrow">{{ t('contact.sideEyebrow') }}</span>
+          <h2 class="contact-side__title">{{ t('contact.sideTitle') }}</h2>
+          <p class="contact-side__text">{{ t('contact.sideText') }}</p>
         </div>
       </aside>
 
-      <!-- Main form card -->
-      <main class="form-card" :dir="dir">
+
+      <main class="contact-card q-glass" :dir="dir">
         <header class="form-header">
           <h1 class="form-title">{{ t('contact.pageTitle') }}</h1>
           <p class="form-subtitle">{{ t('contact.pageSubtitle') }}</p>
         </header>
 
         <form class="form-body" @submit.prevent="sendEmail" novalidate>
-
-          <!-- Name -->
           <div class="field-group">
-            <label class="field-label" for="contact-name">{{ t('contact.name') }}</label>
+            <div class="field-label-row">
+              <label class="field-label" for="contact-name">{{ t('contact.name') }}</label>
+              <Button
+                v-if="contact.name || contact.subject || contact.message"
+                type="button"
+                icon="pi pi-times"
+                :disabled="isSending"
+                class="clear-fab"
+                @click="resetEmail"
+                :aria-label="t('contact.clear')"
+              />
+            </div>
             <InputText
               id="contact-name"
               v-model="contact.name"
@@ -129,7 +166,6 @@ async function sendEmail() {
             </small>
           </div>
 
-          <!-- Subject -->
           <div class="field-group">
             <label class="field-label" for="contact-subject">{{ t('contact.subject') }}</label>
             <InputText
@@ -144,7 +180,6 @@ async function sendEmail() {
             </small>
           </div>
 
-          <!-- Message -->
           <div class="field-group">
             <label class="field-label" for="contact-message">{{ t('contact.message') }}</label>
             <Textarea
@@ -152,7 +187,7 @@ async function sendEmail() {
               v-model="contact.message"
               :placeholder="t('contact.messagePlaceholder')"
               :class="['field-input', { 'p-invalid': errors.message }]"
-              rows="5"
+              rows="6"
               auto-resize
               @blur="touch('message')"
             />
@@ -160,276 +195,334 @@ async function sendEmail() {
               <i class="pi pi-exclamation-circle" /> {{ t('contact.required') }}
             </small>
           </div>
-
-          <!-- Submit -->
-          <Button
-            type="submit"
-            :label="isSending ? t('contact.sending') : t('contact.send')"
-            icon="pi pi-envelope"
-            :loading="isSending"
-            :disabled="isSending"
-            class="submit-btn"
-          />
+            
+            <Button
+              type="submit"
+              :label="isSending ? t('contact.sending') : t('contact.send')"
+              icon="pi pi-envelope"
+              :loading="isSending"
+              :disabled="isSending"
+              class="submit-btn"
+            />
+            
         </form>
       </main>
-    </div>
+    </section>
   </div>
 </template>
 
+
 <style scoped>
-
-
-/* ── Design tokens (light) */
 .contact-root {
-  --bg:          #f5f3ee;
-  --bg-card:     #ffffff;
-  --bg-panel:    #1a1a2e;
-  --text-primary:#1c1b18;
-  --text-muted:  #6b6860;
-  --accent:      #0D9488;
-  --accent-soft: #f0e6e0;
-  --border:      #e4e0d8;
-  --error:       #d93025;
-  --radius:      16px;
-  --shadow:      0 8px 40px rgba(0,0,0,.10);
-  --font-display:'DM Serif Display', Georgia, serif;
-  --font-body:   'DM Sans', system-ui, sans-serif;
-
   min-height: 100vh;
-  background: var(--bg);
-  font-family: var(--font-body);
-  color: var(--text-primary);
-  transition: background 0.3s, color 0.3s;
+  padding: 1.5rem 1rem 3rem;
+  color: var(--q-text);
+}
+.contact-root--ar .contact-side__title {
+  font-size: clamp(2.2rem, 4.2vw, 3.5rem);
+  line-height: 1.2;
 }
 
-/*  Dark tokens  */
-.contact-root.dark {
-  --bg:          #0f0f14;
-  --bg-card:     #1a1a24;
-  --bg-panel:    #0a0a10;
-  --text-primary:#ede9e0;
-  --text-muted:  #8a8680;
-  --accent:      #0D9488;
-  --accent-soft: #095952;
-  --border:      #2c2c38;
-  --shadow:      0 8px 40px rgba(0,0,0,.4);
+.contact-root--ar .form-title {
+  font-size: clamp(2.15rem, 3.2vw, 3rem);
+  line-height: 1.25;
 }
 
-/*  Controls bar  */
-.controls-bar {
-  position: fixed;
-  top: 1.25rem;
-  right: 1.25rem;
-  display: flex;
-  gap: 0.5rem;
-  z-index: 100;
+.contact-root--ar .form-subtitle,
+.contact-root--ar .contact-side__text {
+  font-size: 1.05rem;
+  line-height: 2;
 }
 
-[dir='rtl'] .controls-bar {
-  right: auto;
-  left: 1.25rem;
+.contact-root--ar .field-label {
+  font-size: 0.9rem;
+  letter-spacing: 0;
 }
 
-.ctrl-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 50%;
-  border: 1.5px solid var(--border);
-  background: var(--bg-card);
-  color: var(--text-primary);
-  cursor: pointer;
-  font-family: var(--font-body);
-  font-size: 0.8rem;
-  font-weight: 500;
-  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+.contact-root--ar :deep(.p-inputtext),
+.contact-root--ar :deep(.p-textarea),
+.contact-root--ar :deep(textarea),
+.contact-root--ar :deep(input) {
+  font-size: 1rem !important;
 }
-.ctrl-btn:hover { background: var(--accent-soft); border-color: var(--accent); transform: scale(1.06); }
-.lang-btn { width: auto; padding: 0 0.9rem; border-radius: 999px; }
+.lang-ar * {
+  direction: rtl;
+}
+.lang-ar .contact-side__eyebrow {
+  font-size: 0.95rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
 
-/*  Layout  */
-.contact-layout {
-  display: grid;
-  grid-template-columns: 1fr 1.6fr;
-  min-height: 100vh;
-  max-width: 1100px;
+.lang-ar .contact-side__title {
+  font-size: clamp(2.3rem, 4.4vw, 3.7rem);
+  line-height: 1.25;
+}
+
+.lang-ar .contact-side__text {
+  font-size: 1.08rem;
+  line-height: 2;
+}
+
+.lang-ar .form-title {
+  font-size: clamp(2.15rem, 3.2vw, 3.1rem);
+  line-height: 1.25;
+}
+
+.lang-ar .form-subtitle {
+  font-size: 1.02rem;
+  line-height: 1.95;
+}
+
+.lang-ar .field-label {
+  font-size: 0.9rem;
+  letter-spacing: 0;
+}
+
+.lang-ar .p-inputtext,
+.lang-ar .p-button-label,
+.lang-ar textarea {
+  font-size: 1rem;
+}
+
+.lang-ar .form-title,
+.lang-ar .contact-side__title,
+.lang-ar .hero-title,
+.lang-ar .hero-subtitle,
+.lang-ar .section-title,
+.lang-ar .team-group-title,
+.lang-ar .site-footer__heading {
+  font-family: 'IBM Plex Sans Arabic', sans-serif;
+}
+.contact-shell {
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
-  gap: 2rem;
-  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.15fr);
+  gap: 1.5rem;
+  align-items: stretch;
 }
 
-@media (max-width: 768px) {
-  .contact-layout {
-    grid-template-columns: 1fr;
-    padding: 1.25rem;
-    padding-top: 5rem;
-  }
-  .accent-panel { display: none; }
+.contact-side,
+.contact-card {
+  border-radius: var(--q-radius-lg);
 }
 
-/*  Accent panel  */
-.accent-panel {
+.contact-side {
   position: relative;
-  background: var(--bg-panel);
-  border-radius: var(--radius);
-  min-height: 520px;
   overflow: hidden;
+  min-height: 620px;
+  padding: 2rem;
   display: flex;
   align-items: flex-end;
-  padding: 2.5rem;
+  background:
+    radial-gradient(circle at top right, rgba(42, 184, 184, 0.2), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent),
+    var(--q-surface);
 }
 
-.accent-circle {
-  position: absolute;
-  border-radius: 50%;
-  opacity: 0.18;
-}
-.accent-circle--1 {
-  width: 320px; height: 320px;
-  background: var(--accent);
-  top: -60px; right: -80px;
-}
-.accent-circle--2 {
-  width: 200px; height: 200px;
-  background: #6a8fd8;
-  bottom: 40px; left: -60px;
-}
-
-.accent-tagline {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+.contact-side__content {
+  position: relative;
   z-index: 1;
-}
-.tagline-word {
-  font-family: var(--font-display);
-  font-size: clamp(2.8rem, 5vw, 4rem);
-  color: #ffffff;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-}
-.tagline-word:last-child { color: var(--accent); font-style: italic; }
-
-/*  Form card  */
-.form-card {
-  background: var(--bg-card);
-  border-radius: var(--radius);
-  padding: clamp(1.75rem, 4vw, 3rem);
-  box-shadow: var(--shadow);
-  border: 1px solid var(--border);
-  transition: background 0.3s, border-color 0.3s;
+  max-width: 320px;
 }
 
-.form-header { margin-bottom: 2rem; }
+.contact-side__eyebrow {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--q-teal);
+}
+
+.contact-side__title {
+  margin: 0;
+  font-family: var(--q-font-display);
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  line-height: 1.05;
+  color: var(--q-text);
+}
+
+.contact-side__text {
+  margin-top: 1rem;
+  color: var(--q-muted);
+  line-height: 1.9;
+}
+
+.contact-side__orb {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(4px);
+}
+
+.contact-side__orb--one {
+  top: -40px;
+  right: -60px;
+  width: 240px;
+  height: 240px;
+  background: rgba(42, 184, 184, 0.22);
+}
+
+.contact-side__orb--two {
+  bottom: 30px;
+  left: -50px;
+  width: 180px;
+  height: 180px;
+  background: rgba(42, 184, 184, 0.12);
+}
+
+.contact-card {
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.form-header {
+  margin-bottom: 1.8rem;
+}
 
 .form-title {
-  font-family: var(--font-display);
-  font-size: clamp(1.8rem, 3vw, 2.6rem);
-  font-weight: 400;
-  color: var(--text-primary);
-  margin: 0 0 0.6rem;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
+  margin: 0 0 0.75rem;
+  font-family: var(--q-font-display);
+  font-size: clamp(2rem, 3vw, 2.8rem);
+  color: var(--q-text);
+  line-height: 1.1;
 }
 
 .form-subtitle {
-  font-size: 0.95rem;
-  color: var(--text-muted);
   margin: 0;
-  line-height: 1.6;
+  color: var(--q-muted);
+  line-height: 1.8;
+  max-width: 60ch;
 }
 
-/*  Form fields  */
-.form-body { display: flex; flex-direction: column; gap: 1.4rem; }
+.form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
 
-.field-group { display: flex; flex-direction: column; gap: 0.45rem; }
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
 
 .field-label {
   font-size: 0.82rem;
-  font-weight: 500;
-  color: var(--text-muted);
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  color: var(--q-muted);
 }
 
-/* Override PrimeVue input styling to match our tokens */
-.field-input :deep(.p-inputtext),
-.field-input:deep(textarea),
 :deep(.field-input.p-inputtext),
-:deep(.field-input textarea) {
+:deep(.field-input.p-textarea),
+:deep(.field-input textarea),
+:deep(.field-input input) {
   width: 100%;
-  background: var(--bg) !important;
-  border: 1.5px solid var(--border) !important;
-  border-radius: 10px !important;
-  color: var(--text-primary) !important;
-  font-family: var(--font-body) !important;
-  font-size: 0.95rem !important;
-  padding: 0.7rem 1rem !important;
-  transition: border-color 0.2s, box-shadow 0.2s !important;
+  background: var(--q-surface-strong) !important;
+  border: 1px solid var(--q-bar-border) !important;
+  border-radius: 16px !important;
+  color: var(--q-text) !important;
+  font-family: var(--q-font-body) !important;
+  padding: 0.9rem 1rem !important;
   box-shadow: none !important;
 }
 
-:deep(.p-inputtext),
-:deep(textarea.p-textarea) {
-  width: 100%;
-  background: var(--bg) !important;
-  border: 1.5px solid var(--border) !important;
-  border-radius: 10px !important;
-  color: var(--text-primary) !important;
-  font-family: var(--font-body) !important;
-  font-size: 0.95rem !important;
-  padding: 0.7rem 1rem !important;
-  transition: border-color 0.2s, box-shadow 0.2s !important;
-  box-shadow: none !important;
+:deep(.field-input.p-inputtext:focus),
+:deep(.field-input.p-textarea:focus),
+:deep(.field-input textarea:focus),
+:deep(.field-input input:focus) {
+  border-color: var(--q-teal) !important;
+  box-shadow: 0 0 0 3px rgba(42, 184, 184, 0.18) !important;
 }
 
-:deep(.p-inputtext:focus),
-:deep(textarea.p-textarea:focus) {
-  border-color: var(--accent) !important;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent) !important;
-  outline: none !important;
+:deep(.p-inputtext::placeholder),
+:deep(textarea::placeholder) {
+  color: var(--q-muted) !important;
+  opacity: 0.8;
 }
 
-:deep(.p-invalid .p-inputtext),
 :deep(.p-invalid),
 :deep(.p-inputtext.p-invalid),
 :deep(textarea.p-invalid) {
-  border-color: var(--error) !important;
+  border-color: var(--q-error) !important;
 }
 
 .field-error {
-  font-size: 0.8rem;
-  color: var(--error);
   display: flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.35rem;
+  color: var(--q-error);
+  font-size: 0.82rem;
 }
 
-/*  Submit button  */
 :deep(.submit-btn.p-button) {
-  background: var(--accent) !important;
-  border: none !important;
-  border-radius: 10px !important;
-  font-family: var(--font-body) !important;
-  font-size: 0.95rem !important;
-  font-weight: 500 !important;
-  padding: 0.8rem 1.5rem !important;
-  letter-spacing: 0.02em !important;
-  transition: opacity 0.2s, transform 0.15s !important;
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 35%, transparent) !important;
-  justify-content: center;
+  margin-top: 0.5rem;
   width: 100%;
+  justify-content: center;
+  border: none !important;
+  border-radius: 16px !important;
+  padding: 0.95rem 1.25rem !important;
+  background: var(--q-teal) !important;
+  color: white !important;
+  box-shadow: 0 14px 34px rgba(42, 184, 184, 0.22) !important;
 }
 
 :deep(.submit-btn.p-button:hover:not(:disabled)) {
-  opacity: 0.88 !important;
-  transform: translateY(-1px) !important;
+  opacity: 0.92;
+  transform: translateY(-1px);
 }
 
-:deep(.submit-btn.p-button:disabled) {
-  opacity: 0.55 !important;
+@media (max-width: 960px) {
+  .contact-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-side {
+    min-height: 280px;
+    align-items: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .contact-root {
+    padding-inline: 0.75rem;
+  }
+
+  .contact-card,
+  .contact-side {
+    border-radius: 24px;
+  }
+}
+.contact-card {
+  position: relative; /* needed for the absolute fab */
+}
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+:deep(.clear-fab.p-button) {
+  width: 2.1rem !important;
+  height: 2.1rem !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  background: var(--q-surface-strong) !important;
+  border: 2px solid var(--q-bar-border) !important;
+  color: var(--q-muted) !important;
+  box-shadow: none !important;
+}
+
+:deep(.clear-fab.p-button:hover:not(:disabled)) {
+  border-color: var(--q-error) !important;
+  color: var(--q-error) !important;
+  background: var(--q-surface-strong) !important;
+  transform: rotate(90deg) !important;
+}
+
+:deep(.clear-fab .p-button-icon) {
+  font-size: 0.75rem !important;
 }
 </style>

@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, START_LOCATION } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 
 const routes = [
@@ -11,7 +11,36 @@ const routes = [
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
+  scrollBehavior(to, from, savedPosition) {
+    // 1. Back/forward navigation uses the browser’s saved position
+    if (savedPosition) {
+      return savedPosition
+    }
+
+    // 2. Hash navigation
+    if (to.hash) {
+      return { el: to.hash }
+    }
+
+    // 3. Initial page load (refresh) – try to restore from localStorage
+    if (from === START_LOCATION) {
+      // from.matched.length === 0 would also work
+      const saved = localStorage.getItem('scrollRestore')
+      if (saved) {
+        const { path, top, left } = JSON.parse(saved)
+        // Only restore if we’re still on the same page
+        if (path === to.fullPath) {
+          return { top, left }
+        }
+      }
+      // If no saved position or different route, let it stay at top (or fall through)
+      return false
+    }
+
+    // 4. Normal in‑app navigation (links, router.push) – always scroll to top
+    return { top: 0, left: 0 }
+  }
 })
 
 export default router

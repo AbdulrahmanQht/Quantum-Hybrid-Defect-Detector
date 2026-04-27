@@ -1,17 +1,16 @@
 <script setup>
-import { ref } from 'vue';
-import ClassifyImages from '../components/ClassifyImages.vue';
-import { useI18n } from 'vue-i18n'
-
-const { t, locale } = useI18n()
+import ClassifyImages from '../components/ClassifyImages.vue'
 </script>
 
 <template>
-  <div class="min-h-screen p-8 bg-gray-100">
+  <div class="classify-page">
     <ClassifyImages />
   </div>
 </template>
 
 <style scoped>
-
+.classify-page {
+  min-height: 100vh;
+  padding: 1.5rem 1rem 3rem;
+}
 </style>

@@ -29,16 +29,16 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen p-8 bg-gray-100">
+  <div class="min-h-screen p-8">
     <h1 class="mb-4 text-3xl font-bold text-green-600">
       Benchmark View
     </h1>
 
-    <div v-if="isLoading" class="p-4 bg-blue-100 text-blue-700 rounded mb-4">
+    <div v-if="isLoading" class="p-4  text-blue-700 rounded mb-4">
       Fetching benchmark results...
     </div>
 
-    <div v-if="error" class="p-4 bg-red-100 text-red-700 rounded mb-4">
+    <div v-if="error" class="p-4  text-red-700 rounded mb-4">
       {{ error }}
     </div>
 
