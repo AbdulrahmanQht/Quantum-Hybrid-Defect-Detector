@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import Cookies from 'js-cookie';
 import { useI18n } from 'vue-i18n'
@@ -9,10 +9,34 @@ const dir = computed(() => locale.value === 'AR' ? 'rtl' : 'ltr')
 const isArabic = computed(() => locale.value === 'AR')
 const toast = useToast();
 
+const STORAGE_KEY = 'contactForm'
+
 //  Form state 
 const contact = ref({ name: '', subject: '', message: '' });
 const touched = ref({ name: false, subject: false, message: false });
 const isSending = ref(false);
+
+onMounted(() => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      // Assign all at once → single watcher trigger, prevents mid-hydration wipe
+      contact.value = {
+        name:    parsed.name    ?? '',
+        subject: parsed.subject ?? '',
+        message: parsed.message ?? '',
+      }
+    }
+  } catch (e) {
+    // ignore corrupted data
+  }
+})
+
+// Always persist — resetEmail() handles explicit removal
+watch(contact, (newVal) => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(newVal))
+}, { deep: true })
 
 const errors = computed(() => ({
   name: touched.value.name && !contact.value.name.trim(),
@@ -29,6 +53,12 @@ const isValid = computed(
 
 function touch(field) {
   touched.value[field] = true;
+}
+
+function resetEmail() {
+  contact.value = { name: '', subject: '', message: '' };
+  touched.value = { name: false, subject: false, message: false };
+  localStorage.removeItem(STORAGE_KEY)
 }
 
 async function sendEmail() {
@@ -65,8 +95,7 @@ async function sendEmail() {
     });
 
     // Reset Form
-    contact.value = { name: '', subject: '', message: '' };
-    touched.value = { name: false, subject: false, message: false };
+    resetEmail()
 
   } catch (error) {
     console.error('Contact form error:', error);
@@ -112,7 +141,18 @@ async function sendEmail() {
 
         <form class="form-body" @submit.prevent="sendEmail" novalidate>
           <div class="field-group">
-            <label class="field-label" for="contact-name">{{ t('contact.name') }}</label>
+            <div class="field-label-row">
+              <label class="field-label" for="contact-name">{{ t('contact.name') }}</label>
+              <Button
+                v-if="contact.name || contact.subject || contact.message"
+                type="button"
+                icon="pi pi-times"
+                :disabled="isSending"
+                class="clear-fab"
+                @click="resetEmail"
+                :aria-label="t('contact.clear')"
+              />
+            </div>
             <InputText
               id="contact-name"
               v-model="contact.name"
@@ -155,15 +195,16 @@ async function sendEmail() {
               <i class="pi pi-exclamation-circle" /> {{ t('contact.required') }}
             </small>
           </div>
-
-          <Button
-            type="submit"
-            :label="isSending ? t('contact.sending') : t('contact.send')"
-            icon="pi pi-envelope"
-            :loading="isSending"
-            :disabled="isSending"
-            class="submit-btn"
-          />
+            
+            <Button
+              type="submit"
+              :label="isSending ? t('contact.sending') : t('contact.send')"
+              icon="pi pi-envelope"
+              :loading="isSending"
+              :disabled="isSending"
+              class="submit-btn"
+            />
+            
         </form>
       </main>
     </section>
@@ -454,5 +495,34 @@ async function sendEmail() {
   .contact-side {
     border-radius: 24px;
   }
+}
+.contact-card {
+  position: relative; /* needed for the absolute fab */
+}
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+:deep(.clear-fab.p-button) {
+  width: 2.1rem !important;
+  height: 2.1rem !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  background: var(--q-surface-strong) !important;
+  border: 2px solid var(--q-bar-border) !important;
+  color: var(--q-muted) !important;
+  box-shadow: none !important;
+}
+
+:deep(.clear-fab.p-button:hover:not(:disabled)) {
+  border-color: var(--q-error) !important;
+  color: var(--q-error) !important;
+  background: var(--q-surface-strong) !important;
+  transform: rotate(90deg) !important;
+}
+
+:deep(.clear-fab .p-button-icon) {
+  font-size: 0.75rem !important;
 }
 </style>

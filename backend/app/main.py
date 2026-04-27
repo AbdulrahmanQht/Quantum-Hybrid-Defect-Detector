@@ -142,20 +142,37 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         response: Response = await call_next(request)
+        # Standard security headers for all routes
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+
+        path = request.url.path
         
-        # Updated CSP to allow Swagger UI and ReDoc assets
-        response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; "
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
-            "font-src 'self' https://fonts.gstatic.com; "
-            "img-src 'self' data: blob: https://fastapi.tiangolo.com; "
-            "connect-src 'self' http://127.0.0.1:8000;"
-        )
+        # Check if we are accessing the documentation or the OpenAPI schema
+        if path in ["/docs", "/redoc", "/openapi.json"]:
+            # CSP specifically for the docs UI
+            csp = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
+                "font-src 'self' https://fonts.gstatic.com; "
+                "img-src 'self' data: blob: https://fastapi.tiangolo.com; "
+                "connect-src 'self' http://127.0.0.1:8000;"
+            )
+        else:
+            # CSP for all API endpoints and general traffic
+            csp = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-eval'; "
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+                "font-src 'self' https://fonts.gstatic.com; "
+                "img-src 'self' data: blob:; "
+                "connect-src 'self';"
+            )
+
+        response.headers["Content-Security-Policy"] = csp
         return response
 
 app.add_middleware(SecurityHeadersMiddleware)

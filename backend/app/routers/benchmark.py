@@ -14,7 +14,7 @@ import json
 import os
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel, Field
 
 from backend.utils.logger import Logger
@@ -129,19 +129,8 @@ def _get_cached_benchmark() -> BenchmarkResults:
         _benchmark_cache = _load_benchmark()
     return _benchmark_cache
 
-
-# Endpoint
-@router.get(
-    "/benchmark",
-    response_model=BenchmarkResults,
-    summary="Get benchmark results",
-    description=(
-        "Returns pre-computed benchmark results for all three models "
-        "(CNN, QNN_CPU, QNN_GPU). "
-        "Results are loaded from disk once on the first request and served "
-        "from memory thereafter. "
-        "Re-generate by running benchmark.py and restarting the server."
-    ),
-)
-def get_benchmark() -> BenchmarkResults:
+@router.get("/benchmark", response_model=BenchmarkResults)
+def get_benchmark(response: Response) -> BenchmarkResults:
+    # Instruct the browser to cache this response for 10 hour (36000 seconds)
+    response.headers["Cache-Control"] = "public, max-age=36000"
     return _get_cached_benchmark()

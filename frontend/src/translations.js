@@ -179,8 +179,9 @@ const messages = {
         qnn_cpu: 'QNN-CPU',
         qnn_gpu: 'QNN-GPU'
       },
-export_csv_success: 'Results exported to CSV successfully!',
-export_json_success: 'Results exported to JSON successfully!',
+      export_csv_success: 'Results exported to CSV successfully!',
+      export_json_success: 'Results exported to JSON successfully!',
+      restored_hint: "Results restored from last session — reset or re-select image to run again."
     },
     benchmark: {},
     quantum_advantage: {},
@@ -385,8 +386,10 @@ export_json_success: 'Results exported to JSON successfully!',
         qnn_cpu: 'QNN-CPU',
         qnn_gpu: 'QNN-GPU'
       },
-export_csv_success: 'تم تصدير النتائج إلى CSV بنجاح!',
-export_json_success: 'تم تصدير النتائج إلى JSON بنجاح!',
+      export_csv_success: 'تم تصدير النتائج إلى CSV بنجاح!',
+      export_json_success: 'تم تصدير النتائج إلى JSON بنجاح!',
+      restored_hint: ".تم استعادة النتائج من الجلسة السابقة. أعد الاختيار أو انقر إعادة تعيين للتشغيل من جديد"
+
     },
     benchmark: {},
     quantum_advantage: {},

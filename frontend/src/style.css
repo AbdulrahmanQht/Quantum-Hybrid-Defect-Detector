@@ -1,6 +1,5 @@
 /* English */
 @import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@500;600;700&family=DM+Sans:wght@400;500;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@500;600;700&family=DM+Sans:wght@400;500;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap');
 /* Arabic */
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
 
@@ -71,20 +70,20 @@ body {
     color: var(--q-text);
 }
 
-html[lang="ar"] * {
+.lang-ar * {
     font-family: 'Tajawal', sans-serif;
 }
 
-html[lang="ar"] .pi {
+.lang-ar .pi {
     font-family: 'primeicons' !important;
 }
 
-html[lang="ar"] .qnn-logo-title,
-html[lang="ar"] .qnn-logo-title * {
+.lang-ar .qnn-logo-title,
+.lang-ar .qnn-logo-title * {
     font-family: 'Oxanium', sans-serif;
 }
-html[lang="ar"] .qnn-logo-subtitle,
-html[lang="ar"] .qnn-logo-subtitle * {
+.lang-ar .qnn-logo-subtitle,
+.lang-ar .qnn-logo-subtitle * {
     font-family: 'DM Sans', sans-serif;
 }
 
@@ -132,8 +131,7 @@ html[lang="ar"] .qnn-logo-subtitle * {
         max-width: 100%;
     }
 }
-html[lang="ar"] {
-    
+.lang-ar  {
     text-align: right;
 }
 
@@ -143,8 +141,9 @@ html[lang="en"] {
 }
 
 ::selection {
-    background-color: transparent;
-    color: #0D9488;
+    background-color: rgba(13, 148, 136, 0.2);
+    color: inherit;
+
 }
 ::-webkit-scrollbar {
     width: 8px;

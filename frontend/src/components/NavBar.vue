@@ -27,7 +27,7 @@ const toggleLanguage = () => {
   Cookies.set(LANG_KEY, next, { expires: 365, path: '/' })
   
   document.documentElement.classList.toggle('lang-ar', next === 'AR')
-  document.documentElement.lang = locale.value
+  document.documentElement.lang = next === 'AR' ? 'ar' : 'en'
 }
 
 const toggleTheme = () => {

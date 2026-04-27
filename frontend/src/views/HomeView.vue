@@ -180,7 +180,7 @@ onUnmounted(() => {
   <Users class="section-icon" />
 </div>
 
-      <div class="team-group center">
+      <div class="team-group">
         <h4 class="team-group-title">{{ t('home.team.supervisorsTitle') }}</h4>
         <div class="team-grid team-grid--supervisors">
           <Card v-for="person in supervisors" :key="person.name" class="team-card">
