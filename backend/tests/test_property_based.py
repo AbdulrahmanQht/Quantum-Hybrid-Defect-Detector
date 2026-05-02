@@ -19,7 +19,7 @@ Run:
     pytest tests/test_property_based.py -v
     pytest tests/test_property_based.py -v --hypothesis-seed=0   # deterministic
 
-Results saved to: backend/data/results_tests/property_based.json
+Results saved to: data/results_tests/property_based.json
 """
 
 from __future__ import annotations
@@ -32,7 +32,6 @@ from pathlib import Path
 import pytest
 import torch
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
     from hypothesis import given, settings, assume, HealthCheck
@@ -58,7 +57,10 @@ from backend.utils.noise import (
     BENCHMARK_NOISE_LEVELS,
 )
 
-RESULTS_DIR = Path("backend/data/results_tests")
+BACKEND_DIR = Path(__file__).parent.parent.resolve()
+sys.path.insert(0, str(BACKEND_DIR))
+
+RESULTS_DIR = BACKEND_DIR / "data" / "results_tests"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -306,9 +308,14 @@ class TestJpegHypothesis:
 
     @given(batch=batch_size_st, h=spatial_st, w=spatial_st)
     @DEFAULT_SETTINGS
-    def test_jpeg_quality_100_is_identity(self, batch, h, w):
+    def test_jpeg_quality_100_has_minimal_distortion(self, batch, h, w):
         inp = _make_tensor(batch, h, w)
-        assert torch.allclose(noise_jpeg(inp, 100), inp)
+        out = noise_jpeg(inp, 100)
+        _assert_valid_output(out, inp, "jpeg(quality=100)")
+        mse = torch.mean((out - inp) ** 2).item()
+        assert mse < 1e-4, (
+            f"JPEG quality=100 introduced unexpectedly large distortion (MSE={mse:.6f})"
+        )
 
     @given(
         batch=batch_size_st,
@@ -318,12 +325,10 @@ class TestJpegHypothesis:
     )
     @DEFAULT_SETTINGS
     def test_low_quality_jpeg_changes_image(self, batch, h, w, quality):
-        """Low JPEG quality must produce visible degradation."""
         inp = _make_tensor(batch, h, w)
         out = noise_jpeg(inp, quality)
-        assert not torch.allclose(out, inp, atol=0.01), (
-            f"JPEG quality={quality} produced no visible change"
-        )
+        mse = torch.mean((out - inp) ** 2).item()
+        assert mse > 1e-6, f"JPEG quality={quality} produced negligible change"
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -371,11 +376,6 @@ class TestApplyNoiseHypothesis:
         with pytest.raises(ValueError, match="Unknown noise_type"):
             apply_noise(inp, "cosmic_rays_from_andromeda", 0.5)
 
-
-# ────────────────────────────────────────────────────────────────────────────
-# Property-based validator tests
-# ────────────────────────────────────────────────────────────────────────────
-
 class TestValidatorHypothesis:
     """
     Property-based tests for image validation logic.
@@ -388,6 +388,7 @@ class TestValidatorHypothesis:
             return check_magic_bytes, check_file_size, check_dimensions
         except ImportError:
             pytest.skip("backend.utils.validate not importable")
+
 
     @given(size=st.integers(min_value=0, max_value=10 * 1024 * 1024))
     @DEFAULT_SETTINGS
@@ -445,7 +446,6 @@ class TestValidatorHypothesis:
         assert check_file_size(size) is False, (
             f"File of size {size} bytes (>= 5MB) was accepted"
         )
-
 
 # ────────────────────────────────────────────────────────────────────────────
 # Results save

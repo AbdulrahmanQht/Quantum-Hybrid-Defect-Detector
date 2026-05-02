@@ -179,8 +179,9 @@ const messages = {
         qnn_cpu: 'QNN-CPU',
         qnn_gpu: 'QNN-GPU'
       },
-export_csv_success: 'Results exported to CSV successfully!',
-export_json_success: 'Results exported to JSON successfully!',
+      export_csv_success: 'Results exported to CSV successfully!',
+      export_json_success: 'Results exported to JSON successfully!',
+      restored_hint: "Results restored from last session — reset or re-select image to run again."
     },
     benchmark: {
       hero: {
@@ -333,6 +334,93 @@ export_json_success: 'Results exported to JSON successfully!',
       },
     },
     quantum_advantage: {},
+        insight: 'A rising quantum gain under increasing noise confirms the quantum branch improves robustness in degraded inspection conditions.'
+      },
+      exp1: {
+        title: 'Feature Orthogonality',
+        desc: 'Are the quantum and classical branches learning different things?',
+        score: 'Cosine Similarity Score',
+        target: 'Target: Near 0.0 (Orthogonal)',
+        explanation: 'Very low similarity confirms the quantum branch learns unique, complementary features distinct from the classical branch.'
+      },
+      exp13: {
+        title: 'Linear CKA',
+        desc: 'Are the learned representations structurally different?',
+        scale: '0 = orthogonal, 1 = identical',
+        insight: 'Low CKA confirms the quantum branch learns complementary representational structure, invariant to rotation and isotropic scaling — a stronger claim than cosine similarity.'
+      },
+      exp3: {
+        title: 'Re-upload Contribution',
+        desc: 'How much does the data re-uploading technique improve accuracy?',
+        with: 'With Re-upload',
+        without: 'Without Re-upload',
+        contribution: 'Contribution'
+      },
+      exp4: {
+        title: 'Entanglement Entropy',
+        desc: 'Is the quantum circuit generating real quantum correlations?',
+        overallMean: 'Overall Mean Entropy'
+      },
+      exp5: {
+        title: 'Gradient Variance (Barren Plateau Check)',
+        desc: 'Can the quantum circuit still learn, or have gradients vanished?',
+        target: 'Target Layer',
+        meanVar: 'Mean Grad Variance',
+        absMean: 'Abs Mean',
+        batches: 'Batches'
+      },
+      exp7: {
+        title: 'VQC Expressibility',
+        desc: 'How well does the quantum circuit explore the available Hilbert space?',
+        klDiv: 'KL Divergence from Haar',
+        ref: 'Haar Reference',
+        insight: 'Lower KL divergence means the circuit explores the Hilbert space more uniformly. Values below 0.05 indicate near-Haar expressibility.'
+      },
+      exp9: {
+        title: 'Geometric Difference',
+        desc: 'Does the quantum kernel span directions the classical kernel cannot?',
+        insight: 'g > 1 means the quantum kernel spans feature directions the classical RBF kernel cannot represent (Huang et al. 2021). This is a rigorous, data-driven quantum advantage claim.'
+      },
+      exp8: {
+        title: 'Kernel Target Alignment',
+        desc: 'Which kernel better aligns with the classification labels?',
+        quantum: 'KTA Quantum',
+        classical: 'KTA Classical',
+        diff: 'Difference',
+        insight: 'KTA measures how well a kernel aligns with the label structure. A positive difference means the quantum kernel is better aligned to the task.'
+      },
+      exp10: {
+        title: 'Fisher Effective Dimension',
+        desc: 'How efficiently does each model use its parameters?',
+        params: 'Parameters',
+        dEff1000: 'd_eff (n=1000)',
+        dEffPerParam: 'd_eff / param',
+        insight: 'Higher d_eff per parameter means the model uses its parameters more efficiently. The QNN achieves comparable effective dimension with far fewer parameters.'
+      },
+      exp11: {
+        title: 'Feature Effective Rank',
+        desc: 'How much of the embedding space is each branch actually using?',
+        classical: 'Classical',
+        quantum: 'Quantum',
+        insight: 'Utilisation = effective rank / embedding dim. The comparison shows how efficiently each branch uses its available dimensions.'
+      },
+      exp12: {
+        title: 'Intrinsic Dimension',
+        desc: 'How much information compression does each branch achieve?',
+        classical: 'Classical (z)',
+        quantum: 'Quantum (q_emb)',
+        insight: 'Lower intrinsic dimension on q_emb vs z with competitive accuracy means the quantum circuit compresses class-relevant information more efficiently (TwoNN, Facco 2017).'
+      },
+      exp14: {
+        title: 'Class Separability',
+        desc: 'How well does each embedding separate the six defect classes?',
+        advantage: 'Q. Advantage',
+        insight: 'Fisher criterion J = tr(S_W⁻¹ S_B). Higher J means tighter within-class clusters and wider between-class margins.'
+      },
+      methodology: {
+        title: 'Experiment Notes & Methodology'
+      }
+    },
     contact: {
       pageTitle: 'Get in Touch',
       pageSubtitle: "We'd love to hear from you. Send us a message and we'll respond as soon as possible.",
@@ -434,8 +522,8 @@ export_json_success: 'Results exported to JSON successfully!',
     title: 'المشرفون على المشروع والفريق البحثي',
     supervisorsTitle: 'المشرفون على المشروع',
     researchersTitle: 'الفريق البحثي',
-    github: 'جيت هب',
-    linkedin: 'لينكدإن',
+    github: 'قيت هب',
+    linkedin: 'لينكد إن',
     supervisors: [
       { name: 'Dr. Mustafa Youldash', role: 'المشرف الرئيسي' },
       { name: 'Dr. Naya Nagy', role: 'المشرف المشارك' }
@@ -534,8 +622,10 @@ export_json_success: 'Results exported to JSON successfully!',
         qnn_cpu: 'QNN-CPU',
         qnn_gpu: 'QNN-GPU'
       },
-export_csv_success: 'تم تصدير النتائج إلى CSV بنجاح!',
-export_json_success: 'تم تصدير النتائج إلى JSON بنجاح!',
+      export_csv_success: 'تم تصدير النتائج إلى CSV بنجاح!',
+      export_json_success: 'تم تصدير النتائج إلى JSON بنجاح!',
+      restored_hint: ".تم استعادة النتائج من الجلسة السابقة. أعد الاختيار أو انقر إعادة تعيين للتشغيل من جديد"
+
     },
     benchmark: {
       hero: {

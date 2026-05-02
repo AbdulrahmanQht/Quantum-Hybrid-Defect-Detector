@@ -9,6 +9,6 @@
   "response_schema_on_success": {
     "status": "str"
   },
-  "rate_limit": "5/minute per IP",
+  "rate_limit": "10/minute per IP",
   "smtp_mock_used_in_tests": true
 }

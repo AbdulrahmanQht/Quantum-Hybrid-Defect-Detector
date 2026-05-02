@@ -1,0 +1,100 @@
+{
+  "generated_at": "2026-04-22T19:04:01Z",
+  "model": "CNN",
+  "per_class": {
+    "Deformation": {
+      "precision": 0.9358,
+      "recall": 0.9431,
+      "f1": 0.9395,
+      "support": 510,
+      "tp": 481,
+      "fp": 33,
+      "fn": 29,
+      "misclassified_as": {
+        "Deposition": 0.0137,
+        "Disconnect": 0.0059,
+        "Misalignment": 0.0078,
+        "Obstacle": 0.0059,
+        "Rupture": 0.0235
+      }
+    },
+    "Deposition": {
+      "precision": 0.925,
+      "recall": 0.933,
+      "f1": 0.929,
+      "support": 582,
+      "tp": 543,
+      "fp": 44,
+      "fn": 39,
+      "misclassified_as": {
+        "Deformation": 0.0052,
+        "Disconnect": 0.0017,
+        "Misalignment": 0.0017,
+        "Obstacle": 0.0464,
+        "Rupture": 0.012
+      }
+    },
+    "Disconnect": {
+      "precision": 0.932,
+      "recall": 0.9792,
+      "f1": 0.955,
+      "support": 336,
+      "tp": 329,
+      "fp": 24,
+      "fn": 7,
+      "misclassified_as": {
+        "Deformation": 0.006,
+        "Misalignment": 0.006,
+        "Obstacle": 0.003,
+        "Rupture": 0.006
+      }
+    },
+    "Misalignment": {
+      "precision": 0.9463,
+      "recall": 0.9379,
+      "f1": 0.9421,
+      "support": 338,
+      "tp": 317,
+      "fp": 18,
+      "fn": 21,
+      "misclassified_as": {
+        "Deformation": 0.0237,
+        "Deposition": 0.003,
+        "Disconnect": 0.0207,
+        "Obstacle": 0.0059,
+        "Rupture": 0.0089
+      }
+    },
+    "Obstacle": {
+      "precision": 0.9436,
+      "recall": 0.8961,
+      "f1": 0.9192,
+      "support": 635,
+      "tp": 569,
+      "fp": 34,
+      "fn": 66,
+      "misclassified_as": {
+        "Deformation": 0.0142,
+        "Deposition": 0.0567,
+        "Disconnect": 0.0063,
+        "Misalignment": 0.0142,
+        "Rupture": 0.0126
+      }
+    },
+    "Rupture": {
+      "precision": 0.9274,
+      "recall": 0.9468,
+      "f1": 0.937,
+      "support": 432,
+      "tp": 409,
+      "fp": 32,
+      "fn": 23,
+      "misclassified_as": {
+        "Deformation": 0.0255,
+        "Disconnect": 0.0208,
+        "Misalignment": 0.0046,
+        "Obstacle": 0.0023
+      }
+    }
+  }
+}

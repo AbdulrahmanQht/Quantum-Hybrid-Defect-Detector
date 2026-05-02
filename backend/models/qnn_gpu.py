@@ -187,6 +187,7 @@ class HybridQnnGPU(nn.Module):
         self.n_qubits = n_qubits
         self.q_depth = q_depth
         self.quantum_embed_dim = quantum_embed_dim
+        self.q_device_name = q_device_name
         self.ema_decay = ema_decay
         self._curriculum_noise: float = 0.0
         self._quantum_shadow: dict[str, torch.Tensor] = {}

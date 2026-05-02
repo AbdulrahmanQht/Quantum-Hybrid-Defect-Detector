@@ -1,0 +1,42 @@
+{
+  "generated_at": "2026-04-22T19:04:01Z",
+  "CNN": {
+    "ece": 0.056442,
+    "verdict": "WARN",
+    "per_class_ece": {
+      "Deformation": 0.019165,
+      "Deposition": 0.023032,
+      "Disconnect": 0.023318,
+      "Misalignment": 0.019775,
+      "Obstacle": 0.029214,
+      "Rupture": 0.020383
+    },
+    "worst_class": "Obstacle"
+  },
+  "QNN_CPU": {
+    "ece": 0.052774,
+    "verdict": "WARN",
+    "per_class_ece": {
+      "Deformation": 0.019478,
+      "Deposition": 0.021339,
+      "Disconnect": 0.016011,
+      "Misalignment": 0.016627,
+      "Obstacle": 0.024299,
+      "Rupture": 0.017246
+    },
+    "worst_class": "Obstacle"
+  },
+  "QNN_GPU": {
+    "ece": 0.051111,
+    "verdict": "WARN",
+    "per_class_ece": {
+      "Deformation": 0.019163,
+      "Deposition": 0.022036,
+      "Disconnect": 0.016262,
+      "Misalignment": 0.015641,
+      "Obstacle": 0.026606,
+      "Rupture": 0.018134
+    },
+    "worst_class": "Obstacle"
+  }
+}

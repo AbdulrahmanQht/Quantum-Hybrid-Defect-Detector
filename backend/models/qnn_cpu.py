@@ -151,17 +151,12 @@ def _quantum_forward(
     device: torch.device,
 ) -> torch.Tensor:
     with torch.amp.autocast(device_type=device.type, enabled=False):
-        q_input_cpu = q_input.detach().to("cpu").float()
-
-        circuit = q_layer   # TorchLayer is already the circuit
-
-        # CRITICAL FIX: vectorize Python loop overhead reduction
+        q_input_cpu = q_input.to("cpu").float()
+        circuit = q_layer
         results = torch.stack([
             circuit(q_input_cpu[i]) for i in range(q_input_cpu.shape[0])
         ])
-
         return results.to(device)
-
 
 
 # HybridQnnCPU

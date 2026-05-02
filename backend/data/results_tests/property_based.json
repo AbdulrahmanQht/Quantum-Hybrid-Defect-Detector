@@ -1,0 +1,27 @@
+{
+  "generated_at": "2026-04-22T20:00:59Z",
+  "framework": "hypothesis",
+  "noise_types_tested": [
+    "gaussian",
+    "blur",
+    "contrast",
+    "salt_pepper",
+    "motion_blur",
+    "jpeg_compression",
+    "lens_occlusion"
+  ],
+  "properties_verified": [
+    "output_shape_preserved",
+    "output_dtype_preserved",
+    "output_range_clamped_0_1",
+    "no_nan_in_output",
+    "no_inf_in_output",
+    "zero_level_is_identity",
+    "corrupted_pixels_are_binary_for_salt_pepper",
+    "contrast_converges_to_per_image_mean",
+    "heavy_blur_reduces_std",
+    "file_size_boundary_correctness",
+    "dimension_boundary_correctness"
+  ],
+  "hypothesis_max_examples": 80
+}
