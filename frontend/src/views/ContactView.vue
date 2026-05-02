@@ -292,7 +292,7 @@ async function sendEmail() {
 .lang-ar .section-title,
 .lang-ar .team-group-title,
 .lang-ar .site-footer__heading {
-  font-family: 'IBM Plex Sans Arabic', sans-serif;
+  font-family: var(--q-font-display);
 }
 .contact-shell {
   max-width: 1280px;

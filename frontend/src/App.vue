@@ -1,6 +1,31 @@
 <script setup>
+import { onMounted, onUnmounted, nextTick } from 'vue'
 import NavBar from './components/NavBar.vue'
 import Footer from './components/Footer.vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+let saveTimer
+
+const handleScroll = () => {
+  clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => {
+    localStorage.setItem('scrollRestore', JSON.stringify({
+      path: router.currentRoute.value.fullPath,
+      top: window.scrollY,
+      left: window.scrollX
+    }))
+  }, 100)
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll, { passive: true })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+  clearTimeout(saveTimer)
+})
 </script>
 
 <template>

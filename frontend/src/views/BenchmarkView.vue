@@ -1,15 +1,15 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Carousel from 'primevue/carousel'
-import SelectButton from 'primevue/selectbutton'
 import deformationImage from '../assets/benchmark/deformation.jpg'
 import depositionImage from '../assets/benchmark/deposition.jpg'
 import disconnectImage from '../assets/benchmark/disconnect.jpg'
 import misalignmentImage from '../assets/benchmark/misalignment.jpg'
 import obstacleImage from '../assets/benchmark/obstacle.jpg'
 import ruptureImage from '../assets/benchmark/rupture.jpg'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const { t, tm, locale } = useI18n({ useScope: 'global' })
 
 const benchmarkData = ref(null)
@@ -19,16 +19,16 @@ const selectedModelKey = ref('CNN')
 const selectedNoiseType = ref('gaussian')
 
 const datasetImageMap = {
-  Deformation: deformationImage,
-  Deposition: depositionImage,
-  Disconnect: disconnectImage,
+  Deformation:  deformationImage,
+  Deposition:   depositionImage,
+  Disconnect:   disconnectImage,
   Misalignment: misalignmentImage,
-  Obstacle: obstacleImage,
-  Rupture: ruptureImage,
+  Obstacle:     obstacleImage,
+  Rupture:      ruptureImage,
 }
 
 const modelMeta = {
-  CNN: { accent: 'benchmark-accent--blue' },
+  CNN:     { accent: 'benchmark-accent--blue' },
   QNN_CPU: { accent: 'benchmark-accent--teal' },
   QNN_GPU: { accent: 'benchmark-accent--violet' },
 }
@@ -36,14 +36,9 @@ const modelMeta = {
 const fetchBenchmarkData = async () => {
   isLoading.value = true
   error.value = null
-
   try {
     const response = await fetch('/api/v1/benchmark')
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
     benchmarkData.value = await response.json()
   } catch (err) {
     console.error('Failed to fetch benchmark results:', err)
@@ -53,91 +48,74 @@ const fetchBenchmarkData = async () => {
   }
 }
 
-onMounted(() => {
-  fetchBenchmarkData()
+onMounted(async () => {
+  await fetchBenchmarkData()          // fetch data
+  await nextTick()                    // wait for DOM update
+
+  // Restore scroll position saved before refresh
+  const saved = localStorage.getItem('scrollRestore')
+  if (saved) {
+    const { path, top } = JSON.parse(saved)
+    if (path === router.currentRoute.value.fullPath) {
+      window.scrollTo({ top, behavior: 'instant' })  // no type assertion
+    }
+  }
 })
 
-const evaluation = computed(() => benchmarkData.value?.clean_evaluation ?? {})
-const latencyMap = computed(() => benchmarkData.value?.inference_latency_ms ?? {})
-const config = computed(() => benchmarkData.value?.config ?? {})
+const evaluation      = computed(() => benchmarkData.value?.clean_evaluation ?? {})
+const latencyMap      = computed(() => benchmarkData.value?.inference_latency_ms ?? {})
+const config          = computed(() => benchmarkData.value?.config ?? {})
 const noiseRobustness = computed(() => benchmarkData.value?.noise_robustness ?? {})
 
 const models = computed(() => {
   const order = ['CNN', 'QNN_CPU', 'QNN_GPU']
-
   return order.map((key) => {
     const model = evaluation.value?.[key] ?? {}
-
     return {
       key,
-      name: t(`benchmark.models.${key}`),
-      accent: modelMeta[key].accent,
+      name:     t(`benchmark.models.${key}`),
+      accent:   modelMeta[key].accent,
       accuracy: Number(model?.accuracy ?? 0),
-      f1: Number(model?.averages?.weighted?.f1 ?? 0),
-      latency: Number(latencyMap.value?.[key] ?? 0),
-      samples: Number(model?.n_samples ?? 0),
+      f1:       Number(model?.averages?.weighted?.f1 ?? 0),
+      latency:  Number(latencyMap.value?.[key] ?? 0),
+      samples:  Number(model?.n_samples ?? 0),
     }
   })
 })
 
 const datasetSummary = computed(() => ({
-  testSetSize: config.value?.test_set_size ?? 0,
+  testSetSize:     config.value?.test_set_size ?? 0,
   imageResolution: config.value?.image_resolution ?? '-',
-  classNames: config.value?.class_names ?? [],
-  faultClasses: (config.value?.class_names ?? []).length,
+  classNames:      config.value?.class_names ?? [],
+  faultClasses:    (config.value?.class_names ?? []).length,
   modelsEvaluated: models.value.length,
-  batchSize: config.value?.batch_size ?? '-',
-  trainingEpochs: config.value?.training_epochs ?? '-',
-  nQubits: config.value?.n_qubits ?? '-',
-  qDepth: config.value?.q_depth ?? '-',
-  device: benchmarkData.value?.device ?? '-',
+  batchSize:       config.value?.batch_size ?? '-',
+  trainingEpochs:  config.value?.training_epochs ?? '-',
+  nQubits:         config.value?.n_qubits ?? '-',
+  qDepth:          config.value?.q_depth ?? '-',
+  device:          benchmarkData.value?.device ?? '-',
 }))
 
-const bestAccuracyKey = computed(() => {
-  if (!models.value.length) return null
-  return [...models.value].sort((a, b) => b.accuracy - a.accuracy)[0]?.key ?? null
-})
+const bestAccuracyKey   = computed(() => models.value.length ? [...models.value].sort((a, b) => b.accuracy - a.accuracy)[0]?.key : null)
+const fastestLatencyKey = computed(() => models.value.length ? [...models.value].sort((a, b) => a.latency - b.latency)[0]?.key : null)
 
-const fastestLatencyKey = computed(() => {
-  if (!models.value.length) return null
-  return [...models.value].sort((a, b) => a.latency - b.latency)[0]?.key ?? null
-})
-
-const selectedModel = computed(() => evaluation.value?.[selectedModelKey.value] ?? {})
+const selectedModel     = computed(() => evaluation.value?.[selectedModelKey.value] ?? {})
 const selectedNoiseData = computed(() => noiseRobustness.value?.[selectedNoiseType.value] ?? [])
-const classNames = computed(() => config.value?.class_names ?? [])
-const localizedClassNames = computed(() => classNames.value.map((name) => t(`classify.${name}`) || name))
-const confusionMatrix = computed(() => selectedModel.value?.confusion_matrix ?? [])
-const perClassMetrics = computed(() => selectedModel.value?.per_class ?? {})
+const classNames        = computed(() => config.value?.class_names ?? [])
+const localizedClassNames = computed(() => classNames.value.map(n => t(`classify.${n}`) || n))
+const confusionMatrix   = computed(() => selectedModel.value?.confusion_matrix ?? [])
+const perClassMetrics   = computed(() => selectedModel.value?.per_class ?? {})
 
-const modelOptions = computed(() =>
-  models.value.map((model) => ({
-    label: model.name,
-    value: model.key,
-  })),
-)
-
+const modelOptions = computed(() => models.value.map(m => ({ label: m.name, value: m.key })))
+const noiseTypes   = computed(() => Object.keys(noiseRobustness.value))
 const noiseOptions = computed(() =>
-  Object.keys(noiseRobustness.value).map((key) => ({
-    label: t(`benchmark.robustness.${key}`),
-    value: key,
-  })),
+  noiseTypes.value.map(key => ({ label: t(`benchmark.robustness.${key}`), value: key }))
 )
-
-const selectedNoiseLabel = computed(() => {
-  const option = noiseOptions.value.find((item) => item.value === selectedNoiseType.value)
-  return option?.label ?? selectedNoiseType.value
-})
 
 const datasetSamples = computed(() => {
   const rows = tm('benchmark.dataset.samples')
-
   if (!Array.isArray(rows)) return []
-
-  return rows.map((item) => ({
-    ...item,
-    image: datasetImageMap[item.key],
-  }))
+  return rows.map(item => ({ ...item, image: datasetImageMap[item.key] }))
 })
 
 const datasetFacts = computed(() => {
@@ -150,49 +128,69 @@ const datasetSteps = computed(() => {
   return Array.isArray(rows) ? rows : []
 })
 
-const perClassRows = computed(() =>
-  Object.entries(perClassMetrics.value).map(([className, metrics]) => ({
-    className,
+const perClassRows = computed(() => {
+  const rows = Object.entries(perClassMetrics.value).map(([className, metrics]) => ({
+    className: t(`classify.${className}`) || className,
     precision: Number(metrics?.precision ?? 0),
-    recall: Number(metrics?.recall ?? 0),
-    f1: Number(metrics?.f1 ?? 0),
-    support: Number(metrics?.support ?? 0),
-  })),
-)
+    recall:    Number(metrics?.recall    ?? 0),
+    f1:        Number(metrics?.f1        ?? 0),
+    support:   Number(metrics?.support   ?? 0),
+  }));
+
+  // Append macro‑average row if the data is available
+  const macro = selectedModel.value?.averages?.macro;
+  const totalSamples = selectedModel.value?.n_samples;
+  if (macro && totalSamples !== undefined) {
+    rows.push({
+      className: t('benchmark.diagnostics.average') || 'Average',   // add translation key
+      precision: Number(macro.precision ?? 0),
+      recall:    Number(macro.recall    ?? 0),
+      f1:        Number(macro.f1        ?? 0),
+      support:   Number(totalSamples),
+    });
+  }
+  return rows;
+});
 
 const robustnessRows = computed(() =>
-  selectedNoiseData.value.map((row) => ({
-    level: row.level,
-    CNN: Number(row.CNN ?? 0),
+  selectedNoiseData.value.map(row => ({
+    level:   row.level,
+    CNN:     Number(row.CNN     ?? 0),
     QNN_CPU: Number(row.QNN_CPU ?? 0),
     QNN_GPU: Number(row.QNN_GPU ?? 0),
-  })),
+  }))
 )
 
-const overviewCards = computed(() => [
-  { label: t('benchmark.summary.batch_size'), value: datasetSummary.value.batchSize },
-  { label: t('benchmark.summary.epochs'), value: datasetSummary.value.trainingEpochs },
-  { label: t('benchmark.summary.qubits'), value: datasetSummary.value.nQubits },
-  { label: t('benchmark.summary.q_depth'), value: datasetSummary.value.qDepth },
+const configCards = computed(() => [
   { label: t('benchmark.summary.resolution'), value: datasetSummary.value.imageResolution },
-  { label: t('benchmark.summary.device'), value: datasetSummary.value.device },
+  { label: t('benchmark.summary.batch_size'), value: datasetSummary.value.batchSize },
+  { label: t('benchmark.summary.epochs'),     value: datasetSummary.value.trainingEpochs },
+  { label: t('benchmark.summary.qubits'),     value: datasetSummary.value.nQubits },
+  { label: t('benchmark.summary.q_depth'),    value: datasetSummary.value.qDepth },
+  { label: t('benchmark.summary.device'),     value: datasetSummary.value.device },
 ])
 
 const generatedAt = computed(() => benchmarkData.value?.generated_at?.slice(0, 10) || t('benchmark.hero.live'))
-const isArabic = computed(() => locale.value === 'AR')
+const isArabic    = computed(() => locale.value === 'AR')
+const textDir     = computed(() => isArabic.value ? 'rtl' : 'ltr')
 
 const modelBadgeKey = (modelKey) => {
-  if (modelKey === bestAccuracyKey.value) return 'benchmark.performance.best_accuracy'
+  if (modelKey === bestAccuracyKey.value)   return 'benchmark.performance.best_accuracy'
   if (modelKey === fastestLatencyKey.value) return 'benchmark.performance.fastest'
   return 'benchmark.performance.benchmark'
 }
 
 const formatPercent = (value, digits = 1) => `${Number(value || 0).toFixed(digits)}%`
-const formatMetric = (value, digits = 2) => Number(value || 0).toFixed(digits)
+const formatMetric  = (value, digits = 2)  => Number(value || 0).toFixed(digits)
 </script>
 
 <template>
-  <div class="benchmark-page px-4 pb-20 pt-6 md:px-8 xl:px-14" :class="{ 'benchmark-page--ar': isArabic }">
+  <div
+    class="benchmark-page mx-auto px-4 pb-20 pt-6 md:px-8 xl:px-14"
+    :class="{ 'benchmark-page--ar': isArabic }"
+    :dir="textDir"
+  >
+    <!-- ── Loading ── -->
     <div v-if="isLoading" class="benchmark-state">
       <Card class="glass-card">
         <template #content>
@@ -207,16 +205,22 @@ const formatMetric = (value, digits = 2) => Number(value || 0).toFixed(digits)
       </Card>
     </div>
 
+    <!-- ── Error ── -->
     <div v-else-if="error" class="benchmark-state">
       <Message severity="error" :closable="false">{{ t(error) }}</Message>
     </div>
 
     <template v-else-if="benchmarkData">
+
+      <!-- ══════════════════════════════════════════
+           HERO
+      ══════════════════════════════════════════ -->
       <section class="hero-shell">
+        <!-- Left copy -->
         <div class="hero-copy">
           <Tag :value="`${t('benchmark.hero.badge')} · ${generatedAt}`" rounded class="hero-badge" />
-          <h1 class="hero-title">{{ t('benchmark.hero.title') }}</h1>
-          <h2 class="hero-subtitle">{{ t('benchmark.hero.subtitle') }}</h2>
+          <h1 class="hero-title" :dir="textDir">{{ t('benchmark.hero.title') }}</h1>
+          <h2 class="hero-subtitle" :dir="textDir">{{ t('benchmark.hero.subtitle') }}</h2>
           <p class="hero-description">{{ t('benchmark.hero.description') }}</p>
 
           <div class="hero-stats">
@@ -254,60 +258,60 @@ const formatMetric = (value, digits = 2) => Number(value || 0).toFixed(digits)
                 <ProgressBar :value="model.accuracy" :showValue="false" :class="['metric-progress', model.accent]" />
               </div>
             </div>
-
-            <Divider />
-
-            <div class="hero-panel-footer">
-              <Chip :label="`${t('benchmark.summary.resolution')}: ${datasetSummary.imageResolution}`" />
-              <Chip :label="`${t('benchmark.summary.device')}: ${datasetSummary.device}`" />
-            </div>
           </template>
         </Card>
       </section>
 
+      <!-- ══════════════════════════════════════════
+           DATASET
+      ══════════════════════════════════════════ -->
       <section class="dataset-shell">
         <Card class="glass-card dataset-card">
           <template #content>
-            <div class="section-heading" :class="{ 'section-heading--rtl': isArabic }">
-              <div class="section-heading__text" :dir="isArabic ? 'rtl' : 'ltr'">
+            <div class="section-heading dataset-heading" :class="{ 'section-heading--rtl': isArabic }">
+              <div class="section-heading__text dataset-heading-text" :dir="textDir">
                 <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">
                   {{ t('benchmark.dataset.eyebrow') }}
                 </span>
-                <h3 class="section-title">{{ t('benchmark.dataset.title') }}</h3>
-                <p class="section-text dataset-description">{{ t('benchmark.dataset.description') }}</p>
+                <h3 class="section-title dataset-title" :dir="textDir">{{ t('benchmark.dataset.title') }}</h3>
               </div>
               <Tag :value="t('benchmark.dataset.carousel_badge')" rounded class="hero-badge" />
             </div>
 
+            <!-- carousel + right metadata side by side -->
             <div class="dataset-layout">
-              <div class="dataset-carousel-wrap">
-                <Carousel
-                  :value="datasetSamples"
-                  :numVisible="1"
-                  :numScroll="1"
-                  circular
-                  :autoplayInterval="4500"
-                  class="dataset-carousel"
-                  dir="ltr"
-                >
-                  <template #item="{ data }">
-                    <div class="dataset-slide" :dir="isArabic ? 'rtl' : 'ltr'">
-                      <img :src="data.image" :alt="data.title" class="dataset-image" />
-                      <div class="dataset-overlay">
-                        <Tag :value="data.label" rounded />
-                        <h4 class="dataset-slide-title">{{ data.title }}</h4>
-                        <p class="dataset-slide-text">{{ data.text }}</p>
+              <!-- Left: carousel only -->
+              <div class="dataset-left">
+                <div class="dataset-carousel-wrap">
+                  <Carousel
+                    :value="datasetSamples"
+                    :numVisible="1"
+                    :numScroll="1"
+                    circular
+                    :autoplayInterval="4500"
+                    class="dataset-carousel"
+                    dir="ltr"
+                  >
+                    <template #item="{ data }">
+                      <div class="dataset-slide">
+                        <img :src="data.image" :alt="data.title" class="dataset-image" />
+                        <div class="dataset-overlay" :dir="textDir">
+                          <Tag :value="data.label" rounded class="slide-tag" />
+                          <h4 class="dataset-slide-title">{{ data.title }}</h4>
+                          <p class="dataset-slide-text">{{ data.text }}</p>
+                        </div>
                       </div>
-                    </div>
-                  </template>
-                </Carousel>
+                    </template>
+                  </Carousel>
+                </div>
               </div>
 
+              <!-- Right: facts + notes + classes -->
               <div class="dataset-copy">
                 <div class="fact-grid">
                   <div v-for="fact in datasetFacts" :key="fact.label" class="fact-card">
-                    <span class="fact-value">{{ fact.value }}</span>
                     <span class="fact-label">{{ fact.label }}</span>
+                    <span class="fact-value">{{ fact.value }}</span>
                   </div>
                 </div>
 
@@ -316,33 +320,210 @@ const formatMetric = (value, digits = 2) => Number(value || 0).toFixed(digits)
                     <strong>{{ t('benchmark.dataset.transform_title') }}</strong>
                     {{ t('benchmark.dataset.transform_text') }}
                   </p>
-
                   <p class="section-text dataset-note">
                     <strong>{{ t('benchmark.dataset.source_label') }}</strong>
-                    <a
-                      :href="t('benchmark.dataset.source_url')"
-                      target="_blank"
-                      rel="noreferrer"
-                      class="dataset-link"
-                    >
+                    <a :href="t('benchmark.dataset.source_url')" target="_blank" rel="noreferrer" class="dataset-link">
                       {{ t('benchmark.dataset.source_name') }}
                     </a>
                   </p>
                 </div>
 
-                <ul class="dataset-list">
-                  <li v-for="item in localizedClassNames" :key="item">{{ item }}</li>
-                </ul>
+                <div>
+                  <span class="classes-heading">{{ t('benchmark.dataset.fault_classes', 'Fault Classes') }}</span>
+                  <div class="classes-grid">
+                    <span v-for="item in localizedClassNames" :key="item" class="class-chip">{{ item }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-                <Card class="dataset-steps-card">
+            <div class="dataset-steps-card">
+              <span class="steps-title">{{ t('benchmark.dataset.pipeline_title') }}</span>
+              <ol class="dataset-steps">
+                <li v-for="step in datasetSteps" :key="step">{{ step }}</li>
+              </ol>
+            </div>
+          </template>
+        </Card>
+      </section>
+
+      <!-- ══════════════════════════════════════════
+           PERFORMANCE
+      ══════════════════════════════════════════ -->
+      <section class="content-section">
+        <Card class="glass-card">
+          <template #content>
+            <div class="section-heading" :class="{ 'section-heading--rtl': isArabic }">
+              <div class="section-heading__text" :dir="textDir">
+                <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">{{ t('benchmark.performance.eyebrow') }}</span>
+                <h3 class="section-title" :dir="textDir">{{ t('benchmark.performance.title') }}</h3>
+                <p class="section-text">{{ t('benchmark.performance.description') }}</p>
+              </div>
+            </div>
+
+            <div class="performance-grid">
+              <div v-for="model in models" :key="model.key" class="performance-inner-card">
+                <div class="performance-card-head">
+                  <div class="hero-metric-title">
+                    <span class="model-dot" :class="model.accent"></span>
+                    <span>{{ model.name }}</span>
+                  </div>
+                  <Tag :value="t(modelBadgeKey(model.key))" rounded />
+                </div>
+
+                <div class="kpi-value">{{ formatPercent(model.accuracy, 2) }}</div>
+                <p class="metric-caption">{{ t('benchmark.performance.clean_accuracy') }}</p>
+
+                <div class="metric-block">
+                <div class="metric-row">
+                  <span>{{ t('benchmark.performance.latency') }}</span>
+                  <strong>{{ formatMetric(model.latency, 3) }} ms</strong>
+                </div>
+                  <div class="metric-line">
+                    <span>{{ t('benchmark.performance.weighted_f1') }}</span>
+                    <strong>{{ formatMetric(model.f1, 2) }}</strong>
+                  </div>
+                  <ProgressBar :value="model.f1" :showValue="false" :class="['metric-progress', model.accent]" />
+                </div>
+              </div>
+            </div>
+          </template>
+        </Card>
+      </section>
+
+      <!-- ══════════════════════════════════════════
+           NOISE ROBUSTNESS
+      ══════════════════════════════════════════ -->
+      <section class="content-section">
+        <Card class="glass-card">
+          <template #content>
+            <div class="section-heading" :class="{ 'section-heading--rtl': isArabic }">
+              <div class="section-heading__text" :dir="textDir">
+                <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">{{ t('benchmark.robustness.eyebrow') }}</span>
+                <h3 class="section-title" :dir="textDir">{{ t('benchmark.robustness.title') }}</h3>
+                <p class="section-text">{{ t('benchmark.robustness.description') }}</p>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap gap-2 mb-4" dir="ltr">
+              <button
+                v-for="opt in noiseOptions"
+                :key="opt.value"
+                @click="selectedNoiseType = opt.value"
+                class="px-3 py-1.5 rounded-lg text-sm transition-colors"
+                :class="selectedNoiseType === opt.value ? 'bm-tab-active' : 'bm-tab-inactive'"
+              >
+                {{ opt.label }}
+              </button>
+            </div>
+
+            <Card class="q-glass bm-inner-card">
+              <template #content>
+                <DataTable
+                  :value="robustnessRows"
+                  responsiveLayout="scroll"
+                  class="bm-datatable-robustness"
+                  :class="isArabic ? 'bm-table-rtl' : ''"
+                >
+                  <Column field="level"   :header="t('benchmark.robustness.level')" />
+                  <Column field="CNN"     :header="t('benchmark.models.CNN')">
+                    <template #body="{ data }">
+                      <span class="font-mono" style="color: #2563eb">{{ formatPercent(data.CNN, 2) }}</span>
+                    </template>
+                  </Column>
+                  <Column field="QNN_CPU" :header="t('benchmark.models.QNN_CPU')">
+                    <template #body="{ data }">
+                      <span class="font-mono" style="color: #0d9488">{{ formatPercent(data.QNN_CPU, 2) }}</span>
+                    </template>
+                  </Column>
+                  <Column field="QNN_GPU" :header="t('benchmark.models.QNN_GPU')">
+                    <template #body="{ data }">
+                      <span class="font-mono" style="color: #7c3aed">{{ formatPercent(data.QNN_GPU, 2) }}</span>
+                    </template>
+                  </Column>
+                </DataTable>
+              </template>
+            </Card>
+          </template>
+        </Card>
+      </section>
+
+      <!-- ══════════════════════════════════════════
+           DIAGNOSTICS
+      ══════════════════════════════════════════ -->
+      <section class="content-section">
+        <Card class="glass-card">
+          <template #content>
+            <div class="section-heading" :class="{ 'section-heading--rtl': isArabic }">
+              <div class="section-heading__text" :dir="textDir">
+                <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">{{ t('benchmark.diagnostics.eyebrow') }}</span>
+                <h3 class="section-title" :dir="textDir">{{ t('benchmark.diagnostics.title') }}</h3>
+                <p class="section-text">{{ t('benchmark.diagnostics.description') }}</p>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap gap-2 mb-4" dir="ltr">
+              <button
+                v-for="opt in modelOptions"
+                :key="opt.value"
+                @click="selectedModelKey = opt.value"
+                class="px-3 py-1.5 rounded-lg text-sm transition-colors"
+                :class="selectedModelKey === opt.value ? 'bm-tab-active' : 'bm-tab-inactive'"
+              >
+                {{ opt.label }}
+              </button>
+            </div>
+
+            <div class="diagnostics-grid">
+              <!-- Confusion matrix -->
+              <div class="diag-inner-card">
+                <span class="diag-title">{{ t('benchmark.diagnostics.confusion_matrix') }}</span>
+                <div class="matrix-wrap">
+                  <table class="matrix-table">
+                    <thead>
+                      <tr>
+                        <th>{{ t('benchmark.diagnostics.actual') }}</th>
+                        <th v-for="name in localizedClassNames" :key="`head-${name}`">{{ name }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(row, rowIndex) in confusionMatrix" :key="`row-${rowIndex}`">
+                        <td class="matrix-axis">{{ localizedClassNames[rowIndex] || rowIndex }}</td>
+                        <td
+                          v-for="(value, colIndex) in row"
+                          :key="`cell-${rowIndex}-${colIndex}`"
+                          :class="{ 'matrix-cell--diag': rowIndex === colIndex }"
+                        >
+                          {{ value }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="diag-inner-card">
+                <span class="diag-title">{{ t('benchmark.diagnostics.per_class_metrics') }}</span>
+                <Card class="q-glass bm-inner-card bm-fill-card">
                   <template #content>
-                    <div class="table-title-row">
-                      <span class="table-title">{{ t('benchmark.dataset.pipeline_title') }}</span>
-                    </div>
-
-                    <ol class="dataset-steps">
-                      <li v-for="step in datasetSteps" :key="step">{{ step }}</li>
-                    </ol>
+                    <DataTable
+                      :value="perClassRows"
+                      responsiveLayout="scroll"
+                      class="bm-datatable-diag"
+                      :class="isArabic ? 'bm-table-rtl' : ''"
+                    >
+                      <Column field="className"  :header="t('benchmark.diagnostics.class')" />
+                      <Column field="precision"  :header="t('benchmark.diagnostics.precision')">
+                        <template #body="{ data }"><span class="font-mono">{{ formatMetric(data.precision, 2) }}</span></template>
+                      </Column>
+                      <Column field="recall"     :header="t('benchmark.diagnostics.recall')">
+                        <template #body="{ data }"><span class="font-mono">{{ formatMetric(data.recall, 2) }}</span></template>
+                      </Column>
+                      <Column field="f1"         :header="t('benchmark.diagnostics.f1')">
+                        <template #body="{ data }"><span class="font-mono" style="color: var(--q-teal)">{{ formatMetric(data.f1, 2) }}</span></template>
+                      </Column>
+                      <Column field="support"    :header="t('benchmark.diagnostics.support')" />
+                    </DataTable>
                   </template>
                 </Card>
               </div>
@@ -351,218 +532,29 @@ const formatMetric = (value, digits = 2) => Number(value || 0).toFixed(digits)
         </Card>
       </section>
 
-      <section class="summary-grid">
-        <Card v-for="item in overviewCards" :key="item.label" class="glass-card summary-card">
-          <template #content>
-            <span class="summary-label">{{ item.label }}</span>
-            <strong class="summary-value">{{ item.value }}</strong>
-          </template>
-        </Card>
-      </section>
-
+      <!-- ══════════════════════════════════════════
+           CONFIGURATION
+      ══════════════════════════════════════════ -->
       <section class="content-section">
-        <div class="section-heading" :class="{ 'section-heading--rtl': isArabic }">
-          <div class="section-heading__text" :dir="isArabic ? 'rtl' : 'ltr'">
-            <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">{{ t('benchmark.performance.eyebrow') }}</span>
-            <h3 class="section-title">{{ t('benchmark.performance.title') }}</h3>
-            <p class="section-text">{{ t('benchmark.performance.description') }}</p>
-          </div>
-        </div>
-
-        <div class="performance-grid">
-          <Card v-for="model in models" :key="model.key" class="glass-card performance-card">
-            <template #content>
-              <div class="performance-card-head">
-                <div class="hero-metric-title">
-                  <span class="model-dot" :class="model.accent"></span>
-                  <span>{{ model.name }}</span>
-                </div>
-                <Tag :value="t(modelBadgeKey(model.key))" rounded />
-              </div>
-
-              <div class="kpi-value">{{ formatPercent(model.accuracy, 2) }}</div>
-              <p class="metric-caption">{{ t('benchmark.performance.clean_accuracy') }}</p>
-
-              <div class="metric-block">
-                <div class="metric-line">
-                  <span>{{ t('benchmark.performance.weighted_f1') }}</span>
-                  <strong>{{ formatMetric(model.f1, 2) }}</strong>
-                </div>
-                <ProgressBar :value="model.f1" :showValue="false" :class="['metric-progress', model.accent]" />
-              </div>
-
-              <div class="metric-row">
-                <span>{{ t('benchmark.performance.latency') }}</span>
-                <strong>{{ formatMetric(model.latency, 3) }} ms</strong>
-              </div>
-
-              <div class="metric-row">
-                <span>{{ t('benchmark.performance.samples') }}</span>
-                <strong>{{ model.samples }}</strong>
-              </div>
-            </template>
-          </Card>
-        </div>
-      </section>
-
-      <section class="content-section">
-        <div class="section-heading" :class="{ 'section-heading--rtl': isArabic }">
-          <div class="section-heading__text" :dir="isArabic ? 'rtl' : 'ltr'">
-            <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">{{ t('benchmark.robustness.eyebrow') }}</span>
-            <h3 class="section-title">{{ t('benchmark.robustness.title') }}</h3>
-            <p class="section-text">{{ t('benchmark.robustness.description') }}</p>
-          </div>
-        </div>
-
         <Card class="glass-card">
           <template #content>
-            <div class="controls-row">
-              <label class="control-label">{{ t('benchmark.robustness.filter_label') }}</label>
-              <SelectButton
-                v-model="selectedNoiseType"
-                :options="noiseOptions"
-                optionLabel="label"
-                optionValue="value"
-                class="benchmark-select"
-              />
-            </div>
-
-            <div class="table-title-row">
-              <span class="table-title">{{ selectedNoiseLabel }}</span>
-              <Tag :value="`${robustnessRows.length} ${t('benchmark.robustness.points')}`" rounded />
-            </div>
-
-            <DataTable :value="robustnessRows" responsiveLayout="scroll" class="benchmark-table">
-              <Column field="level" :header="t('benchmark.robustness.level')" />
-              <Column field="CNN" :header="t('benchmark.models.CNN')">
-                <template #body="{ data }">{{ formatPercent(data.CNN, 2) }}</template>
-              </Column>
-              <Column field="QNN_CPU" :header="t('benchmark.models.QNN_CPU')">
-                <template #body="{ data }">{{ formatPercent(data.QNN_CPU, 2) }}</template>
-              </Column>
-              <Column field="QNN_GPU" :header="t('benchmark.models.QNN_GPU')">
-                <template #body="{ data }">{{ formatPercent(data.QNN_GPU, 2) }}</template>
-              </Column>
-            </DataTable>
-          </template>
-        </Card>
-      </section>
-
-      <section class="content-section">
-        <div class="section-heading" :class="{ 'section-heading--rtl': isArabic }">
-          <div class="section-heading__text" :dir="isArabic ? 'rtl' : 'ltr'">
-            <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">{{ t('benchmark.latency.eyebrow') }}</span>
-            <h3 class="section-title">{{ t('benchmark.latency.title') }}</h3>
-            <p class="section-text">{{ t('benchmark.latency.description') }}</p>
-          </div>
-        </div>
-
-        <div class="latency-grid">
-          <Card v-for="model in models" :key="`${model.key}-latency`" class="glass-card latency-card">
-            <template #content>
-              <div class="latency-card-head">
-                <span class="hero-metric-title">
-                  <span class="model-dot" :class="model.accent"></span>
-                  <span>{{ model.name }}</span>
-                </span>
-                <strong>{{ formatMetric(model.latency, 3) }} ms</strong>
-              </div>
-              <ProgressBar :value="Math.max(1, 100 - model.latency)" :showValue="false" :class="['metric-progress', model.accent]" />
-            </template>
-          </Card>
-        </div>
-      </section>
-
-      <section class="content-section">
-        <div class="section-heading" :class="{ 'section-heading--rtl': isArabic }">
-          <div class="section-heading__text" :dir="isArabic ? 'rtl' : 'ltr'">
-            <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">{{ t('benchmark.diagnostics.eyebrow') }}</span>
-            <h3 class="section-title">{{ t('benchmark.diagnostics.title') }}</h3>
-            <p class="section-text">{{ t('benchmark.diagnostics.description') }}</p>
-          </div>
-        </div>
-
-        <div class="controls-row">
-          <label class="control-label">{{ t('benchmark.diagnostics.model') }}</label>
-          <SelectButton
-            v-model="selectedModelKey"
-            :options="modelOptions"
-            optionLabel="label"
-            optionValue="value"
-            class="benchmark-select"
-          />
-        </div>
-
-        <div class="diagnostics-grid">
-          <Card class="glass-card">
-            <template #content>
-              <div class="table-title-row">
-                <span class="table-title">{{ t('benchmark.diagnostics.confusion_matrix') }}</span>
-              </div>
-
-              <div class="matrix-wrap">
-                <table class="matrix-table">
-                  <thead>
-                    <tr>
-                      <th>{{ t('benchmark.diagnostics.actual') }}</th>
-                      <th v-for="name in localizedClassNames" :key="`head-${name}`">{{ name }}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(row, rowIndex) in confusionMatrix" :key="`row-${rowIndex}`">
-                      <td class="matrix-axis">{{ localizedClassNames[rowIndex] || rowIndex }}</td>
-                      <td
-                        v-for="(value, colIndex) in row"
-                        :key="`cell-${rowIndex}-${colIndex}`"
-                        :class="{ 'matrix-cell--diag': rowIndex === colIndex }"
-                      >
-                        {{ value }}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </template>
-          </Card>
-
-          <Card class="glass-card">
-            <template #content>
-              <div class="table-title-row">
-                <span class="table-title">{{ t('benchmark.diagnostics.per_class_metrics') }}</span>
-              </div>
-
-              <DataTable :value="perClassRows" responsiveLayout="scroll" class="benchmark-table">
-                <Column field="className" :header="t('benchmark.diagnostics.class')" />
-                <Column field="precision" :header="t('benchmark.diagnostics.precision')">
-                  <template #body="{ data }">{{ formatMetric(data.precision, 2) }}</template>
-                </Column>
-                <Column field="recall" :header="t('benchmark.diagnostics.recall')">
-                  <template #body="{ data }">{{ formatMetric(data.recall, 2) }}</template>
-                </Column>
-                <Column field="f1" :header="t('benchmark.diagnostics.f1')">
-                  <template #body="{ data }">{{ formatMetric(data.f1, 2) }}</template>
-                </Column>
-                <Column field="support" :header="t('benchmark.diagnostics.support')" />
-              </DataTable>
-            </template>
-          </Card>
-        </div>
-      </section>
-
-      <section class="content-section">
-        <Card class="glass-card config-card">
-          <template #content>
             <div class="section-heading" :class="{ 'section-heading--rtl': isArabic }">
-              <div class="section-heading__text" :dir="isArabic ? 'rtl' : 'ltr'">
+              <div class="section-heading__text" :dir="textDir">
                 <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">{{ t('benchmark.config.eyebrow') }}</span>
-                <h3 class="section-title">{{ t('benchmark.config.title') }}</h3>
+                <h3 class="section-title" :dir="textDir">{{ t('benchmark.config.title') }}</h3>
               </div>
             </div>
 
-            <pre class="config-block">{{ JSON.stringify(config, null, 2) }}</pre>
+            <div class="config-grid">
+              <div v-for="item in configCards" :key="item.label" class="config-card-item">
+                <span class="config-label">{{ item.label }}</span>
+                <strong class="config-value">{{ item.value }}</strong>
+              </div>
+            </div>
           </template>
         </Card>
       </section>
+
     </template>
 
     <div v-else class="benchmark-state">
@@ -572,28 +564,17 @@ const formatMetric = (value, digits = 2) => Number(value || 0).toFixed(digits)
 </template>
 
 <style scoped>
+/* ══════════════════════════════════════════════
+   PAGE SHELL
+══════════════════════════════════════════════ */
 .benchmark-page {
   color: var(--q-text);
   overflow-x: clip;
 }
 
-.hero-shell {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
-  gap: 1.5rem;
-  align-items: stretch;
-}
-
-.hero-copy,
-.hero-panel,
-.dataset-card,
-.summary-card,
-.performance-card,
-.latency-card,
-.config-card {
-  height: 100%;
-}
-
+/* ══════════════════════════════════════════════
+   GLASS CARD
+══════════════════════════════════════════════ */
 .glass-card {
   border: 1px solid var(--q-bar-border);
   background: rgba(255, 255, 255, 0.64);
@@ -602,14 +583,18 @@ const formatMetric = (value, digits = 2) => Number(value || 0).toFixed(digits)
   box-shadow: var(--q-shadow);
   border-radius: 28px;
 }
-
 .p-dark .glass-card {
   background: rgba(14, 28, 41, 0.74);
 }
 
-.hero-copy {
-  padding: 1.25rem 0;
+.hero-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+  gap: 1.5rem;
+  align-items: start; /* was stretch */
 }
+
+.hero-copy { padding: 1.25rem 0; }
 
 .hero-badge {
   margin-bottom: 1rem;
@@ -619,13 +604,12 @@ const formatMetric = (value, digits = 2) => Number(value || 0).toFixed(digits)
 }
 
 .hero-title {
-  font-size: clamp(2.7rem, 5.5vw, 4.8rem);
-  line-height: 0.95;
-  font-weight: 800;
+  
+  margin: 0 0 0.7rem;
   color: var(--q-text);
-  letter-spacing: -0.04em;
-  margin: 0 0 0.8rem;
   font-family: var(--q-font-display);
+  font-size: clamp(2.3rem, 4vw, 3.6rem);
+  line-height: 1.05;
 }
 
 .hero-subtitle {
@@ -644,79 +628,48 @@ const formatMetric = (value, digits = 2) => Number(value || 0).toFixed(digits)
   line-height: 1.8;
 }
 
-.hero-stats,
-.summary-grid,
-.performance-grid,
-.latency-grid,
-.diagnostics-grid,
-.fact-grid {
-  display: grid;
-  gap: 1rem;
-}
-
 .hero-stats {
+  display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
   margin-top: 2rem;
 }
 
-.hero-stat-card,
-.fact-card {
+.hero-stat-card {
   padding: 1rem;
   border-radius: 18px;
   background: var(--q-teal-soft);
 }
 
-.hero-stat-value,
-.summary-value,
-.fact-value,
-.kpi-value {
+.hero-stat-value {
   display: block;
+  font-size: 1.4rem;
+  font-weight: 800;
   color: var(--q-text);
   font-family: var(--q-font-display);
-  font-weight: 800;
 }
 
-.hero-stat-value,
-.summary-value,
-.fact-value {
-  font-size: 1.4rem;
-}
-
-.hero-stat-label,
-.summary-label,
-.fact-label {
+.hero-stat-label {
   display: block;
   margin-top: 0.35rem;
   color: var(--q-muted);
 }
 
-.panel-topline,
-.performance-card-head,
-.table-title-row,
-.latency-card-head,
-.controls-row,
-.hero-panel-footer {
+.hero-panel {
+  margin-bottom: 15px;
+  align-self: end; 
+}
+
+.panel-topline {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  margin-bottom: 1.25rem;
 }
 
-.hero-panel-footer,
-.controls-row {
-  flex-wrap: wrap;
-}
-
-.hero-metric-list,
-.metric-block {
-  display: grid;
-  gap: 1rem;
-}
-
-.hero-metric-row {
-  display: grid;
-  gap: 0.55rem;
-}
+.hero-metric-list { display: grid; gap: 1rem; }
+.hero-metric-row  { display: grid; gap: 0.55rem; }
 
 .hero-metric-head,
 .hero-metric-title,
@@ -734,91 +687,67 @@ const formatMetric = (value, digits = 2) => Number(value || 0).toFixed(digits)
   color: var(--q-text);
 }
 
+/* ══════════════════════════════════════════════
+   MODEL DOT / PROGRESS COLORS
+══════════════════════════════════════════════ */
 .model-dot {
   width: 0.8rem;
   height: 0.8rem;
   border-radius: 999px;
   display: inline-block;
+  flex-shrink: 0;
 }
 
-.benchmark-accent--blue {
-  background: #2563eb;
-}
-
-.benchmark-accent--teal {
-  background: #0d9488;
-}
-
-.benchmark-accent--violet {
-  background: #7c3aed;
-}
+.benchmark-accent--blue   { background: #2563eb; }
+.benchmark-accent--teal   { background: #0d9488; }
+.benchmark-accent--violet { background: #7c3aed; }
 
 :deep(.metric-progress .p-progressbar) {
   height: 0.6rem;
   background: rgba(13, 31, 45, 0.08);
   border-radius: 999px;
 }
-
 .p-dark :deep(.metric-progress .p-progressbar) {
   background: rgba(255, 255, 255, 0.08);
 }
+:deep(.metric-progress.benchmark-accent--blue   .p-progressbar-value) { background: #2563eb; }
+:deep(.metric-progress.benchmark-accent--teal   .p-progressbar-value) { background: #0d9488; }
+:deep(.metric-progress.benchmark-accent--violet .p-progressbar-value) { background: #7c3aed; }
 
-:deep(.metric-progress.benchmark-accent--blue .p-progressbar-value) {
-  background: #2563eb;
-}
-
-:deep(.metric-progress.benchmark-accent--teal .p-progressbar-value) {
-  background: #0d9488;
-}
-
-:deep(.metric-progress.benchmark-accent--violet .p-progressbar-value) {
-  background: #7c3aed;
-}
-
+/* ══════════════════════════════════════════════
+   DATASET
+══════════════════════════════════════════════ */
 .dataset-shell,
-.content-section {
-  margin-top: 2rem;
+.content-section { margin-top: 2rem; }
+
+.dataset-heading-text {
+  max-width: none;
 }
 
-.section-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1rem;
+.dataset-title {
+  font-size: clamp(1.4rem, 2.2vw, 2rem) !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-
-.section-heading__text {
-  max-width: 820px;
-}
-
-.eyebrow {
-  display: inline-block;
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--q-teal);
-  margin-bottom: 0.5rem;
-}
-
-.section-title {
-  font-size: clamp(1.8rem, 3vw, 2.8rem);
-  font-weight: 800;
-  color: var(--q-text);
-  margin: 0;
-  font-family: var(--q-font-display);
-}
-
-.dataset-description {
-  margin-top: 0.75rem;
+/* allow wrap at small breakpoints where nowrap would overflow */
+@media (max-width: 1080px) {
+  .dataset-title {
+    white-space: normal;
+  }
 }
 
 .dataset-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+  grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
   gap: 1.25rem;
   align-items: start;
+  margin-top: 1rem;
+}
+
+.dataset-left {
+  display: flex;
+  flex-direction: column;
 }
 
 .dataset-carousel-wrap {
@@ -826,10 +755,7 @@ const formatMetric = (value, digits = 2) => Number(value || 0).toFixed(digits)
   direction: ltr;
 }
 
-:deep(.dataset-carousel .p-carousel) {
-  direction: ltr;
-}
-
+:deep(.dataset-carousel .p-carousel),
 :deep(.dataset-carousel .p-carousel-content),
 :deep(.dataset-carousel .p-carousel-container),
 :deep(.dataset-carousel .p-carousel-items-content) {
@@ -837,9 +763,17 @@ const formatMetric = (value, digits = 2) => Number(value || 0).toFixed(digits)
   min-width: 0;
 }
 
-:deep(.dataset-carousel .p-carousel-item) {
-  display: block;
+:deep(.dataset-carousel .p-carousel-indicator button) {
+  background: rgba(42, 184, 184, 0.35) !important;
+  border-radius: 999px;
+  transition: background 0.2s;
 }
+:deep(.dataset-carousel .p-carousel-indicator.p-highlight button),
+:deep(.dataset-carousel .p-carousel-indicator button:hover) {
+  background: var(--q-teal) !important;
+}
+
+:deep(.dataset-carousel .p-carousel-item) { display: block; }
 
 .dataset-slide {
   position: relative;
@@ -865,6 +799,12 @@ const formatMetric = (value, digits = 2) => Number(value || 0).toFixed(digits)
   color: white;
 }
 
+.slide-tag {
+  background: var(--q-teal) !important;
+  color: white !important;
+  border-color: var(--q-teal) !important;
+}
+
 .dataset-slide-title {
   margin: 0.85rem 0 0.4rem;
   font-size: 1.35rem;
@@ -877,19 +817,43 @@ const formatMetric = (value, digits = 2) => Number(value || 0).toFixed(digits)
   margin: 0;
 }
 
+/* Right column */
 .dataset-copy {
   display: grid;
   gap: 1rem;
 }
 
-.dataset-notes {
+.fact-grid {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
 }
 
-.dataset-note {
-  margin: 0;
+.fact-card {
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  background: var(--q-teal-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
+
+.fact-value {
+  display: block;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--q-text);
+  font-family: var(--q-font-display);
+}
+
+.fact-label {
+  display: block;
+  color: var(--q-muted);
+  font-size: 0.82rem;
+}
+
+.dataset-notes { display: grid; gap: 0.75rem; }
+.dataset-note  { margin: 0; }
 
 .dataset-note strong {
   color: var(--q-text);
@@ -901,235 +865,87 @@ const formatMetric = (value, digits = 2) => Number(value || 0).toFixed(digits)
   text-decoration: none;
   font-weight: 700;
 }
+.dataset-link:hover { text-decoration: underline; }
 
-.dataset-link:hover {
-  text-decoration: underline;
+.classes-heading {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--q-muted);
+  margin-bottom: 0.6rem;
 }
 
-.fact-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.classes-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
-.dataset-list {
-  margin: 0;
-  padding-inline-start: 1.1rem;
-  color: var(--q-text);
-  display: grid;
-  gap: 0.55rem;
+.class-chip {
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(42, 184, 184, 0.3);
+  background: var(--q-teal-soft);
+  color: var(--q-teal);
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 
 .dataset-steps-card {
+  margin-top: 1.25rem;
+  padding: 1rem 1.5rem;
   border: 1px solid var(--q-bar-border);
+  border-radius: 20px;
   background: rgba(255, 255, 255, 0.42);
-  border-radius: 22px;
 }
-
 .p-dark .dataset-steps-card {
   background: rgba(12, 24, 36, 0.82);
 }
 
+.steps-title {
+  display: block;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--q-text);
+  margin-bottom: 0.75rem;
+}
+
+/* Horizontal flow — looks natural across the full width */
 .dataset-steps {
   margin: 0;
-  padding-inline-start: 1.25rem;
-  display: grid;
-  gap: 0.75rem;
-  color: var(--q-text);
+  padding-inline-start: 1.25rem;    /* indent the numbers */
+  color: var(--q-muted);
   line-height: 1.75;
+  font-size: 0.9rem;
+  list-style-type: square;          /* ensures numbers (1,2,3…) */
+  /* list-style-position: outside;  (default) */
 }
 
-.summary-grid {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  margin-top: 1.5rem;
-}
-
-.summary-card :deep(.p-card-content),
-.performance-card :deep(.p-card-content),
-.latency-card :deep(.p-card-content) {
-  padding: 0;
-}
-
-.kpi-value {
-  font-size: clamp(2.3rem, 4vw, 3.4rem);
-  line-height: 1;
-  margin: 1rem 0 0.2rem;
-}
-
-.metric-caption {
-  margin: 0 0 1.1rem;
-}
-
-.performance-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.latency-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.diagnostics-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-top: 1rem;
-}
-
-.table-title {
-  font-weight: 800;
-  color: var(--q-text);
-  font-size: 1.05rem;
-}
-
-.matrix-wrap {
-  overflow-x: auto;
-}
-
-.matrix-table {
-  width: 100%;
-  min-width: 720px;
-  border-collapse: separate;
-  border-spacing: 0.35rem;
-}
-
-.matrix-table th,
-.matrix-table td {
-  padding: 0.8rem;
-  text-align: center;
-  border-radius: 14px;
-  background: rgba(13, 31, 45, 0.05);
-  color: var(--q-text);
-}
-
-.p-dark .matrix-table th,
-.p-dark .matrix-table td {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.matrix-table th {
-  font-size: 0.85rem;
-}
-
-.matrix-axis {
-  font-weight: 700;
-}
-
-.matrix-cell--diag {
-  background: var(--q-teal) !important;
-  color: white !important;
-  font-weight: 800;
-}
-
-.config-block {
-  margin: 0;
-  padding: 1rem;
-  border-radius: 20px;
-  background: rgba(13, 31, 45, 0.92);
-  color: #d8edf1;
-  overflow-x: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.benchmark-state {
-  margin-top: 1rem;
-}
-
-.state-stack {
-  display: grid;
-  gap: 1rem;
-  text-align: center;
-}
-
-.benchmark-spinner {
-  margin: 0 auto;
-}
-
-.skeleton-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
-}
-
-:deep(.benchmark-table .p-datatable-header-cell),
-:deep(.benchmark-table .p-datatable-tbody > tr > td) {
-  background: transparent;
-  color: var(--q-text);
-}
-
-:deep(.benchmark-select .p-togglebutton) {
-  border: 0;
-  background: transparent;
-  padding: 0;
-  border-radius: 999px;
-  overflow: visible;
-  box-shadow: none;
-}
-
-.p-dark :deep(.benchmark-select .p-togglebutton) {
-  background: transparent;
-}
-
-:deep(.benchmark-select .p-selectbutton) {
+/* ══════════════════════════════════════════════
+   SECTION HEADINGS
+══════════════════════════════════════════════ */
+.section-heading {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
-:deep(.benchmark-select .p-togglebutton .p-togglebutton-content) {
-  border-radius: 999px;
-  border: 1px solid var(--q-bar-border);
-  background: rgba(255, 255, 255, 0.72);
-  color: var(--q-text);
-  padding: 0.62rem 1rem;
-  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
-  box-shadow: 0 10px 24px rgba(13, 31, 45, 0.06);
-}
 
-.p-dark :deep(.benchmark-select .p-togglebutton .p-togglebutton-content) {
-  background: rgba(12, 24, 36, 0.92);
-  color: var(--q-text);
-}
 
-:deep(.benchmark-select .p-togglebutton:not(.p-disabled):hover .p-togglebutton-content) {
-  background: var(--q-teal-soft);
-  border-color: rgba(42, 184, 184, 0.28);
-  color: var(--q-text);
-}
+.section-heading__text { max-width: 820px; }
 
-:deep(.benchmark-select .p-togglebutton.p-togglebutton-checked) {
-  box-shadow: none;
-}
-
-:deep(.benchmark-select .p-togglebutton.p-togglebutton-checked .p-togglebutton-content) {
-  background: var(--q-teal);
-  border-color: var(--q-teal);
-  color: white;
-  box-shadow: 0 12px 28px rgba(42, 184, 184, 0.18);
-}
-
-:deep(.benchmark-select .p-togglebutton.p-togglebutton-checked:hover .p-togglebutton-content) {
-  background: var(--q-teal);
-  border-color: var(--q-teal);
-  color: white;
-}
-
-:deep(.benchmark-select .p-togglebutton .p-button-label) {
+.eyebrow {
+  display: inline-block;
+  font-size: 0.8rem;
   font-weight: 700;
-  white-space: nowrap;
-}
-
-:deep(.benchmark-select .p-togglebutton::before),
-:deep(.benchmark-select .p-togglebutton::after),
-:deep(.benchmark-select .p-togglebutton .p-togglebutton-content::before),
-:deep(.benchmark-select .p-togglebutton .p-togglebutton-content::after) {
-  display: none;
-}
-
-.benchmark-page--ar .hero-copy,
-.benchmark-page--ar .section-heading__text {
-  direction: rtl;
-  text-align: right;
-}
-
-.section-heading--rtl {
-  flex-direction: row-reverse;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--q-teal);
+  margin-bottom: 0.5rem;
 }
 
 .eyebrow--ar {
@@ -1137,9 +953,303 @@ const formatMetric = (value, digits = 2) => Number(value || 0).toFixed(digits)
   text-transform: none;
 }
 
+.section-title {
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  font-weight: 800;
+  color: var(--q-text);
+  margin: 0;
+  font-family: var(--q-font-display);
+}
+
+/* ══════════════════════════════════════════════
+   PERFORMANCE — inner cards inside glass wrapper
+══════════════════════════════════════════════ */
+.performance-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.performance-inner-card {
+  padding: 1.25rem;
+  border-radius: 20px;
+  border: 1px solid var(--q-bar-border);
+  background: var(--q-surface-strong);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.kpi-value {
+  display: block;
+  font-size: clamp(2.3rem, 4vw, 3.4rem);
+  font-weight: 800;
+  line-height: 1;
+  margin: 1rem 0 0.2rem;
+  color: var(--q-text);
+  font-family: var(--q-font-display);
+}
+
+.metric-caption { margin: 0 0 1.1rem; }
+.metric-block   { display: grid; gap: 0.55rem; }
+
+.performance-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+/* ══════════════════════════════════════════════
+   TAB BUTTONS
+══════════════════════════════════════════════ */
+.bm-tab-active {
+  background: var(--q-teal);
+  color: #fff;
+}
+
+.bm-tab-inactive {
+  background: var(--q-surface-strong);
+  color: var(--q-muted);
+  border: 1px solid var(--q-bar-border);
+}
+
+.bm-tab-inactive:hover {
+  background: var(--q-teal-soft);
+  color: var(--q-teal);
+}
+
+/* ══════════════════════════════════════════════
+   INNER CARD + DATATABLE BASE
+══════════════════════════════════════════════ */
+.bm-inner-card {
+  border-radius: 16px !important;
+}
+
+.bm-inner-card :deep(.p-card-body) {
+  padding: 0 !important;
+}
+
+.bm-fill-card { flex: 1; }
+
+:deep(.p-datatable) {
+  background: transparent;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* Base — compact, used by default unless overridden below */
+:deep(.p-datatable-thead > tr > th) {
+  background: transparent !important;
+  color: #94a3b8;
+  border-bottom: 1px solid var(--q-bar-border) !important;
+  padding: 0.875rem 1.25rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+:deep(.p-datatable-tbody > tr > td) {
+  background: transparent !important;
+  color: var(--q-text);
+  border-bottom: 1px solid var(--q-bar-border) !important;
+  padding: 0.875rem 1.25rem;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+:deep(.p-datatable-tbody > tr:last-child > td) {
+  border-bottom: none !important;
+}
+
+:deep(.p-datatable-tbody > tr:hover > td) {
+  background: var(--q-surface-soft) !important;
+  transition: background 0.15s ease;
+}
+.robustness-inner-card :deep(.p-card-body) {
+  padding: 0.5rem 0.75rem !important;
+}
+
+/* Reduce DataTable row padding while keeping font sizes */
+.bm-datatable-robustness :deep(.p-datatable-tbody > tr > td) {
+  padding: 0.5rem 1rem;   /* smaller vertical padding */
+}
+
+.bm-datatable-robustness :deep(.p-datatable-thead > tr > th) {
+  padding: 0.6rem 1rem;
+}
+
+/* Diagnostics per-class: slightly more breathing room (table is wide enough) */
+.bm-datatable-diag :deep(.p-datatable-thead > tr > th) {
+  font-size: 0.85rem;
+  padding: 1rem 1.25rem;
+}
+
+.bm-datatable-diag :deep(.p-datatable-tbody > tr > td) {
+  font-size: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+/* RTL table alignment */
+:deep(.bm-table-rtl .p-datatable-thead > tr > th) { text-align: right !important; }
+:deep(.bm-table-rtl .p-datatable-tbody > tr > td) { text-align: right !important; }
+
+/* ══════════════════════════════════════════════
+   DIAGNOSTICS — inside glass wrapper
+══════════════════════════════════════════════ */
+.diagnostics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+  align-items: stretch;
+}
+
+.diag-inner-card {
+  border: 1px solid var(--q-bar-border);
+  border-radius: 20px;
+  background: var(--q-surface-strong);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.diag-title {
+  display: block;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--q-text);
+  margin-bottom: 1rem;
+  flex-shrink: 0;
+}
+
+.matrix-wrap {
+  position: relative;
+  flex: 1;                 /* take remaining vertical space */
+  overflow: auto;
+}
+
+.matrix-table {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-collapse: separate;
+  border-spacing: 0.35rem;
+  /* keep the rest of your table styling */
+}
+
+.matrix-table th,
+.matrix-table td {
+  padding: 0.75rem 0.6rem;
+  text-align: center;
+  border-radius: 14px;
+  background: rgba(13, 31, 45, 0.05);
+  color: var(--q-text);
+  font-size: 0.9rem;
+}
+
+.p-dark .matrix-table th,
+.p-dark .matrix-table td {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.matrix-table th { font-size: 0.8rem; }
+.matrix-axis     { font-weight: 700; }
+
+.matrix-cell--diag {
+  background: var(--q-teal) !important;
+  color: white !important;
+  font-weight: 800;
+}
+
+/* ══════════════════════════════════════════════
+   CONFIG GRID
+══════════════════════════════════════════════ */
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.config-card-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1rem 1.25rem;
+  border-radius: 18px;
+  border: 1px solid var(--q-bar-border);
+  background: var(--q-surface-strong);
+}
+
+.config-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--q-muted);
+}
+
+.config-value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--q-text);
+  font-family: var(--q-font-display);
+}
+
+/* ══════════════════════════════════════════════
+   STATES
+══════════════════════════════════════════════ */
+.benchmark-state { margin-top: 1rem; }
+
+.state-stack {
+  display: grid;
+  gap: 1rem;
+  text-align: center;
+}
+
+.benchmark-spinner { margin: 0 auto; }
+
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+
+.benchmark-page--ar .hero-copy,
+.benchmark-page--ar .section-heading__text,
+.benchmark-page--ar .dataset-notes,
+.benchmark-page--ar .dataset-steps,
+.benchmark-page--ar .classes-grid {
+  direction: rtl;
+  text-align: right;
+}
+
+.benchmark-page--ar .hero-title,
+.benchmark-page--ar .hero-subtitle,
+.benchmark-page--ar .section-title {
+  direction: rtl;
+  text-align: right;
+}
+
+.benchmark-page--ar .config-grid,
+.benchmark-page--ar .config-card-item {
+  direction: rtl;
+  text-align: right;
+}
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════ */
 @media (max-width: 1280px) {
-  .summary-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .config-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1147,7 +1257,6 @@ const formatMetric = (value, digits = 2) => Number(value || 0).toFixed(digits)
   .hero-shell,
   .dataset-layout,
   .performance-grid,
-  .latency-grid,
   .diagnostics-grid {
     grid-template-columns: 1fr;
   }
@@ -1156,8 +1265,7 @@ const formatMetric = (value, digits = 2) => Number(value || 0).toFixed(digits)
 @media (max-width: 820px) {
   .hero-stats,
   .fact-grid,
-  .summary-grid,
-  .skeleton-grid {
+  .config-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1165,8 +1273,7 @@ const formatMetric = (value, digits = 2) => Number(value || 0).toFixed(digits)
 @media (max-width: 640px) {
   .hero-stats,
   .fact-grid,
-  .summary-grid,
-  .skeleton-grid {
+  .config-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1174,15 +1281,6 @@ const formatMetric = (value, digits = 2) => Number(value || 0).toFixed(digits)
   .dataset-slide {
     min-height: 320px;
     height: 320px;
-  }
-
-  :deep(.benchmark-select .p-selectbutton) {
-    gap: 0.5rem;
-  }
-
-  :deep(.benchmark-select .p-togglebutton) {
-    width: 100%;
-    justify-content: center;
   }
 }
 </style>

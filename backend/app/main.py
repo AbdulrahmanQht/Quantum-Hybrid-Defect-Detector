@@ -92,7 +92,7 @@ async def lifespan(app: FastAPI):
     try:
         qnn_cpu_model = HybridQnnCPU(num_classes=num_classes)
         qnn_cpu_model.load_model(qnn_cpu_path, device)
-        ml_models["QNN_CPU"] = {"model": qnn_cpu_model, "device": device, "q_device": "default.qubit"}
+        ml_models["QNN_CPU"] = {"model": qnn_cpu_model, "device": device, "q_device_name": "default.qubit"}
         logger.info("QNN-CPU loaded successfully.")
     except Exception as e:
         raise RuntimeError(f"Failed to load QNN-CPU: {e}")
@@ -105,14 +105,14 @@ async def lifespan(app: FastAPI):
         try:
             qnn_gpu_model = HybridQnnGPU(num_classes=num_classes, q_device_name="lightning.gpu")
             qnn_gpu_model.load_model(qnn_gpu_path, device)
-            ml_models["QNN_GPU"] = {"model": qnn_gpu_model, "device": device, "q_device": "lightning.gpu"}
+            ml_models["QNN_GPU"] = {"model": qnn_gpu_model, "device": device, "q_device_name": "lightning.gpu"}
             logger.info("QNN-GPU loaded successfully with lightning.gpu.")
         except Exception as e:
             logger.warn(f"lightning.gpu failed: {e}. Falling back to lightning.qubit.")
             try:
                 qnn_gpu_model = HybridQnnGPU(num_classes=num_classes, q_device_name="lightning.qubit")
                 qnn_gpu_model.load_model(qnn_gpu_path, device)
-                ml_models["QNN_GPU"] = {"model": qnn_gpu_model, "device": device, "q_device": "lightning.qubit"}
+                ml_models["QNN_GPU"] = {"model": qnn_gpu_model, "device": device, "q_device_name": "lightning.qubit"}
                 logger.info("QNN-GPU loaded successfully with lightning.qubit.")
             except Exception as e2:
                 raise RuntimeError(f"Failed to load QNN-GPU with both lightning.gpu and lightning.qubit: {e2}")
@@ -233,12 +233,12 @@ def health_check(request: Request):
                 "QNN_CPU": {
                     "status":   "ok" if qnn_cpu_ok else "unavailable",
                     "device":   str(ml_models["QNN_CPU"]["device"]) if qnn_cpu_ok else None,
-                    "q_device": ml_models["QNN_CPU"]["q_device"] if qnn_cpu_ok else None,
+                    "q_device_name": ml_models["QNN_CPU"]["q_device_name"] if qnn_cpu_ok else None,
                 },
                 "QNN_GPU": {
                     "status":   "ok" if qnn_gpu_ok else "unavailable",
                     "device":   str(ml_models["QNN_GPU"]["device"]) if qnn_gpu_ok else None,
-                    "q_device": ml_models["QNN_GPU"]["q_device"] if qnn_gpu_ok else None,
+                    "q_device_name": ml_models["QNN_GPU"]["q_device_name"] if qnn_gpu_ok else None,
                 },
             },
             "pennylane": "ok" if pennylane_ok else "unavailable",
@@ -275,15 +275,11 @@ if __name__ == "__main__":
     logger.info("Starting Granian server on http://127.0.0.1:8000")
     
     server = Granian(
-        "backend.app.main:app",  # run from project root: python -m backend.app.main
+        "app.main:app",
         address="127.0.0.1",
         port=8000,
         interface=Interfaces.ASGI,
         workers=1,       # GPU app — multiple workers = duplicate VRAM per worker
-        threads=2,       # Rust I/O threads; your bottleneck is inference not I/O
-        preload=True,    # Load models once before worker forks
-        request_timeout=30,
-        keep_alive_time=5,
     )
 
     server.serve()

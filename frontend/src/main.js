@@ -35,9 +35,14 @@ import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import Accordion from 'primevue/accordion';
 import AccordionTab from 'primevue/accordiontab';
+import AccordionPanel from 'primevue/accordionpanel'
+import AccordionHeader from 'primevue/accordionheader'
+import AccordionContent from 'primevue/accordioncontent'
 import ProgressSpinner from 'primevue/progressspinner';
 import ToggleSwitch from 'primevue/toggleswitch';
 import Slider from 'primevue/slider';
+import Carousel from 'primevue/carousel'
+import SelectButton from 'primevue/selectbutton'
 
 const app = createApp(App)
 
@@ -95,9 +100,14 @@ app.component('InputText', InputText)
 app.component('Textarea', Textarea)
 app.component('Accordion', Accordion);
 app.component('AccordionTab', AccordionTab);
+app.component("AccordionPanel", AccordionPanel);
+app.component("AccordionHeader", AccordionHeader);
+app.component("AccordionContent", AccordionContent);
 app.component('ProgressSpinner', ProgressSpinner);
-app.component('ToggleSwitch', ToggleSwitch)
-app.component('Slider', Slider)
+app.component('ToggleSwitch', ToggleSwitch);
+app.component('Slider', Slider);
+app.component('Carousel', Carousel);
+app.component('SelectButton', SelectButton)
 
 window.addEventListener('beforeunload', () => {
     localStorage.setItem('scrollRestore', JSON.stringify({
