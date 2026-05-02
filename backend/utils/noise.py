@@ -44,14 +44,33 @@ def noise_blur(images: torch.Tensor, level: float) -> torch.Tensor:
     """
     Isotropic Gaussian blur.
     Kernel = smallest odd integer >= 6*sigma, minimum 3.
-    Aligned with PreProcessing GaussianBlur sigma semantics.
+
+    For very small images, cap the kernel to the largest odd size that fits
+    within both spatial dimensions. Numerically tiny sigma values are treated
+    as a no-op.
     """
-    if level == 0.0:
+    level = float(level)
+    if level <= 1e-6:
         return images
+
     from torchvision.transforms import v2
+
+    _, _, h, w = images.shape
+
     k = max(3, int(level * 6 + 1))
-    k = k if k % 2 == 1 else k + 1           # force odd
+    k = k if k % 2 == 1 else k + 1
+
+    max_k = min(h, w)
+    if max_k % 2 == 0:
+        max_k -= 1
+
+    if max_k < 3:
+        return images
+
+    k = min(k, max_k)
     return v2.GaussianBlur(kernel_size=k, sigma=level)(images)
+
+
 
 
 def noise_contrast(images: torch.Tensor, level: float) -> torch.Tensor:
@@ -138,22 +157,33 @@ def noise_jpeg(images: torch.Tensor, level: Union[int, float]) -> torch.Tensor:
 def noise_lens_occlusion(images: torch.Tensor, level: float) -> torch.Tensor:
     """
     Rectangular central occlusion patch filled with dim noise in [0, 0.3].
-    patch area ≈ level × H × W.
-    Deterministic placement (centred) for reproducible benchmarking.
-    Aligned with PreProcessing._lens_occlusion_erasing.
+    Patch area is approximately level * H * W, capped to image bounds.
+    Deterministic centred placement for reproducible benchmarking.
     """
-    if level == 0.0:
+    if level <= 0.0:
         return images
+
     B, C, H, W = images.shape
     out = images.clone()
-    ph   = max(1, int((H * W * level) ** 0.5))
-    pw   = ph
-    top  = (H - ph) // 2
+
+    target_area = max(1.0, float(H * W) * float(level))
+
+    # Start from a square patch, then clamp to image bounds.
+    ph = min(H, max(1, int(target_area ** 0.5)))
+    pw = min(W, max(1, int(target_area / ph)))
+
+    # Final safety clamp in case integer rounding overshoots.
+    ph = min(ph, H)
+    pw = min(pw, W)
+
+    top = (H - ph) // 2
     left = (W - pw) // 2
-    out[:, :, top : top + ph, left : left + pw] = (
-        torch.rand(B, C, ph, pw, device=images.device) * 0.3
+
+    out[:, :, top: top + ph, left: left + pw] = (
+        torch.rand(B, C, ph, pw, device=images.device, dtype=images.dtype) * 0.3
     )
     return out
+
 
 
 #  Dispatch table 

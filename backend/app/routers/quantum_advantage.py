@@ -14,7 +14,7 @@ import json
 import os
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel, Field, ConfigDict
 
 from backend.utils.logger import Logger
@@ -247,21 +247,8 @@ def _get_cached_qa_results() -> QuantumAdvantageResults:
         _qa_cache = _load_qa_results()
     return _qa_cache
 
-
-# Endpoint
-@router.get(
-    "/quantum-advantage",
-    response_model=QuantumAdvantageResults,
-    summary="Get quantum advantage results",
-    description=(
-        "Returns pre-computed quantum advantage metrics spanning feature "
-        "orthogonality, branch ablation, re-upload ablation, entanglement "
-        "entropy, gradient variance, and noise robustness ablation (Exp. 6). "
-        "Results are loaded from disk once on the first request and served "
-        "from memory thereafter. "
-        "Re-generate by running quantum_advantage_runner.py and restarting "
-        "the server."
-    ),
-)
-def get_quantum_advantage() -> QuantumAdvantageResults:
+@router.get("/quantum-advantage", response_model=QuantumAdvantageResults)
+def get_quantum_advantage(response: Response) -> QuantumAdvantageResults:
+    # Instruct the browser to cache this response for 10 hour (36000 seconds)
+    response.headers["Cache-Control"] = "public, max-age=36000"
     return _get_cached_qa_results()

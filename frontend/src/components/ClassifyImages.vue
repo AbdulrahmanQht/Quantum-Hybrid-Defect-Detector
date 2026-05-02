@@ -1,9 +1,13 @@
 <script setup>
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const { t, locale } = useI18n()
 
+const STORAGE_KEY = 'classifyState'
+const isRestored = ref(false)
+const storedDataUrl = ref(null)
+const appliedNoiseLevel = ref(null)
 
 const fileInput = ref(null)
 const selectedFile = ref(null)
@@ -107,8 +111,36 @@ async function handleFile(file) {
     if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
     selectedFile.value = file
     previewUrl.value = URL.createObjectURL(file)
+
+    // Keeps uploaded image so results don't go away with refresh
+    selectedFile.value = file
+    previewUrl.value = URL.createObjectURL(file)
+
+    // Read as data URL so we can persist across refreshes
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      storedDataUrl.value = e.target.result
+      persistState()
+    }
+    reader.readAsDataURL(file)
   } finally {
     validating.value = false
+  }
+}
+
+function persistState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      fileName:       selectedFile.value?.name,
+      previewDataUrl: storedDataUrl.value,
+      results:        results.value,
+      noisyResults:   noisyResults.value,
+      compareWithNoise: compareWithNoise.value,
+      noiseLevel: noiseLevel.value,
+      appliedNoiseLevel: appliedNoiseLevel.value,
+    }))
+  } catch {
+    // Quota exceeded (large image) — fail silently
   }
 }
 
@@ -121,6 +153,8 @@ function onDrop(event) {
 }
 
 async function uploadImage() {
+  if (!selectedFile.value || selectedFile.value.restored) return
+
   if (!selectedFile.value) return
   loading.value = true
   error.value = null
@@ -129,6 +163,7 @@ async function uploadImage() {
   exportSuccess.value = null
 
   try {
+    const snapshotNoiseLevel = compareWithNoise.value ? noiseLevel.value : null
     const formData = new FormData()
     formData.append('file', selectedFile.value)
     formData.append('compare_with_noise', compareWithNoise.value)
@@ -195,6 +230,7 @@ const modelMeta = computed(() => ({
 
 
     results.value = parseSet(data.clean)
+    appliedNoiseLevel.value = snapshotNoiseLevel
     if (data.noisy) noisyResults.value = parseSet(data.noisy)
 
   } catch (err) {
@@ -252,6 +288,10 @@ function reset() {
   compareWithNoise.value = false   // ← reset toggle back to off
   noiseLevel.value = 0.3           // ← reset slider to default
   if (fileInput.value) fileInput.value.value = ''
+  localStorage.removeItem(STORAGE_KEY)
+  isRestored.value    = false
+  storedDataUrl.value = null
+  appliedNoiseLevel.value = null
 }
 
 // --- Export ---
@@ -266,7 +306,7 @@ function exportToCSV() {
     ),
     ...(noisyResults.value
       ? noisyResults.value.map(r =>
-          `"Noisy (level ${noiseLevel.value.toFixed(2)})","${r.modelName}","${r.prediction}",${r.confidence.toFixed(1)},${r.latency.toFixed(1)}`
+          `"Noisy (level ${appliedNoiseLevel.value?.toFixed(2)})","${r.modelName}","${r.prediction}",${r.confidence.toFixed(1)},${r.latency.toFixed(1)}`
         )
       : [])
   ]
@@ -302,7 +342,7 @@ function exportToJSON() {
   },
   ...(noisyResults.value && {
     noisy: {
-      noiseLevel: noiseLevel.value,
+      noiseLevel: appliedNoiseLevel.value,
       topPrediction: stripColor([noisyTopResult.value])[0],
       allResults: stripColor(noisyResults.value)
     }
@@ -318,6 +358,39 @@ function exportToJSON() {
   window.URL.revokeObjectURL(url)
   exportSuccess.value = t('classify.export_json_success')
 }
+
+onMounted(() => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return
+    const saved = JSON.parse(raw)
+
+    // Results first — before any watched refs are assigned
+    if (saved.results)      results.value      = saved.results
+    if (saved.noisyResults) noisyResults.value = saved.noisyResults
+
+    // Locked-in noise level for the restored results
+    if (saved.appliedNoiseLevel != null) appliedNoiseLevel.value = saved.appliedNoiseLevel
+
+    // Watched slider refs last — watchers may fire here, results are already in place
+    compareWithNoise.value = saved.compareWithNoise ?? false
+    noiseLevel.value       = saved.noiseLevel       ?? 0.3
+
+    // Preview / file sentinel
+    if (saved.previewDataUrl) {
+      previewUrl.value    = saved.previewDataUrl
+      storedDataUrl.value = saved.previewDataUrl
+      selectedFile.value  = { name: saved.fileName ?? 'image', restored: true }
+      isRestored.value    = true
+    }
+  } catch {
+    // Ignore corrupted storage
+  }
+})
+
+watch(results,      persistState, { deep: true })
+watch(noisyResults, persistState, { deep: true })
+watch([compareWithNoise, noiseLevel], persistState)
 
 onUnmounted(() => {
   if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
@@ -367,6 +440,12 @@ onUnmounted(() => {
         </div>
 
         <div v-else dir="ltr" class="classify-preview-stack">
+          <Transition name="slide-down">
+              <div v-if="isRestored" class="restored-banner">
+                <i class="pi pi-history" />
+                {{ t('classify.restored_hint') }}
+              </div>
+            </Transition>
           <div class="preview-frame">
             <Image
               :src="previewUrl"
@@ -377,6 +456,7 @@ onUnmounted(() => {
             <div class="preview-overlay">
               <p class="preview-filename">{{ selectedFile.name }}</p>
             </div>
+            
           </div>
 
           <div class="noise-panel" :dir="locale === 'AR' ? 'rtl' : 'ltr'">
@@ -435,7 +515,7 @@ onUnmounted(() => {
             <Button
               :label="validating ? t('classify.validating') : loading ? t('classify.running') : t('classify.run')"
               :icon="loading || validating ? 'pi pi-spin pi-spinner' : 'pi pi-play'"
-              :disabled="loading || validating"
+              :disabled="loading || validating || isRestored"
               class="classify-run-btn"
               @click="uploadImage"
             />
@@ -644,7 +724,7 @@ onUnmounted(() => {
   <div class="flex items-center gap-3 pt-2">
     <div class="flex-1 border-t border-dashed border-slate-200 dark:border-slate-700" />
     <span class="px-3 py-1 font-mono text-xs tracking-widest border rounded-full text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950">
-      {{ t('classify.noisy_results') }} · {{ t('classify.noise_severity') }} {{ noiseLevel.toFixed(2) }}
+      {{ t('classify.noisy_results') }} · {{ t('classify.noise_severity') }} {{ appliedNoiseLevel?.toFixed(2) }}
     </span>
     <div class="flex-1 border-t border-dashed border-slate-200 dark:border-slate-700" />
   </div>
@@ -794,7 +874,7 @@ onUnmounted(() => {
 }
 
 .upload-dropzone:hover {
-  border-color: rgba(42, 184, 184, 0.35);
+  border: 2px dashed rgba(42, 184, 184, 0.411);
   background: var(--q-teal-soft);
   transform: translateY(-2px);
 }
@@ -1113,5 +1193,25 @@ onUnmounted(() => {
 }
 .classify-shell--ar :deep(.p-card-title) {
   text-align: right;
+}
+.restored-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(42, 184, 184, 0.25);
+  background: var(--q-teal-soft);
+  color: var(--q-teal);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.lang-ar .restored-banner{
+  text-align: right;
+  direction: rtl;
+}
+html[lang="ar"] .restored-banner{
+  text-align: right;
+  direction: rtl;
 }
 </style>

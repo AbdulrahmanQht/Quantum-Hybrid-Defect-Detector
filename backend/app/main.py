@@ -92,7 +92,7 @@ async def lifespan(app: FastAPI):
     try:
         qnn_cpu_model = HybridQnnCPU(num_classes=num_classes)
         qnn_cpu_model.load_model(qnn_cpu_path, device)
-        ml_models["QNN_CPU"] = {"model": qnn_cpu_model, "device": device}
+        ml_models["QNN_CPU"] = {"model": qnn_cpu_model, "device": device, "q_device": "default.qubit"}
         logger.info("QNN-CPU loaded successfully.")
     except Exception as e:
         raise RuntimeError(f"Failed to load QNN-CPU: {e}")
@@ -103,14 +103,21 @@ async def lifespan(app: FastAPI):
         if not os.path.exists(qnn_gpu_path):
             raise RuntimeError(f"QNN-GPU checkpoint not found: {qnn_gpu_path}")
         try:
-            qnn_gpu_model = HybridQnnGPU(num_classes=num_classes)
+            qnn_gpu_model = HybridQnnGPU(num_classes=num_classes, q_device_name="lightning.gpu")
             qnn_gpu_model.load_model(qnn_gpu_path, device)
-            ml_models["QNN_GPU"] = {"model": qnn_gpu_model, "device": device}
-            logger.info("QNN-GPU loaded successfully.")
+            ml_models["QNN_GPU"] = {"model": qnn_gpu_model, "device": device, "q_device": "lightning.gpu"}
+            logger.info("QNN-GPU loaded successfully with lightning.gpu.")
         except Exception as e:
-            raise RuntimeError(f"Failed to load QNN-GPU: {e}")
+            logger.warn(f"lightning.gpu failed: {e}. Falling back to lightning.qubit.")
+            try:
+                qnn_gpu_model = HybridQnnGPU(num_classes=num_classes, q_device_name="lightning.qubit")
+                qnn_gpu_model.load_model(qnn_gpu_path, device)
+                ml_models["QNN_GPU"] = {"model": qnn_gpu_model, "device": device, "q_device": "lightning.qubit"}
+                logger.info("QNN-GPU loaded successfully with lightning.qubit.")
+            except Exception as e2:
+                raise RuntimeError(f"Failed to load QNN-GPU with both lightning.gpu and lightning.qubit: {e2}")
     else:
-        logger.warning("CUDA not available. QNN-GPU will not be loaded.")
+        logger.warn("CUDA not available. QNN-GPU will not be loaded.")
 
     logger.info("Warming up models to prevent cold-start latency.")
     dummy_tensor = torch.zeros((1, 3, 384, 384), dtype=torch.float32)
@@ -146,19 +153,37 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         response: Response = await call_next(request)
+        # Standard security headers for all routes
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-        # Tighten CSP if you serve the frontend from FastAPI
-        response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; "
-            "script-src 'self' 'unsafe-eval'; "
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-            "font-src 'self' https://fonts.gstatic.com; "
-            "img-src 'self' data: blob:; "
-            "connect-src 'self' http://127.0.0.1:8000;"
-        )
+
+        path = request.url.path
+        
+        # Check if we are accessing the documentation or the OpenAPI schema
+        if path in ["/docs", "/redoc", "/openapi.json"]:
+            # CSP specifically for the docs UI
+            csp = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
+                "font-src 'self' https://fonts.gstatic.com; "
+                "img-src 'self' data: blob: https://fastapi.tiangolo.com; "
+                "connect-src 'self' http://127.0.0.1:8000;"
+            )
+        else:
+            # CSP for all API endpoints and general traffic
+            csp = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-eval'; "
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+                "font-src 'self' https://fonts.gstatic.com; "
+                "img-src 'self' data: blob:; "
+                "connect-src 'self';"
+            )
+
+        response.headers["Content-Security-Policy"] = csp
         return response
 
 app.add_middleware(SecurityHeadersMiddleware)
@@ -188,20 +213,33 @@ def health_check(request: Request):
     except ImportError:
         pennylane_ok = False
 
+    cuda_available = torch.cuda.is_available()
     cnn_ok     = "CNN"     in ml_models
     qnn_cpu_ok = "QNN_CPU" in ml_models
     qnn_gpu_ok = "QNN_GPU" in ml_models
 
-    status = "healthy" if all([cnn_ok, qnn_cpu_ok, qnn_gpu_ok, pennylane_ok]) else "degraded"
+    status = "healthy" if all([cnn_ok, qnn_cpu_ok, pennylane_ok]) else "degraded"
 
     return JSONResponse(
         status_code=200 if status == "healthy" else 503,
         content={
             "status": status,
+            "cuda": cuda_available,
             "models": {
-                "CNN":     "ok" if cnn_ok     else "unavailable",
-                "QNN_CPU": "ok" if qnn_cpu_ok else "unavailable",
-                "QNN_GPU": "ok" if qnn_gpu_ok else "unavailable",
+                "CNN": {
+                    "status": "ok" if cnn_ok else "unavailable",
+                    "device":   str(ml_models["CNN"]["device"]) if qnn_cpu_ok else None,
+                },
+                "QNN_CPU": {
+                    "status":   "ok" if qnn_cpu_ok else "unavailable",
+                    "device":   str(ml_models["QNN_CPU"]["device"]) if qnn_cpu_ok else None,
+                    "q_device": ml_models["QNN_CPU"]["q_device"] if qnn_cpu_ok else None,
+                },
+                "QNN_GPU": {
+                    "status":   "ok" if qnn_gpu_ok else "unavailable",
+                    "device":   str(ml_models["QNN_GPU"]["device"]) if qnn_gpu_ok else None,
+                    "q_device": ml_models["QNN_GPU"]["q_device"] if qnn_gpu_ok else None,
+                },
             },
             "pennylane": "ok" if pennylane_ok else "unavailable",
         }
@@ -244,6 +282,8 @@ if __name__ == "__main__":
         workers=1,       # GPU app — multiple workers = duplicate VRAM per worker
         threads=2,       # Rust I/O threads; your bottleneck is inference not I/O
         preload=True,    # Load models once before worker forks
+        request_timeout=30,
+        keep_alive_time=5,
     )
 
     server.serve()
