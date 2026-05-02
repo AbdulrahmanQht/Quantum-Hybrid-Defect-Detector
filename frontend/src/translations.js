@@ -183,35 +183,157 @@ const messages = {
       export_json_success: 'Results exported to JSON successfully!',
       restored_hint: "Results restored from last session — reset or re-select image to run again."
     },
-    benchmark: {},
-    qa: {
-      title: 'Quantum Advantage Report',
-      subtitle: 'Empirical validation of quantum mechanisms in the hybrid architecture.',
-      generatedAt: 'Generated',
-      qubits: 'Qubits',
-      depth: 'Depth',
-      loading: 'Loading quantum metrics...',
-      errorTitle: 'Data Unavailable',
-      errorMsg: 'Failed to load quantum advantage data. Please ensure the backend is running.',
-      model: 'Model',
-      confirmed: 'Advantage Confirmed',
-      notConfirmed: 'Not Confirmed',
-      exp2: {
-        title: 'Quantum Gain (Branch Ablation)',
-        desc: 'How much accuracy does the quantum branch add over classical-only inference?',
-        quantumGain: 'Quantum Gain',
-        fullModel: 'Full Model',
-        classicalOnly: 'Classical Only',
-        quantumOnly: 'Quantum Only',
-        tooltip: 'Quantum Gain = Full Accuracy − Classical Only Accuracy'
+    benchmark: {
+      hero: {
+        badge: 'Research Benchmark',
+        title: 'Benchmarking the hybrid defect detection stack',
+        subtitle: 'Evaluation across clean accuracy, noise robustness, latency, and class diagnostics.',
+        description:
+          'This benchmark page compares the CNN baseline with the QNN CPU and QNN GPU variants using the same dataset setup, giving a consistent view of reliability and deployment tradeoffs.',
+        test_samples: 'Test Samples',
+        fault_classes: 'Fault Classes',
+        models_evaluated: 'Models Evaluated',
+        accuracy_overview: 'Accuracy Overview',
+        loaded: 'Results Loaded',
+        live: 'Live',
       },
-      exp6: {
-        title: 'Noise Robustness',
-        desc: 'Does the quantum branch become more valuable as input quality degrades?',
+      dataset: {
+        eyebrow: 'Dataset',
+        title: 'Dataset description and representative samples',
+        description:
+          'The benchmark starts with a visual snapshot of the inspection dataset. Each carousel slide shows one real sample from a defect class used during evaluation.',
+        carousel_badge: 'Sample Carousel',
+        source_label: 'Source:',
+        source_name: 'Kaggle Pipeline Defect Dataset',
+        source_url: 'https://www.kaggle.com/datasets/simplexitypipeline/pipeline-defect-dataset/data',
+        transform_title: 'Classification conversion:',
+        transform_text:
+          'The original dataset was designed for image detection, then transformed into a classification dataset by keeping only images whose label file contained exactly one unique class.',
+        pipeline_title: 'Dataset preparation workflow',
+        facts: [
+          { label: 'Split', value: 'Benchmark Test Set' },
+          { label: 'Domain', value: 'Industrial Pipeline Defects' },
+          { label: 'Coverage', value: '6 Defect Classes' },
+          { label: 'Use', value: 'Comparison + Diagnostics' },
+        ],
+        pipeline_steps: [
+          'Read all label files and verify that the corresponding image file exists.',
+          'Keep a sample only when its label file contains exactly one unique class ID, then store the image and label under that class.',
+          'Discard any sample whose label file is empty or contains multiple unique class IDs by excluding it from the exported dataset.',
+          'Split the remaining valid samples into train, validation, and test sets using a 70% / 15% / 15% ratio.',
+          'Copy the valid images and their matching label files into a new directory structure grouped by split and class name.',
+        ],
+        samples: [
+          {
+            key: 'Deformation',
+            label: 'Deformation',
+            title: 'Deformation sample',
+            text: 'A representative deformation case from the benchmark split used to stress shape-sensitive features.',
+          },
+          {
+            key: 'Deposition',
+            label: 'Deposition',
+            title: 'Deposition sample',
+            text: 'A sample showing accumulated material patterns that challenge texture-focused feature extraction.',
+          },
+          {
+            key: 'Disconnect',
+            label: 'Disconnect',
+            title: 'Disconnect sample',
+            text: 'A discontinuity example used to evaluate how clearly each model separates structural breaks.',
+          },
+          {
+            key: 'Misalignment',
+            label: 'Misalignment',
+            title: 'Misalignment sample',
+            text: 'A spatial shift example that tests sensitivity to positional inconsistency and geometric cues.',
+          },
+          {
+            key: 'Obstacle',
+            label: 'Obstacle',
+            title: 'Obstacle sample',
+            text: 'A sample containing obstructive interference that can reduce visual clarity in inspection scenes.',
+          },
+          {
+            key: 'Rupture',
+            label: 'Rupture',
+            title: 'Rupture sample',
+            text: 'A rupture case used to measure how reliably each model identifies severe structural failure.',
+          },
+        ],
+      },
+      summary: {
+        batch_size: 'Batch Size',
+        epochs: 'Training Epochs',
+        qubits: 'Qubits',
+        q_depth: 'Quantum Depth',
+        resolution: 'Image Resolution',
+        device: 'Device',
+      },
+      performance: {
+        eyebrow: 'Performance',
+        title: 'Clean performance snapshot',
+        description:
+          'Clean-data performance metrics across all three model configurations, including accuracy, weighted F1-score, and latency.',
+        clean_accuracy: 'Clean Accuracy',
+        weighted_f1: 'Weighted F1',
+        latency: 'Inference Latency',
+        samples: 'Evaluated Samples',
+        best_accuracy: 'Best Accuracy',
+        fastest: 'Fastest',
+        benchmark: 'Benchmark',
+      },
+      robustness: {
+        eyebrow: 'Robustness',
+        title: 'Noise robustness analysis',
+        description:
+          'Switch between supported perturbations to compare how each model behaves as inspection conditions degrade.',
+        filter_label: 'Noise Type',
+        points: 'points',
+        level: 'Level',
         gaussian: 'Gaussian',
         blur: 'Blur',
         contrast: 'Contrast',
         salt_pepper: 'Salt & Pepper',
+        motion_blur: 'Motion Blur',
+        jpeg_compression: 'JPEG Compression',
+        lens_occlusion: 'Lens Occlusion',
+      },
+      latency: {
+        eyebrow: 'Latency',
+        title: 'Inference speed',
+        description: 'Inference latency measures how long a model takes to process a single input, with lower values indicating faster and more efficient performance.',
+      },
+      diagnostics: {
+        eyebrow: 'Diagnostics',
+        title: 'Model diagnostics',
+        description: 'Inspect the confusion matrix and per-class metrics for the selected model using the shared benchmark payload.',
+        model: 'Model',
+        actual: 'Actual',
+        confusion_matrix: 'Confusion Matrix',
+        per_class_metrics: 'Per-Class Metrics',
+        class: 'Class',
+        precision: 'Precision',
+        recall: 'Recall',
+        f1: 'F1',
+        support: 'Support',
+      },
+      config: {
+        eyebrow: 'Configuration',
+        title: 'Benchmark configuration snapshot',
+      },
+      states: {
+        loading: 'Loading benchmark results...',
+        error: 'Failed to load benchmark data. Make sure the backend is running and benchmark results are available.',
+        empty: 'No benchmark data is available.',
+      },
+      models: {
+        CNN: 'CNN',
+        QNN_CPU: 'QNN CPU',
+        QNN_GPU: 'QNN GPU',
+      },
+    },
+    quantum_advantage: {},
         insight: 'A rising quantum gain under increasing noise confirms the quantum branch improves robustness in degraded inspection conditions.'
       },
       exp1: {
@@ -505,122 +627,157 @@ const messages = {
       restored_hint: ".تم استعادة النتائج من الجلسة السابقة. أعد الاختيار أو انقر إعادة تعيين للتشغيل من جديد"
 
     },
-    benchmark: {},
-    qa: {
-      title: 'تقرير التفوق الكمّي',
-      subtitle: 'التحقق التجريبي من الآليات الكمّية في البنية الهجينة.',
-      generatedAt: 'تاريخ التوليد',
-      qubits: 'كيوبت',
-      depth: 'العمق',
-      loading: 'جاري تحميل المقاييس الكمّية...',
-      errorTitle: 'البيانات غير متوفرة',
-      errorMsg: 'فشل تحميل بيانات التفوق الكمّي. تأكد من تشغيل الخادم.',
-      model: 'النموذج',
-      confirmed: 'تفوق مؤكّد',
-      notConfirmed: 'غير مؤكّد',
-      exp2: {
-        title: 'الكسب الكمّي (إزالة الفرع)',
-        desc: 'كم تضيف الدقة عند استخدام الفرع الكمّي مقارنة بالفرع الكلاسيكي فقط؟',
-        quantumGain: 'كسب كمّي',
-        fullModel: 'النموذج الكامل',
-        classicalOnly: 'كلاسيكي فقط',
-        quantumOnly: 'كمّي فقط',
-        tooltip: 'الكسب الكمّي = دقة النموذج الكامل − دقة الكلاسيكي فقط'
+    benchmark: {
+      hero: {
+        badge: 'مقارنة بحثية',
+        title: 'مقارنة شاملة لمنظومة كشف العيوب الهجينة',
+        subtitle: 'تقييم يشمل الدقة في البيانات النظيفة، ومقاومة الضوضاء، وزمن الاستدلال، وتحليل أداء الفئات.',
+        description:
+          'تعرض هذه الصفحة مقارنة مباشرة بين نموذج CNN الأساسي ونموذجي QNN CPU وQNN GPU باستخدام نفس إعدادات البيانات حتى يتمكن الفريق من فهم الاعتمادية ومفاضلات النشر بوضوح.',
+        test_samples: 'عينات الاختبار',
+        fault_classes: 'فئات العيوب',
+        models_evaluated: 'النماذج المقيمة',
+        accuracy_overview: 'نظرة عامة على الدقة',
+        loaded: 'تم تحميل النتائج',
+        live: 'مباشر',
       },
-      exp6: {
-        title: 'المتانة ضد التشويش',
-        desc: 'هل يزداد دور الفرع الكمّي عند تدهور جودة المدخلات؟',
-        gaussian: 'ضوضاء غاوسية',
-        blur: 'ضبابية',
-        contrast: 'تباين',
+      dataset: {
+        eyebrow: 'البيانات',
+        title: 'وصف مجموعة البيانات وعينات ممثلة',
+        description:
+          'تبدأ صفحة المقارنة بعرض بصري لمجموعة البيانات. كل شريحة في الكاروسيل تعرض عينة حقيقية من إحدى الفئات المستخدمة في التقييم.',
+        carousel_badge: 'كاروسيل العينات',
+        source_label: 'المصدر:',
+        source_name: 'مجموعة بيانات عيوب الأنابيب من كاجل',
+        source_url: 'https://www.kaggle.com/datasets/simplexitypipeline/pipeline-defect-dataset/data',
+        transform_title: 'تحويلها إلى تصنيف:',
+        transform_text:
+          'كانت مجموعة البيانات الأصلية مخصصة لاكتشاف الأجسام داخل الصور، ثم تم تحويلها إلى مهمة تصنيف عبر الاحتفاظ فقط بالصور التي يحتوي ملف الوسم الخاص بها على فئة واحدة فريدة.',
+        pipeline_title: 'خطوات تجهيز البيانات',
+        facts: [
+          { label: 'الجزء', value: 'مجموعة الاختبار' },
+          { label: 'المجال', value: 'عيوب الأنابيب الصناعية' },
+          { label: 'التغطية', value: '6 فئات عيوب' },
+          { label: 'الاستخدام', value: 'مقارنة وتشخيص' },
+        ],
+        pipeline_steps: [
+          'قراءة جميع ملفات الوسوم والتحقق من وجود ملف الصورة المقابل لكل ملف.',
+          'الاحتفاظ بالعينة فقط إذا كان ملف الوسم يحتوي على فئة واحدة فريدة، ثم تخزين مسار الصورة والوسم تحت تلك الفئة.',
+          'استبعاد أي عينة يكون ملف الوسم الخاص بها فارغاً أو يحتوي على أكثر من فئة فريدة، لذلك لا يتم نسخها إلى المجلدات الجديدة.',
+          'تقسيم العينات الصالحة إلى مجموعات تدريب وتحقق واختبار بنسبة 70% و15% و15%.',
+          'نسخ الصور الصالحة وملفات الوسوم المطابقة لها إلى بنية مجلدات جديدة مرتبة حسب الجزء واسم الفئة.',
+        ],
+        samples: [
+          {
+            key: 'Deformation',
+            label: 'تشوه',
+            title: 'عينة تشوه',
+            text: 'عينة ممثلة لفئة التشوه ضمن مجموعة المقارنة لقياس حساسية النماذج تجاه التغيرات الشكلية.',
+          },
+          {
+            key: 'Deposition',
+            label: 'ترسبات',
+            title: 'عينة ترسبات',
+            text: 'عينة توضح تراكم المواد على السطح وهو نمط يختبر قدرة النماذج على التقاط الملمس والتفاصيل الدقيقة.',
+          },
+          {
+            key: 'Disconnect',
+            label: 'انفصال',
+            title: 'عينة انفصال',
+            text: 'مثال على الانقطاع البنيوي يستخدم لقياس وضوح الفصل بين المناطق السليمة ومناطق الانفصال.',
+          },
+          {
+            key: 'Misalignment',
+            label: 'عدم محاذاة',
+            title: 'عينة عدم محاذاة',
+            text: 'عينة لانحراف موضعي تختبر حساسية النماذج تجاه التغيرات الهندسية والإزاحة المكانية.',
+          },
+          {
+            key: 'Obstacle',
+            label: 'عائق',
+            title: 'عينة عائق',
+            text: 'عينة تحتوي على عائق بصري يقلل وضوح المشهد ويمثل سيناريو فحص أكثر صعوبة.',
+          },
+          {
+            key: 'Rupture',
+            label: 'تمزق',
+            title: 'عينة تمزق',
+            text: 'عينة لفئة التمزق تستخدم لقياس قدرة النماذج على اكتشاف الأعطال الهيكلية الشديدة بثبات.',
+          },
+        ],
+      },
+      summary: {
+        batch_size: 'حجم الدفعة',
+        epochs: 'عصور التدريب',
+        qubits: 'الكيوبتات',
+        q_depth: 'عمق الدارة الكمية',
+        resolution: 'دقة الصورة',
+        device: 'الجهاز',
+      },
+      performance: {
+        eyebrow: 'الأداء',
+        title: 'ملخص الأداء النظيف',
+        description:
+         'مقاييس الأداء على البيانات النظيفة عبر جميع إعدادات النماذج الثلاثة، وتشمل: الدقة، ومتوسط F1 المُوزَّن، وزمن الاستدلال.',
+        clean_accuracy: 'الدقة النظيفة',
+        weighted_f1: 'درجة F1 الموزونة',
+        latency: 'زمن الاستدلال',
+        samples: 'العينات المقيمة',
+        best_accuracy: 'أفضل دقة',
+        fastest: 'الأسرع',
+        benchmark: 'مقارنة',
+      },
+      robustness: {
+        eyebrow: 'التحمل',
+        title: 'تحليل تحمل التشويش',
+        description:
+          'بدل بين أنواع التشويش المدعومة لمقارنة سلوك كل نموذج عند تدهور ظروف الفحص.',
+        filter_label: 'نوع التشويش',
+        points: 'نقاط',
+        level: 'المستوى',
+        gaussian: 'غاوسي',
+        blur: 'تمويه',
+        contrast: 'التباين',
         salt_pepper: 'ملح وفلفل',
-        insight: 'ارتفاع الكسب الكمّي مع زيادة التشويش يؤكد أن الفرع الكمّي يحسّن المتانة في ظروف الفحص الصعبة.'
+        motion_blur: 'تمويه حركي',
+        jpeg_compression: 'ضغط JPEG',
+        lens_occlusion: 'حجب العدسة',
       },
-      exp1: {
-        title: 'تعامد الميزات',
-        desc: 'هل يتعلم الفرعان الكمّي والكلاسيكي أشياء مختلفة؟',
-        score: 'درجة تشابه جيب التمام',
-        target: 'الهدف: قريب من 0.0 (متعامد)',
-        explanation: 'التشابه المنخفض جداً يؤكد أن الفرع الكمّي يتعلم ميزات فريدة ومكملة مختلفة عن الفرع الكلاسيكي.'
+      latency: {
+        eyebrow: 'السرعة',
+        title: 'سرعة الاستدلال',
+        description: 'يُقاس زمن الاستدلال بالوقت الذي يستغرقه النموذج لمعالجة مدخل واحد، حيث تشير القيم الأقل إلى أداء أسرع وأكثر كفاءة.',
       },
-      exp13: {
-        title: 'تحليل CKA الخطي',
-        desc: 'هل التمثيلات المتعلّمة مختلفة هيكلياً؟',
-        scale: '0 = متعامد، 1 = متطابق',
-        insight: 'انخفاض CKA يؤكد أن الفرع الكمّي يتعلم بنية تمثيلية مكملة، وهذا أقوى من تشابه جيب التمام لأنه ثابت تحت الدوران والقياس.'
+      diagnostics: {
+        eyebrow: 'التشخيص',
+        title: 'تشخيص النموذج',
+        description: 'افحص مصفوفة الالتباس ومقاييس كل فئة للنموذج المحدد باستخدام نفس بيانات المقارنة.',
+        model: 'النموذج',
+        actual: 'الحقيقة',
+        confusion_matrix: 'مصفوفة الالتباس',
+        per_class_metrics: 'مقاييس كل فئة',
+        class: 'الفئة',
+        precision: 'الدقة',
+        recall: 'الاسترجاع',
+        f1: 'F1',
+        support: 'الدعم',
       },
-      exp3: {
-        title: 'مساهمة إعادة التحميل',
-        desc: 'كم تحسّن تقنية إعادة تحميل البيانات من الدقة؟',
-        with: 'مع إعادة التحميل',
-        without: 'بدون إعادة التحميل',
-        contribution: 'المساهمة'
+      config: {
+        eyebrow: 'الإعدادات',
+        title: 'لقطة من إعدادات المقارنة',
       },
-      exp4: {
-        title: 'إنتروبيا التشابك',
-        desc: 'هل تولّد الدائرة الكمّية ارتباطات كمّية حقيقية؟',
-        overallMean: 'متوسط الإنتروبيا الكلي'
+      states: {
+        loading: 'جارٍ تحميل نتائج المقارنة...',
+        error: 'فشل تحميل بيانات المقارنة. تأكد من تشغيل الخلفية وتوفر نتائج benchmark.',
+        empty: 'لا توجد بيانات مقارنة حالياً.',
       },
-      exp5: {
-        title: 'تباين التدرج (فحص الهضبة)',
-        desc: 'هل لا تزال الدائرة الكمّية قادرة على التعلم أم اختفت التدرجات؟',
-        target: 'الطبقة المستهدفة',
-        meanVar: 'متوسط تباين التدرج',
-        absMean: 'المتوسط المطلق',
-        batches: 'الدفعات'
+      models: {
+        CNN: 'CNN',
+        QNN_CPU: 'QNN CPU',
+        QNN_GPU: 'QNN GPU',
       },
-      exp7: {
-        title: 'قابلية تعبير الدائرة الكمّية',
-        desc: 'ما مدى تغطية الدائرة الكمّية لفضاء هيلبرت المتاح؟',
-        klDiv: 'تباعد KL من هار',
-        ref: 'مرجع هار',
-        insight: 'انخفاض تباعد KL يعني أن الدائرة تستكشف فضاء هيلبرت بشكل أكثر انتظاماً. القيم أقل من 0.05 تشير إلى قابلية تعبير قريبة من هار.'
-      },
-      exp9: {
-        title: 'الفرق الهندسي',
-        desc: 'هل تمتد نواة الكمّية لاتجاهات لا تستطيع النواة الكلاسيكية تمثيلها؟',
-        insight: 'g > 1 يعني أن النواة الكمّية تمتد لاتجاهات لا تستطيع نواة RBF الكلاسيكية تمثيلها (Huang et al. 2021). هذا إثبات صارم للتفوق الكمّي.'
-      },
-      exp8: {
-        title: 'محاذاة النواة المستهدفة',
-        desc: 'أي نواة أفضل في التوافق مع تصنيفات البيانات؟',
-        quantum: 'KTA كمّي',
-        classical: 'KTA كلاسيكي',
-        diff: 'الفرق',
-        insight: 'يقيس KTA مدى توافق النواة مع بنية التصنيفات. الفرق الموجب يعني أن النواة الكمّية أفضل توافقاً مع المهمة.'
-      },
-      exp10: {
-        title: 'البعد الفعّال لفيشر',
-        desc: 'ما مدى كفاءة كل نموذج في استخدام معاملاته؟',
-        params: 'المعاملات',
-        dEff1000: 'd_eff (n=1000)',
-        dEffPerParam: 'd_eff / معامل',
-        insight: 'ارتفاع d_eff لكل معامل يعني أن النموذج يستخدم معاملاته بكفاءة أعلى. يحقق QNN بُعداً فعّالاً مماثلاً بعدد معاملات أقل بكثير.'
-      },
-      exp11: {
-        title: 'الرتبة الفعّالة للميزات',
-        desc: 'كم من فضاء التضمين يستخدمه كل فرع فعلياً؟',
-        classical: 'كلاسيكي',
-        quantum: 'كمّي',
-        insight: 'الاستخدام = الرتبة الفعّالة / بُعد التضمين. المقارنة توضح كفاءة كل فرع في استخدام أبعاده المتاحة.'
-      },
-      exp12: {
-        title: 'البعد الجوهري',
-        desc: 'ما مقدار ضغط المعلومات الذي يحققه كل فرع؟',
-        classical: 'كلاسيكي (z)',
-        quantum: 'كمّي (q_emb)',
-        insight: 'انخفاض البعد الجوهري في q_emb مقارنة بـ z مع دقة تنافسية يعني أن الدائرة الكمّية تضغط المعلومات المتعلقة بالفئات بكفاءة أعلى.'
-      },
-      exp14: {
-        title: 'قابلية فصل الفئات',
-        desc: 'ما مدى فصل كل تضمين لفئات العيوب الست؟',
-        advantage: 'تفوق كمّي',
-        insight: 'معيار فيشر J = tr(S_W⁻¹ S_B). ارتفاع J يعني تجمعات أضيق داخل الفئة وفواصل أوسع بين الفئات.'
-      },
-      methodology: {
-        title: 'ملاحظات المنهجية والتجارب'
-      }
     },
+    quantum_advantage: {},
     contact: {
       pageTitle: 'تواصل معنا',
       pageSubtitle: 'يسعدنا سماع رأيك. أرسل لنا رسالة وسنرد عليك في أقرب وقت ممكن.',
