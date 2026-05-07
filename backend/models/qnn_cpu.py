@@ -1,4 +1,4 @@
-﻿"""
+"""
 HybridQnnCPU — Noise-robust hybrid quantum-classical model for industrial defect detection.
 
 Architecture (6 qubits, depth 2):

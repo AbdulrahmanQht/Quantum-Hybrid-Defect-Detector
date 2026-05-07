@@ -17,7 +17,7 @@ Usage:
 
 Output:
     Prints a per-model summary and a PR-3.1 / PR-3.2 verdict.
-    Saves data/results_tests/training_times.json for inclusion in the audit artifact.
+    Saves results/training_time/training_times.json for inclusion in the audit artifact.
 """
 
 from __future__ import annotations
@@ -139,7 +139,7 @@ if __name__ == "__main__":
     parser.add_argument("--gpu", default=None, help="Path to QNN-GPU training log file.")
     parser.add_argument(
         "--out",
-        default="data/results_tests/training_times.json",
+        default="results/training_time/training_times.json",
         help="Path to save JSON results.",
     )
     args = parser.parse_args()

@@ -27,17 +27,27 @@ router = APIRouter(prefix="/api/v1", tags=["Contact"])
 limiter = Limiter(key_func=get_remote_address)
 
 # Configuration (Gmail SMTP)
-conf = ConnectionConfig(
-    MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
-    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
-    MAIL_FROM=os.getenv("MAIL_FROM"),
-    MAIL_PORT=465,
-    MAIL_SERVER="smtp.gmail.com",
-    MAIL_STARTTLS=False,
-    MAIL_SSL_TLS=True,
-    USE_CREDENTIALS=True,
-    VALIDATE_CERTS=True
-)
+_REQUIRED_ENV = ("MAIL_USERNAME", "MAIL_PASSWORD", "MAIL_FROM", "TEAM_LEADER")
+_missing_env = [var for var in _REQUIRED_ENV if not os.getenv(var)]
+
+if _missing_env:
+    logger.warning(
+        f"Email feature DISABLED — missing env vars: {', '.join(_missing_env)}. "
+        "Contact form will accept submissions but will not dispatch emails."
+    )
+    conf = None
+else:
+    conf = ConnectionConfig(
+        MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
+        MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
+        MAIL_FROM=os.getenv("MAIL_FROM"),
+        MAIL_PORT=465,
+        MAIL_SERVER="smtp.gmail.com",
+        MAIL_STARTTLS=False,
+        MAIL_SSL_TLS=True,
+        USE_CREDENTIALS=True,
+        VALIDATE_CERTS=True,
+    )
 
 class ContactForm(BaseModel):
     # Field constraints handle length and reject empty strings
@@ -60,6 +70,16 @@ def sanitize_for_log(value: str, max_len: int = 100) -> str:
 async def handle_contact_form(request: Request, form: ContactForm):
     # Log the start of the request
     logger.info(f"Contact form from: {sanitize_for_log(form.name)} | Subject: {sanitize_for_log(form.subject)}")
+    
+    if conf is None:
+        logger.warning(
+            f"Email skipped (env not configured) for: {sanitize_for_log(form.name)}"
+        )
+        # Still return 200 — the form worked, email just isn't available
+        return {
+            "status": "received",
+            "detail": "Message received. Email dispatch is currently unavailable.",
+        }
 
     # Structured Plain Text Body (Safe for IAU Outlook Filters)
     structured_body = (
@@ -73,7 +93,7 @@ async def handle_contact_form(request: Request, form: ContactForm):
         f"Sent via Graduation Project Automated Bot."
     )
 
-    email_subject = form.subject.strip() if form.subject.strip() else "New Project Inquiry"
+    email_subject = form.subject
 
     message = MessageSchema(
         subject=email_subject,
@@ -90,12 +110,12 @@ async def handle_contact_form(request: Request, form: ContactForm):
         await fm.send_message(message)
 
         # Log successful dispatch
-        logger.info(f"Email successfully sent for: {form.name}")
+        logger.info(f"Email successfully sent for: {sanitize_for_log(form.name)}")
         return {"status": "success"}
 
     except Exception as e:
         # Log the error with a stack trace via your custom Logger
-        logger.error(f"Failed to send contact email for {form.name}: {str(e)}")
+        logger.error(f"Failed to send contact email for {sanitize_for_log(form.name)}: {str(e)}")
 
         raise HTTPException(
             status_code=500,

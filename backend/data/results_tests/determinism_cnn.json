@@ -1,8 +1,0 @@
-{
-  "generated_at": "2026-04-22T19:27:55Z",
-  "model": "CNN",
-  "n_images": 50,
-  "n_runs": 2,
-  "max_logit_diff_between_runs": 0.0,
-  "deterministic": true
-}

@@ -19,10 +19,10 @@ Email sending is mocked throughout — no real SMTP calls are made.
 QA file loading is mocked when the file does not exist on disk.
 
 Results saved to:
-    data/results_tests/contract_classify_schema.json
-    data/results_tests/contract_benchmark_schema.json
-    data/results_tests/contract_qa_schema.json
-    data/results_tests/contract_contact_schema.json
+    results/contract/contract_classify_schema.json
+    results/contract/contract_benchmark_schema.json
+    results/contract/contract_qa_schema.json
+    results/contract/contract_contact_schema.json
 
 Run:
     pytest tests/test_contract.py -v
@@ -45,7 +45,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-RESULTS_DIR = Path("data/results_tests")
+RESULTS_DIR = Path("results")
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 CLASS_NAMES = [
@@ -255,7 +255,7 @@ def _assert_model_result_schema(result: dict, model_name: str) -> None:
 @pytest.fixture(scope="module")
 def client():
     from fastapi.testclient import TestClient
-    from backend.app.main import app 
+    from .app.main import app 
     
     # Using 'with' triggers the @asynccontextmanager lifespan in main.py
     with TestClient(app, base_url="http://localhost") as c:
@@ -297,8 +297,8 @@ def qa_response(client):
         return client.get("/api/v1/quantum-advantage")
 
     try:
-        from backend.app.routers import quantum_advantage as qa_mod
-        from backend.app.routers.quantum_advantage import QuantumAdvantageResults
+        from .app.routers import quantum_advantage as qa_mod
+        from .app.routers.quantum_advantage import QuantumAdvantageResults
         validated = QuantumAdvantageResults.model_validate(_MINIMAL_QA_PAYLOAD)
         with patch.object(qa_mod, "_qa_cache", validated):
             return client.get("/api/v1/quantum-advantage")
@@ -647,16 +647,16 @@ class TestQuantumAdvantageContract:
 
     def test_missing_qa_file_returns_503(self, client):
         try:
-            from backend.app.routers import quantum_advantage as qa_mod
+            from .app.routers import quantum_advantage as qa_mod
         except ImportError:
-            pytest.skip("backend.app.routers.quantum_advantage not importable")
+            pytest.skip(".app.routers.quantum_advantage not importable")
 
         from fastapi import HTTPException
         original = qa_mod._qa_cache
         try:
             qa_mod._qa_cache = None
             with patch(
-                "backend.app.routers.quantum_advantage._load_qa_results",
+                ".app.routers.quantum_advantage._load_qa_results",
                 side_effect=HTTPException(
                     status_code=503,
                     detail="Quantum Advantage results are not available yet.",
@@ -671,16 +671,16 @@ class TestQuantumAdvantageContract:
 
     def test_malformed_qa_file_returns_500(self, client):
         try:
-            from backend.app.routers import quantum_advantage as qa_mod
+            from .app.routers import quantum_advantage as qa_mod
         except ImportError:
-            pytest.skip("backend.app.routers.quantum_advantage not importable")
+            pytest.skip(".app.routers.quantum_advantage not importable")
 
         from fastapi import HTTPException
         original = qa_mod._qa_cache
         try:
             qa_mod._qa_cache = None
             with patch(
-                "backend.app.routers.quantum_advantage._load_qa_results",
+                ".app.routers.quantum_advantage._load_qa_results",
                 side_effect=HTTPException(
                     status_code=500,
                     detail="Quantum Advantage file is malformed JSON.",
@@ -736,7 +736,7 @@ class TestContactContract:
 
     @staticmethod
     def _post(client, payload: dict):
-        with patch("backend.app.routers.contact.FastMail") as mock_cls:
+        with patch(".app.routers.contact.FastMail") as mock_cls:
             mock_fm = MagicMock()
             mock_fm.send_message = AsyncMock(return_value=None)
             mock_cls.return_value = mock_fm
@@ -851,7 +851,7 @@ class TestContactContract:
 
     def test_non_json_body_rejected_422(self, client):
         """Contact endpoint expects JSON — multipart/form-encoded must be rejected."""
-        with patch("backend.app.routers.contact.FastMail"):
+        with patch(".app.routers.contact.FastMail"):
             resp = client.post(
                 "/api/v1/contact",
                 data={"name": "Test", "subject": "Sub", "message": "Message here."},
@@ -861,7 +861,7 @@ class TestContactContract:
     # ── SMTP failure path ─────────────────────────────────────────────────────
 
     def test_smtp_failure_returns_500(self, client):
-        with patch("backend.app.routers.contact.FastMail") as mock_cls:
+        with patch(".app.routers.contact.FastMail") as mock_cls:
             mock_fm = MagicMock()
             mock_fm.send_message = AsyncMock(
                 side_effect=Exception("SMTP connection refused")
@@ -872,7 +872,7 @@ class TestContactContract:
         assert resp.status_code == 500
 
     def test_smtp_failure_returns_user_friendly_detail(self, client):
-        with patch("backend.app.routers.contact.FastMail") as mock_cls:
+        with patch(".app.routers.contact.FastMail") as mock_cls:
             mock_fm = MagicMock()
             mock_fm.send_message = AsyncMock(
                 side_effect=Exception("connection timeout")
@@ -891,7 +891,7 @@ class TestContactContract:
         )
 
     def test_smtp_failure_no_stack_trace_in_response(self, client):
-        with patch("backend.app.routers.contact.FastMail") as mock_cls:
+        with patch(".app.routers.contact.FastMail") as mock_cls:
             mock_fm = MagicMock()
             mock_fm.send_message = AsyncMock(
                 side_effect=Exception("timeout")
@@ -912,7 +912,7 @@ class TestContactContract:
         5/minute rate limit — the 6th request within a minute must return 429.
         Uses xfail because the TestClient may reset rate state between requests.
         """
-        with patch("backend.app.routers.contact.FastMail") as mock_cls:
+        with patch(".app.routers.contact.FastMail") as mock_cls:
             mock_fm = MagicMock()
             mock_fm.send_message = AsyncMock(return_value=None)
             mock_cls.return_value = mock_fm

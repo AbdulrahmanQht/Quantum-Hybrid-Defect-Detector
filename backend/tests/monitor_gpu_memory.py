@@ -9,7 +9,7 @@ Usage modes:
 1. Hook into a training run (recommended):
    Add to your training loop:
        from tests.monitor_gpu_memory import GpuMemoryMonitor
-       monitor = GpuMemoryMonitor(threshold=0.90, log_path="data/results_tests/gpu_memory.csv")
+       monitor = GpuMemoryMonitor(threshold=0.90, log_path="results/gpu_memory/gpu_memory.csv")
        # In epoch loop:
        monitor.sample(label=f"epoch_{epoch}_start")
        # ... train ...
@@ -224,7 +224,7 @@ def _sidecar_monitor(
     interval_s: int = 5,
     duration_s: int = 3600,
     threshold_pct: float = 90.0,
-    log_path: str = "data/results_tests/gpu_sidecar.csv",
+    log_path: str = "results/gpu_memory/gpu_sidecar.csv",
 ) -> None:
     """
     External monitor: reads GPU stats from nvidia-smi at `interval_s` intervals
@@ -336,7 +336,7 @@ if __name__ == "__main__":
         "--threshold", type=float, default=0.90, help="Violation threshold (0.0–1.0)."
     )
     parser.add_argument(
-        "--log", default="data/results_tests/gpu_memory.csv", help="CSV output path."
+        "--log", default="results/gpu_memory/gpu_memory.csv", help="CSV output path."
     )
 
     args = parser.parse_args()

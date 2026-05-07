@@ -19,7 +19,7 @@ Run:
     pytest tests/test_property_based.py -v
     pytest tests/test_property_based.py -v --hypothesis-seed=0   # deterministic
 
-Results saved to: data/results_tests/property_based.json
+Results saved to: results/property_based/property_based.json
 """
 
 from __future__ import annotations
@@ -45,7 +45,7 @@ pytestmark = pytest.mark.skipif(
     reason="hypothesis not installed: pip install hypothesis --break-system-packages",
 )
 
-from backend.utils.noise import (
+from .utils.noise import (
     apply_noise,
     noise_gaussian,
     noise_blur,
@@ -60,7 +60,7 @@ from backend.utils.noise import (
 BACKEND_DIR = Path(__file__).parent.parent.resolve()
 sys.path.insert(0, str(BACKEND_DIR))
 
-RESULTS_DIR = BACKEND_DIR / "data" / "results_tests"
+RESULTS_DIR = "results" / "property_based"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -384,10 +384,10 @@ class TestValidatorHypothesis:
 
     def _get_validator(self):
         try:
-            from backend.utils.validate import check_magic_bytes, check_file_size, check_dimensions
+            from .utils.validate import check_magic_bytes, check_file_size, check_dimensions
             return check_magic_bytes, check_file_size, check_dimensions
         except ImportError:
-            pytest.skip("backend.utils.validate not importable")
+            pytest.skip(".utils.validate not importable")
 
 
     @given(size=st.integers(min_value=0, max_value=10 * 1024 * 1024))

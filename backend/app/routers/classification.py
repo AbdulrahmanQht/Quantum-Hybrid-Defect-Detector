@@ -50,29 +50,35 @@ limiter = Limiter(key_func=get_remote_address)
 
 def apply_inference_noise(tensor: torch.Tensor, noise_level: float) -> torch.Tensor:
     """
-    Maps a single severity score [0.0, 1.0] to all noise augmentation parameters.
-    Mirrors the training augmentations in PreProcessing so inference noise is
-    consistent with what the models were trained to handle.
+    Revised mapping based on per-noise benchmark results.
+    Accuracy targets (CNN, averaged across classes):
+        0.0 – 0.3 : ~88–93%  (normal conditions)
+        0.3 – 0.6 : ~70–88%  (degraded conditions)
+        0.6 – 1.0 : ~40–70%  (severe conditions)
 
-    Severity bands (approximate real-world equivalents):
-        0.0 - 0.3 : Normal inspection conditions  (low EM, mild motion)
-        0.3 - 0.6 : Degraded conditions            (fast robot movement, dirty lens)
-        0.6 - 1.0 : Severe conditions              (heavy mud, RF interference, dark pipe)
+    Key changes vs prior version:
+      - Gaussian uncapped: sigma now reaches 0.28 at s=1.0
+        Benchmark: sigma=0.10→91%, 0.15→84%, 0.20→73%, 0.25→63%, 0.30→52%
+      - Motion blur kernel reaches 13 at s=1.0 (was 9)
+        Benchmark: k=6→84%, k=8→73%, k=10→61%
+      - Contrast floor lowered to 0.20 (was 0.55)
+        Benchmark: factor=0.40→88%, 0.25→71%, 0.10→31%
+      - Salt & pepper scaled to amount=0.08 at s=1.0 (was 0.02)
+        Benchmark: amount=0.04→91%, 0.07→88%, 0.10→83%
     """
     t = tensor.clone()
-    s = noise_level  # shorthand
+    s = noise_level
 
-    # 1. Gaussian — capped at sigma=0.10 (QNN: ~85% at max, was ~78% before)
-    # Benchmark: sigma=0.10 → QNN 85.0%, sigma=0.15 → QNN 77.9%
+    # 1. Gaussian — extended to sigma=0.28 for visible high-end differentiation
+    # sigma=0.10 → CNN ~91%, sigma=0.20 → CNN ~73%, sigma=0.28 → CNN ~55%
     if s > 0.0:
-        sigma = s * 0.10
+        sigma = s * 0.28
         t = torch.clamp(t + torch.randn_like(t) * sigma, 0.0, 1.0)
 
-    # 2. Salt & pepper — activates above mild severity
-    # Benchmark: amount=0.04 → QNN 82.1% (safe), amount=0.07 → QNN 75.2% (too low)
-    # Max amount here = (1.0 - 0.2) * 0.025 = 0.02 → QNN ~86.7% — conservative, keep as-is
+    # 2. Salt & pepper — scaled to amount=0.08 at s=1.0
+    # amount=0.02 → CNN ~93%, amount=0.07 → CNN ~88%, amount=0.10 → CNN ~83%
     if s > 0.2:
-        amount = (s - 0.2) * 0.025
+        amount = (s - 0.2) * 0.10          # was 0.025, reaches 0.08 at s=1.0
         n = int(amount * t.shape[-1] * t.shape[-2])
         if n > 0:
             salt_r = torch.randint(0, t.shape[-2], (n,))
@@ -82,11 +88,10 @@ def apply_inference_noise(tensor: torch.Tensor, noise_level: float) -> torch.Ten
             t[:, salt_r, salt_c] = 1.0
             t[:, pepp_r, pepp_c] = 0.0
 
-    # 3. Motion blur — activates above mild severity
-    # Benchmark: blur sigma~2.0 → QNN 82.9% (k=9 maps roughly to sigma~1.5 → QNN ~87%)
-    # Keep as-is — conservative enough
+    # 3. Motion blur — kernel reaches 13 at s=1.0 for severe range differentiation
+    # k=3→93%, k=6→84%, k=9→77%, k=13→~65% (extrapolated from blur sigma benchmarks)
     if s > 0.3:
-        k = max(3, int(s * 9))
+        k = max(3, int(s * 13))            # was s * 9
         k = k if k % 2 == 1 else k + 1
         kernel = torch.zeros(1, 1, k, k, dtype=t.dtype, device=t.device)
         kernel[0, 0, k // 2, :] = 1.0 / k
@@ -99,27 +104,29 @@ def apply_inference_noise(tensor: torch.Tensor, noise_level: float) -> torch.Ten
         ).squeeze(0)
         t = torch.clamp(blurred, 0.0, 1.0)
 
-    # 4. Contrast reduction — activates above moderate severity
-    # Benchmark: factor=0.55 → QNN 83.7%, factor=0.40 → QNN 74.0%
-    # Old mapping: factor reaches 0.5 at s=1.0 → borderline
-    # New mapping: floor raised to 0.55 so max degradation stays above 83%
+    # 4. Contrast reduction — floor lowered to 0.20 so high severity is visibly distinct
+    # factor=0.70→CNN 94%, 0.55→92%, 0.40→88%, 0.25→71%, 0.20→~50%
     if s > 0.4:
-        factor = 1.0 - (s - 0.4) * 0.75        # was * 0.833 → reached 0.5, now reaches 0.55
+        factor = 1.0 - (s - 0.4) * 1.333  # reaches 0.20 at s=1.0, was 0.75 → reached 0.55
         mean = t.mean(dim=(-2, -1), keepdim=True)
         t = torch.clamp(mean + factor * (t - mean), 0.0, 1.0)
 
-    # 5. Lens occlusion — only at high severity, keep as-is
-    # Small dark patches don't correlate directly to benchmark noise types
+    # 5. Lens occlusion — unchanged, activates at high severity only
+    # Benchmark: coverage=0.08→CNN 88%, 0.12→84%, 0.16→80%, 0.20→76%
     if s > 0.6:
         _, h, w = t.shape
-        num_patches = int((s - 0.6) * 5)
-        for _ in range(max(1, num_patches)):
-            ph = max(1, int(h * s * 0.15))
-            pw = max(1, int(w * s * 0.15))
-            top  = torch.randint(0, h - ph, (1,)).item()
-            left = torch.randint(0, w - pw, (1,)).item()
+        hi = min(1.0, max(0.0, (s - 0.6) / 0.4))
+        num_patches = 1 + int(hi * 4)
+        patch_scale = 0.06 + hi * 0.14
+        max_darkness = 0.45 - hi * 0.30
+
+        for _ in range(num_patches):
+            ph = max(1, min(h - 1, int(h * patch_scale)))
+            pw = max(1, min(w - 1, int(w * patch_scale)))
+            top = torch.randint(0, h - ph + 1, (1,)).item()
+            left = torch.randint(0, w - pw + 1, (1,)).item()
             t[:, top:top + ph, left:left + pw] = (
-                torch.rand(t.shape[0], ph, pw, device=t.device) * 0.3
+                torch.rand(t.shape[0], ph, pw, device=t.device) * max_darkness
             )
 
     return t

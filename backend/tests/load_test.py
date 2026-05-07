@@ -18,8 +18,8 @@ Run (standard 3-minute soak, 20 users):
            --host=http://localhost:8000 \
            --users 20 --spawn-rate 2 --run-time 3m \
            --headless \
-           --csv=data/results_tests/locust \
-           --html=data/results_tests/locust_report.html
+           --csv=results/load_test/locust \
+           --html=results/load_test/locust_report.html
 
 Run (interactive web UI — pick user class in browser):
     locust -f tests/load_test.py --host=http://localhost:8000
@@ -394,7 +394,7 @@ class ThreePhaseShape(LoadTestShape):
     Use:
         locust -f tests/load_test.py --host=... --headless \\
                --shape-class ThreePhaseShape \\
-               --csv=backend/data/results_tests/locust
+               --csv=backend/results/locust
     """
 
     stages = [

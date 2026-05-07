@@ -279,7 +279,11 @@ if __name__ == "__main__":
         address="127.0.0.1",
         port=8000,
         interface=Interfaces.ASGI,
-        workers=1,       # GPU app — multiple workers = duplicate VRAM per worker
+        workers=1,    # GPU app — multiple workers = duplicate VRAM per worker
+        reload=True,        # auto reload on code changes
+        log_access=True,    # show request logs
+        log_level="info",   # debug/info/warning/error
+        reload_paths=["app"] # Only reload when changes happens under app/
     )
 
     server.serve()

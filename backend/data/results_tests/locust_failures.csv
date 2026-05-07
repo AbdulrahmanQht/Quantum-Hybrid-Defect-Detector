@@ -1,3 +1,0 @@
-Method,Name,Error,Occurrences
-POST,/api/v1/classify [JPEG],"CatchResponseError('HTTP 500: {""detail"":""Error during classification.""}')",1
-POST,/api/v1/classify [PR-4.2 burst],CatchResponseError('HTTP 500'),1

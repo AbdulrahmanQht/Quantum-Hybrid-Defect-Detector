@@ -10,7 +10,7 @@ const isArabic = computed(() => locale.value === 'AR')
 </script>
 
 <template>
-  <footer class="site-footer" :class="{ 'site-footer--ar': isArabic }">
+  <footer class="site-footer" :class="{ 'site-footer--ar': isArabic }" :dir="isArabic ? 'rtl' : 'ltr'">
     <div class="site-footer__top">
       <div class="site-footer__grid">
         <div class="site-footer__col" :dir="isArabic ? 'rtl' : 'ltr'">
@@ -78,10 +78,14 @@ const isArabic = computed(() => locale.value === 'AR')
 }
 
 .site-footer__grid {
-  max-width: 1400px;
+  /* Reducing this from 1400px keeps the columns from spreading too far */
+  max-width: 1100px; 
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 1fr 1.2fr 1fr;
+  /* Using specific fractions to give the middle column (Research Team) more room */
+  grid-template-columns: 1fr 1.5fr 1fr;
+  /* Reverting to space-between now that the container is narrower */
+  justify-content: space-between; 
   gap: 2rem;
 }
 
@@ -89,6 +93,16 @@ const isArabic = computed(() => locale.value === 'AR')
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
+  /* Aligns to start (Right for AR / Left for EN) */
+  align-items: flex-start;
+  text-align: start;
+}
+.site-footer:not([dir="rtl"]) .site-footer__link:hover {
+  transform: translateX(4px);
+}
+
+.site-footer[dir="rtl"] .site-footer__link:hover {
+  transform: translateX(-4px);
 }
 
 .site-footer__heading {
@@ -96,6 +110,7 @@ const isArabic = computed(() => locale.value === 'AR')
   font-weight: 800;
   color: var(--q-teal);
   margin-bottom: 0.35rem;
+  text-align: start; 
 }
 
 .site-footer__link {
@@ -105,13 +120,18 @@ const isArabic = computed(() => locale.value === 'AR')
   width: fit-content;
   text-decoration: none;
   color: var(--q-muted);
-  transition: color 0.18s ease, transform 0.18s ease;
+  transition: all 0.18s ease;
 }
 
+/* Logical hover effect: works for both EN and AR */
 .site-footer__link:hover {
   color: var(--q-text);
-  transform: translateX(2px);
+  margin-inline-start: 4px; 
 }
+
+/* 4. REMOVE all the .site-footer--ar blocks at the bottom of your file */
+/* They are no longer needed because :dir on the parent handles it all! */
+
 
 .site-footer__bottom {
   border-top: 1px solid var(--q-bar-border);
@@ -123,12 +143,14 @@ const isArabic = computed(() => locale.value === 'AR')
   margin: 0 auto;
   color: var(--q-muted);
   font-size: 0.9rem;
+  /* Aligns the copyright text to the right in Arabic, left in English */
+  text-align: start;
 }
 
 @media (max-width: 960px) {
   .site-footer__grid {
     grid-template-columns: 1fr;
-    gap: 1.75rem;
+    gap: 2rem;
   }
 }
 .site-footer--ar .site-footer__heading {

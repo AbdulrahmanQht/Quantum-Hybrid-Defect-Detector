@@ -53,6 +53,8 @@ onMounted(async () => {
   }
 })
 
+const formatModelName = (name) => name.replace(/_/g, ' ')
+
 // ── Experiment 1: Feature Orthogonality ──
 const featureOrthogonality = computed(() => {
   if (!qaData.value?.experiment_1_feature_orthogonality) return {}
@@ -67,7 +69,7 @@ const primaryOrthogonality = computed(() => {
 const branchAblationModels = computed(() => {
   if (!qaData.value?.experiment_2_branch_ablation) return []
   return Object.entries(qaData.value.experiment_2_branch_ablation).map(([name, m]) => ({
-    name,
+    name: formatModelName(name),
     full_accuracy: m.full_accuracy || 0,
     classical_only_accuracy: m.classical_only_accuracy || 0,
     quantum_only_accuracy: m.quantum_only_accuracy || 0,
@@ -108,7 +110,7 @@ const entanglementData = computed(() => {
 const gradientVarianceRows = computed(() => {
   if (!qaData.value?.experiment_5_gradient_variance) return []
   return Object.entries(qaData.value.experiment_5_gradient_variance).map(([model, m]) => ({
-    model,
+    model: formatModelName(model),
     layer: m.target,
     mean_var: m.mean_grad_variance,
     abs_mean: m.mean_grad_abs_mean,
@@ -138,7 +140,7 @@ const noiseChartData = computed(() => {
   const datasets = Object.entries(exp).map(([model, data], i) => {
     const rows = data[type] || []
     return {
-      label: model,
+      label: formatModelName(model),
       data: rows.map(r => r['quantum_noise_gain_%'] ?? r.quantum_noise_gain_pct ?? 0),
       borderColor: colors[i % colors.length],
       backgroundColor: colors[i % colors.length] + '33',
@@ -164,7 +166,7 @@ const noiseChartOptions = ref({
 const expressibilityData = computed(() => {
   if (!qaData.value?.experiment_7_vqc_expressibility) return []
   return Object.entries(qaData.value.experiment_7_vqc_expressibility).map(([model, m]) => ({
-    model,
+    model: formatModelName(model),
     kl: m.kl_divergence_from_haar,
     ref: m.haar_reference,
     interpretation: m.interpretation
@@ -175,7 +177,7 @@ const expressibilityData = computed(() => {
 const ktaData = computed(() => {
   if (!qaData.value?.experiment_8_kernel_target_alignment) return []
   return Object.entries(qaData.value.experiment_8_kernel_target_alignment).map(([model, m]) => ({
-    model,
+    model: formatModelName(model),
     quantum: m.kta_quantum,
     classical: m.kta_classical,
     diff: m.kta_difference,
@@ -188,7 +190,7 @@ const ktaData = computed(() => {
 const geoData = computed(() => {
   if (!qaData.value?.experiment_9_geometric_difference) return []
   return Object.entries(qaData.value.experiment_9_geometric_difference).map(([model, m]) => ({
-    model,
+    model: formatModelName(model),
     value: m.geometric_difference,
     advantage: m.advantage,
     interpretation: m.interpretation
@@ -199,7 +201,7 @@ const geoData = computed(() => {
 const fisherData = computed(() => {
   if (!qaData.value?.experiment_10_fisher_effective_dim) return []
   return Object.entries(qaData.value.experiment_10_fisher_effective_dim).map(([model, m]) => ({
-    model,
+    model: formatModelName(model),
     nParams: m.n_quantum_params || m.n_params,
     dEff: m.effective_dimension,
     dEffPerParam: m.d_eff_per_param,
@@ -211,7 +213,7 @@ const fisherData = computed(() => {
 const effectiveRankData = computed(() => {
   if (!qaData.value?.experiment_11_feature_effective_rank) return []
   return Object.entries(qaData.value.experiment_11_feature_effective_rank).map(([model, m]) => ({
-    model,
+    model: formatModelName(model),
     zUtil: m.z_utilisation,
     qUtil: m.q_emb_utilisation,
     interpretation: m.interpretation
@@ -222,7 +224,7 @@ const effectiveRankData = computed(() => {
 const intrinsicDimData = computed(() => {
   if (!qaData.value?.experiment_12_intrinsic_dimension) return []
   return Object.entries(qaData.value.experiment_12_intrinsic_dimension).map(([model, m]) => ({
-    model,
+    model: formatModelName(model),
     dimZ: m.intrinsic_dim_z,
     dimQ: m.intrinsic_dim_q_emb,
     interpretation: m.interpretation
@@ -233,7 +235,7 @@ const intrinsicDimData = computed(() => {
 const ckaData = computed(() => {
   if (!qaData.value?.experiment_13_linear_cka) return []
   return Object.entries(qaData.value.experiment_13_linear_cka).map(([model, m]) => ({
-    model,
+    model: formatModelName(model),
     cka: m.cka_classical_vs_quantum,
     interpretation: m.interpretation
   }))
@@ -243,7 +245,7 @@ const ckaData = computed(() => {
 const separabilityData = computed(() => {
   if (!qaData.value?.experiment_14_class_separability) return []
   return Object.entries(qaData.value.experiment_14_class_separability).map(([model, m]) => ({
-    model,
+    model: formatModelName(model),
     fisherZ: m.fisher_criterion_z,
     fisherZProj: m.fisher_criterion_z_proj,
     fisherQ: m.fisher_criterion_q_emb,
@@ -256,7 +258,7 @@ const separabilityData = computed(() => {
 const isArabic = computed(() => locale.value.toLowerCase() === 'ar')
 const notesAr = {
   entanglement_entropy:
-    'QNN_GPU يستخدم lightning.gpu؛ الأوزان تُنسخ إلى default.qubit لاستخراج حالة التشابك.',
+    'QNN GPU يستخدم lightning.gpu؛ الأوزان تُنسخ إلى default.qubit لاستخراج حالة التشابك.',
   expressibility:
     'تم استخدام الأوزان المدربة — يقيس قابلية التعبير للدارة المتعلمة، وليس فقط سعة النموذج.',
   kernel_experiments:
@@ -470,7 +472,7 @@ const pct = (val) => (val * 100).toFixed(1)
             <p class="text-sm" style="color: var(--q-muted)">{{ t('qa.exp1.explanation') }}</p>
             <div v-if="Object.keys(featureOrthogonality).length > 1" class="flex gap-4 pt-2">
               <div v-for="(val, model) in featureOrthogonality" :key="model" class="text-sm">
-                <span style="color: var(--q-muted)">{{ model }}:</span>
+                <span style="color: var(--q-muted)">{{ formatModelName(model) }}: </span>
                 <span class="font-mono" style="color: var(--q-text)"> {{ val.toFixed(4) }}</span>
               </div>
             </div>

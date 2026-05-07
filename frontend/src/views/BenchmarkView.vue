@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, nextTick } from 'vue'
+import { computed, onMounted, ref, nextTick, onErrorCaptured } from 'vue'
 import { useI18n } from 'vue-i18n'
 import deformationImage from '../assets/benchmark/deformation.jpg'
 import depositionImage from '../assets/benchmark/deposition.jpg'
@@ -7,6 +7,17 @@ import disconnectImage from '../assets/benchmark/disconnect.jpg'
 import misalignmentImage from '../assets/benchmark/misalignment.jpg'
 import obstacleImage from '../assets/benchmark/obstacle.jpg'
 import ruptureImage from '../assets/benchmark/rupture.jpg'
+import { AlertCircle } from 'lucide-vue-next'
+import { 
+  Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, 
+  LinearScale, PointElement, LineElement, RadialLinearScale 
+} from 'chart.js'
+import { Bar, Line, Radar, Scatter } from 'vue-chartjs'
+
+ChartJS.register(
+  CategoryScale, LinearScale, BarElement, PointElement, 
+  LineElement, RadialLinearScale, Title, Tooltip, Legend
+)
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -181,7 +192,182 @@ const modelBadgeKey = (modelKey) => {
 }
 
 const formatPercent = (value, digits = 1) => `${Number(value || 0).toFixed(digits)}%`
-const formatMetric  = (value, digits = 2)  => Number(value || 0).toFixed(digits)
+const formatMetric = (value, digits = 2) => Number(value || 0).toFixed(digits)
+
+const getModelColor = (key, alpha = 1) => {
+  const colors = {
+    CNN:     `rgba(37, 99, 235, ${alpha})`,
+    QNN_CPU: `rgba(13, 148, 136, ${alpha})`,
+    QNN_GPU: `rgba(124, 58, 237, ${alpha})`,
+  }
+  return colors[key] || '#94a3b8'
+}
+
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'inherit' } } }
+  },
+  scales: {
+    y: { grid: { color: 'rgba(148, 163, 184, 0.1)' }, ticks: { color: '#94a3b8' } },
+    x: { grid: { color: 'rgba(148, 163, 184, 0.1)' }, ticks: { color: '#94a3b8' } },
+  },
+}
+
+const radarOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'inherit' } } }
+  },
+  scales: {
+    r: {
+      min: 75,
+      max: 100,
+      grid: { color: 'rgba(148, 163, 184, 0.15)' },
+      ticks: {
+        color: '#94a3b8',
+        backdropColor: 'transparent',
+        stepSize: 5,
+      },
+      pointLabels: { color: '#94a3b8', font: { size: 12 } },
+    },
+  },
+}
+
+const _baseScatterOptions = {
+  ...chartOptions,
+  scales: {
+    x: { ...chartOptions.scales.x, title: { display: true, text: 'Latency (ms)', color: '#94a3b8' } },
+    y: { ...chartOptions.scales.y, title: { display: true, text: 'Accuracy (%)', color: '#94a3b8' } },
+  },
+  plugins: {
+    ...chartOptions.plugins,
+    tooltip: {
+      callbacks: {
+        label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}% @ ${ctx.parsed.x.toFixed(2)} ms`,
+      },
+    },
+  },
+}
+
+const robustnessChartOptions = computed(() => {
+  if (!benchmarkData.value?.extended_robustness) return chartOptions
+  const rows = benchmarkData.value.extended_robustness.filter(d => d.noise_type === selectedNoiseType.value)
+  const vals = rows.flatMap(d => [d.CNN_accuracy, d.QNN_CPU_accuracy, d.QNN_GPU_accuracy]).filter(v => v != null)
+  if (!vals.length) return chartOptions
+  return {
+    ...chartOptions,
+    scales: {
+      ...chartOptions.scales,
+      y: { ...chartOptions.scales.y, min: Math.max(0, Math.floor(Math.min(...vals)) - 3), max: Math.min(100, Math.ceil(Math.max(...vals)) + 1) },
+    },
+  }
+})
+
+// Tighten scatter axes dynamically around actual values
+const scatterOptions = computed(() => {
+  if (!benchmarkData.value?.latency_data) return _baseScatterOptions
+  const lats = benchmarkData.value.latency_data.map(d => d.avg_latency_ms)
+  const accs = benchmarkData.value.latency_data.map(d =>
+    benchmarkData.value.clean_evaluation?.[d.model]?.accuracy ?? 0)
+  return {
+    ..._baseScatterOptions,
+    scales: {
+      x: { ..._baseScatterOptions.scales.x, min: Math.floor(Math.min(...lats) * 0.7), max: Math.ceil(Math.max(...lats) * 1.3) },
+      y: { ..._baseScatterOptions.scales.y, min: Math.floor(Math.min(...accs)) - 2,    max: Math.min(100, Math.ceil(Math.max(...accs)) + 1) },
+    },
+  }
+})
+
+const radarChartData = computed(() => {
+  if (!benchmarkData.value?.maun_summary) return { labels: [], datasets: [] }
+
+  const metrics = ['accuracy', 'f1', 'precision', 'recall', 'overall_maun']
+  const modelKeys = ['CNN', 'QNN_CPU', 'QNN_GPU']
+
+  return {
+    labels: metrics.map(m => t(`benchmark.metrics.${m}`)),
+    datasets: modelKeys.map(m => {
+      const evalData = benchmarkData.value.clean_evaluation?.[m]
+      if (!evalData) return null
+      const maunData = benchmarkData.value.maun_summary.find(s => s.model === m)
+      return {
+        label: m,
+        data: [
+          evalData.accuracy ?? 0,
+          (evalData.averages?.weighted?.f1 ?? 0),
+          (evalData.averages?.weighted?.precision ?? 0),
+          (evalData.averages?.weighted?.recall ?? 0),
+          maunData?.overall_maun ?? 0,
+        ],
+        borderColor: getModelColor(m),
+        backgroundColor: getModelColor(m, 0.2),
+      }
+    }).filter(Boolean),
+  }
+})
+const scatterChartData = computed(() => {
+  if (!benchmarkData.value?.latency_data) return { datasets: [] }
+
+  return {
+    datasets: benchmarkData.value.latency_data.map(item => ({
+      label: item.model,
+      data: [{
+        x: item.avg_latency_ms,
+        y: benchmarkData.value.clean_evaluation?.[item.model]?.accuracy ?? 0,
+      }],
+      backgroundColor: getModelColor(item.model),
+      pointRadius: 10,
+      hoverRadius: 12,
+    })),
+  }
+})
+
+const robustnessChartData = computed(() => {
+  if (!benchmarkData.value?.extended_robustness) return { labels: [], datasets: [] }
+  const data = benchmarkData.value.extended_robustness.filter(d => d.noise_type === selectedNoiseType.value)
+  return {
+    labels: data.map(d => d.level),
+    datasets: [
+      { label: 'CNN',     data: data.map(d => d.CNN_accuracy),     borderColor: getModelColor('CNN'),     tension: 0.3, fill: false },
+      { label: 'QNN CPU', data: data.map(d => d.QNN_CPU_accuracy), borderColor: getModelColor('QNN_CPU'), tension: 0.3, fill: false },
+      { label: 'QNN GPU', data: data.map(d => d.QNN_GPU_accuracy), borderColor: getModelColor('QNN_GPU'), tension: 0.3, fill: false },
+    ],
+  }
+})
+
+const reliabilityChartData = computed(() => {
+  if (!benchmarkData.value?.extended_robustness) return { labels: [], datasets: [] }
+  const data = benchmarkData.value.extended_robustness.filter(d => d.noise_type === selectedNoiseType.value)
+  const m = selectedModelKey.value
+  return {
+    labels: data.map(d => d.level),
+    datasets: [
+      {
+        label: t('benchmark.charts.actual_acc_label'),
+        data: data.map(d => d[`${m}_accuracy`]),
+        borderColor: getModelColor(m),
+        fill: false,
+      },
+      {
+        label: t('benchmark.charts.confidence_label'),
+        data: data.map(d => d[`${m}_mean_conf`]),
+        borderColor: '#94a3b8',
+        borderDash: [5, 5],
+        fill: false,
+      },
+    ],
+  }
+})
+
+onErrorCaptured((err) => {
+  console.error('[BenchmarkView] caught error:', err)
+  error.value = 'benchmark.states.error' // ← always an i18n key, never a raw message
+  isLoading.value = false
+  return false
+})
 </script>
 
 <template>
@@ -205,9 +391,13 @@ const formatMetric  = (value, digits = 2)  => Number(value || 0).toFixed(digits)
       </Card>
     </div>
 
-    <!-- ── Error ── -->
-    <div v-else-if="error" class="benchmark-state">
-      <Message severity="error" :closable="false">{{ t(error) }}</Message>
+    <!-- Error  -->
+    <div v-else-if="error" class="px-4 mx-auto max-w-screen-2xl sm:px-6 lg:px-8">
+      <div class="glass-card flex flex-col items-center p-6 text-center">
+        <AlertCircle class="w-12 h-12 mb-3 text-red-500" />
+        <!-- t() gracefully returns the key if it's not a translation key -->
+        <h3 class="text-lg font-medium text-red-500">{{ t(error) }}</h3>
+      </div>
     </div>
 
     <template v-else-if="benchmarkData">
@@ -218,7 +408,6 @@ const formatMetric  = (value, digits = 2)  => Number(value || 0).toFixed(digits)
       <section class="hero-shell">
         <!-- Left copy -->
         <div class="hero-copy">
-          <Tag :value="`${t('benchmark.hero.badge')} · ${generatedAt}`" rounded class="hero-badge" />
           <h1 class="hero-title" :dir="textDir">{{ t('benchmark.hero.title') }}</h1>
           <h2 class="hero-subtitle" :dir="textDir">{{ t('benchmark.hero.subtitle') }}</h2>
           <p class="hero-description">{{ t('benchmark.hero.description') }}</p>
@@ -357,7 +546,7 @@ const formatMetric  = (value, digits = 2)  => Number(value || 0).toFixed(digits)
               <div class="section-heading__text" :dir="textDir">
                 <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">{{ t('benchmark.performance.eyebrow') }}</span>
                 <h3 class="section-title" :dir="textDir">{{ t('benchmark.performance.title') }}</h3>
-                <p class="section-text">{{ t('benchmark.performance.description') }}</p>
+                <p class="section-text-nowrap">{{ t('benchmark.performance.description') }}</p>
               </div>
             </div>
 
@@ -387,6 +576,25 @@ const formatMetric  = (value, digits = 2)  => Number(value || 0).toFixed(digits)
                 </div>
               </div>
             </div>
+            <div class="chart-pair-grid">
+
+              <div class="chart-card">
+                <span class="chart-card-title">{{ t('benchmark.charts.radar_title') }}</span>
+                <p class="chart-card-sub">{{ t('benchmark.charts.radar_sub') }}</p>
+                <div class="chart-shell chart-shell--lg">
+                  <Radar :data="radarChartData" :options="radarOptions" />
+                </div>
+              </div>
+
+              <div class="chart-card">
+                <span class="chart-card-title">{{ t('benchmark.charts.scatter_title') }}</span>
+                <p class="chart-card-sub">{{ t('benchmark.charts.scatter_sub') }}</p>
+                <div class="chart-shell chart-shell--lg">
+                  <Scatter :data="scatterChartData" :options="scatterOptions" />
+                </div>
+              </div>
+
+            </div>
           </template>
         </Card>
       </section>
@@ -401,7 +609,7 @@ const formatMetric  = (value, digits = 2)  => Number(value || 0).toFixed(digits)
               <div class="section-heading__text" :dir="textDir">
                 <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">{{ t('benchmark.robustness.eyebrow') }}</span>
                 <h3 class="section-title" :dir="textDir">{{ t('benchmark.robustness.title') }}</h3>
-                <p class="section-text">{{ t('benchmark.robustness.description') }}</p>
+                <p class="section-text-nowrap">{{ t('benchmark.robustness.description') }}</p>
               </div>
             </div>
 
@@ -416,7 +624,6 @@ const formatMetric  = (value, digits = 2)  => Number(value || 0).toFixed(digits)
                 {{ opt.label }}
               </button>
             </div>
-
             <Card class="q-glass bm-inner-card">
               <template #content>
                 <DataTable
@@ -444,6 +651,13 @@ const formatMetric  = (value, digits = 2)  => Number(value || 0).toFixed(digits)
                 </DataTable>
               </template>
             </Card>
+            <div class="chart-card" style="margin-top: 1rem;">
+              <span class="chart-card-title">{{ t('benchmark.charts.robustness_title') }}</span>
+              <p class="chart-card-sub">{{ t('benchmark.charts.robustness_sub') }}</p>
+              <div class="chart-shell chart-shell--md">
+                <Line :data="robustnessChartData" :options="robustnessChartOptions" />
+              </div>
+            </div>
           </template>
         </Card>
       </section>
@@ -462,7 +676,7 @@ const formatMetric  = (value, digits = 2)  => Number(value || 0).toFixed(digits)
               </div>
             </div>
 
-            <div class="flex flex-wrap gap-2 mb-4" dir="ltr">
+            <div class="flex flex-wrap gap-2 mb-4" >
               <button
                 v-for="opt in modelOptions"
                 :key="opt.value"
@@ -528,6 +742,15 @@ const formatMetric  = (value, digits = 2)  => Number(value || 0).toFixed(digits)
                 </Card>
               </div>
             </div>
+            <div class="diag-inner-card diag-inner-card--full" style="margin-top: 1rem;">
+              <span class="diag-title">{{ t('benchmark.charts.reliability_title') }}</span>
+              <p class="chart-card-sub" style="margin: -0.5rem 0 1rem;">
+                {{ t('benchmark.charts.reliability_sub') }}
+              </p>
+              <div class="chart-shell chart-shell--md">
+                <Line :data="reliabilityChartData" :options="chartOptions" />
+              </div>
+            </div>
           </template>
         </Card>
       </section>
@@ -576,7 +799,7 @@ const formatMetric  = (value, digits = 2)  => Number(value || 0).toFixed(digits)
    GLASS CARD
 ══════════════════════════════════════════════ */
 .glass-card {
-  border: 1px solid var(--q-bar-border);
+  border: 2px solid var(--q-bar-border);
   background: rgba(255, 255, 255, 0.64);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
@@ -626,6 +849,14 @@ const formatMetric  = (value, digits = 2)  => Number(value || 0).toFixed(digits)
 .control-label {
   color: var(--q-muted);
   line-height: 1.8;
+  
+}
+
+.section-text-nowrap {
+  color: var(--q-muted);
+  line-height: 1.8;
+  white-space: nowrap;
+  
 }
 
 .hero-stats {
@@ -780,7 +1011,7 @@ const formatMetric  = (value, digits = 2)  => Number(value || 0).toFixed(digits)
   overflow: hidden;
   border-radius: 24px;
   min-height: 420px;
-  border: 1px solid var(--q-bar-border);
+  border: 2px solid var(--q-bar-border);
 }
 
 .dataset-image {
@@ -896,7 +1127,7 @@ const formatMetric  = (value, digits = 2)  => Number(value || 0).toFixed(digits)
 .dataset-steps-card {
   margin-top: 1.25rem;
   padding: 1rem 1.5rem;
-  border: 1px solid var(--q-bar-border);
+  border: 2px solid var(--q-bar-border);
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.42);
 }
@@ -973,7 +1204,7 @@ const formatMetric  = (value, digits = 2)  => Number(value || 0).toFixed(digits)
 .performance-inner-card {
   padding: 1.25rem;
   border-radius: 20px;
-  border: 1px solid var(--q-bar-border);
+  border: 2px solid var(--q-bar-border);
   background: var(--q-surface-strong);
   display: flex;
   flex-direction: column;
@@ -1011,7 +1242,7 @@ const formatMetric  = (value, digits = 2)  => Number(value || 0).toFixed(digits)
 .bm-tab-inactive {
   background: var(--q-surface-strong);
   color: var(--q-muted);
-  border: 1px solid var(--q-bar-border);
+  border: 2px solid var(--q-bar-border);
 }
 
 .bm-tab-inactive:hover {
@@ -1108,7 +1339,7 @@ const formatMetric  = (value, digits = 2)  => Number(value || 0).toFixed(digits)
 }
 
 .diag-inner-card {
-  border: 1px solid var(--q-bar-border);
+  border: 2px solid var(--q-bar-border);
   border-radius: 20px;
   background: var(--q-surface-strong);
   padding: 1.25rem;
@@ -1183,7 +1414,7 @@ const formatMetric  = (value, digits = 2)  => Number(value || 0).toFixed(digits)
   gap: 0.4rem;
   padding: 1rem 1.25rem;
   border-radius: 18px;
-  border: 1px solid var(--q-bar-border);
+  border: 2px solid var(--q-bar-border);
   background: var(--q-surface-strong);
 }
 
@@ -1281,6 +1512,54 @@ const formatMetric  = (value, digits = 2)  => Number(value || 0).toFixed(digits)
   .dataset-slide {
     min-height: 320px;
     height: 320px;
+  }
+}
+.chart-shell {
+  position: relative; /* required by Chart.js when maintainAspectRatio: false */
+  width: 100%;
+}
+
+.chart-shell--sm { height: 260px; }
+.chart-shell--md { height: 320px; }
+.chart-shell--lg { height: 380px; }
+.chart-pair-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.chart-card {
+  border: 2px solid var(--q-bar-border);
+  border-radius: 20px;
+  background: var(--q-surface-strong);
+  padding: 1.25rem;
+}
+
+.chart-card-title {
+  display: block;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--q-text);
+  margin-bottom: 0.25rem;
+}
+
+.chart-card-sub {
+  color: var(--q-muted);
+  font-size: 0.83rem;
+  margin: 0 0 1rem;
+  line-height: 1.5;
+}
+
+/* Full-width diagnostics card (reliability chart) */
+.diag-inner-card--full {
+  grid-column: 1 / -1;
+}
+
+/* Collapse chart-pair-grid on narrow screens */
+@media (max-width: 1080px) {
+  .chart-pair-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

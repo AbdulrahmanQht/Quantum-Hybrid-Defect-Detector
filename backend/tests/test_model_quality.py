@@ -33,15 +33,15 @@ Fixtures are scope="module" so each model is loaded once for both Part A and Par
 QNN_GPU tests are skipped automatically when no CUDA device is present.
 
 Results saved to:
-    data/results_tests/calibration_cnn.json
-    data/results_tests/calibration_qnn_cpu.json
-    data/results_tests/calibration_qnn_gpu.json
-    data/results_tests/calibration_combined.json
-    data/results_tests/class_fairness_cnn.json
-    data/results_tests/class_fairness_qnn_cpu.json
-    data/results_tests/class_fairness_qnn_gpu.json
-    data/results_tests/class_fairness_combined.json
-    data/results_tests/model_quality_combined.json
+    results/model_quality/calibration_cnn.json
+    results/model_quality/calibration_qnn_cpu.json
+    results/model_quality/calibration_qnn_gpu.json
+    results/model_quality/calibration_combined.json
+    results/model_quality/class_fairness_cnn.json
+    results/model_quality/class_fairness_qnn_cpu.json
+    results/model_quality/class_fairness_qnn_gpu.json
+    results/model_quality/class_fairness_combined.json
+    results/model_quality/model_quality_combined.json
 
 Run:
     pytest tests/test_model_quality.py -v
@@ -68,7 +68,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # Anchor: resolves to the `backend/` directory (two levels up from tests/)
 BACKEND_DIR = Path(__file__).parent.parent.resolve()
 
-RESULTS_DIR = BACKEND_DIR / "data" / "results_tests"
+RESULTS_DIR = "results" / "model_quality"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 CLASS_NAMES = [
@@ -308,7 +308,7 @@ def test_loader():
         # Raise instead of skip to catch pathing issues immediately
         raise FileNotFoundError(f"CRITICAL: Test data not found at {test_path}")
 
-    from backend.data.data_loader import DataLoaderManager
+    from .data.data_loader import DataLoaderManager
     try:
         mgr = DataLoaderManager(
             train_dir=str(BACKEND_DIR / "data" / "train"),
@@ -327,7 +327,7 @@ def test_loader():
 def cnn_model(device):
     if _CNN_CKPT is None:
         pytest.skip("CNN checkpoint not found")
-    from backend.models.cnn import CNN
+    from .models.cnn import CNN
     m = CNN(num_classes=6)
     m.load_model(_CNN_CKPT, device)
     m.eval()
@@ -338,7 +338,7 @@ def cnn_model(device):
 def qnn_cpu_model(device):
     if _QNN_CPU_CKPT is None:
         pytest.skip("QNN-CPU checkpoint not found")
-    from backend.models.qnn_cpu import HybridQnnCPU
+    from .models.qnn_cpu import HybridQnnCPU
     m = HybridQnnCPU(num_classes=6, n_qubits=6, q_depth=2)
     m.load_model(_QNN_CPU_CKPT, device)
     m.eval()
@@ -352,7 +352,7 @@ def qnn_gpu_model():
     if _QNN_GPU_CKPT is None:
         pytest.skip("QNN-GPU checkpoint not found (models/qnn_gpu.pth)")
     gpu_device = torch.device("cuda")
-    from backend.models.qnn_gpu import HybridQnnGPU
+    from .models.qnn_gpu import HybridQnnGPU
     m = HybridQnnGPU(num_classes=6, n_qubits=6, q_depth=2)
     m.load_model(_QNN_GPU_CKPT, gpu_device)
     m.eval()

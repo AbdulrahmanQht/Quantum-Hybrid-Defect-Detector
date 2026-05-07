@@ -27,19 +27,19 @@ Bug fixes applied:
 
 How it works:
     1. First run (no golden file): builds golden set from real images,
-       writes backend/data/results_tests/golden_set.json, PASSES.
+       writes results/golden_set/golden_set.json, PASSES.
     2. Subsequent runs: compares current predictions against golden file,
        FAILS if any previously-correct prediction flips.
     3. Regenerate after intentional model update:
            REGENERATE_GOLDEN=1 pytest tests/test_golden_set.py -v
 
-IMPORTANT: commit backend/data/results_tests/golden_set.json to
+IMPORTANT: commit results/golden_set/golden_set.json to
 version control after the first run.
 
 Results saved to:
-    backend/data/results_tests/golden_set.json
-    backend/data/results_tests/golden_regression.json
-    backend/data/results_tests/golden_set_summary.json
+    results/golden_set/golden_set.json
+    results/golden_set/golden_regression.json
+    results/golden_set/golden_set_summary.json
 
 Run:
     # First run — creates the golden baseline
@@ -74,7 +74,7 @@ BACKEND_DIR = Path(__file__).parent.parent.resolve()
 
 sys.path.insert(0, str(BACKEND_DIR))
 
-RESULTS_DIR = BACKEND_DIR / "data" / "results_tests"
+RESULTS_DIR = "results" / "golden_set"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 GOLDEN_FILE     = RESULTS_DIR / "golden_set.json"
@@ -256,7 +256,7 @@ def cnn_model(device):
     try:
         from models.cnn import CNN
     except ImportError:
-        from backend.models.cnn import CNN
+        from .models.cnn import CNN
     model = CNN(num_classes=len(CLASS_NAMES))
     model.load_model(_CNN_CKPT, device)
     model.eval()

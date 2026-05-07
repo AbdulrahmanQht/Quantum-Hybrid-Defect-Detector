@@ -26,7 +26,7 @@ How to run:
     pip install pytest pytest-cov httpx pillow --break-system-packages
 
     # All gaps, verbose
-    pytest tests/test_suite.py -v
+    pytest tests/test_suite.py -v --junitxml=results/results.xml
 
     # Skip tests that need trained model weights on disk
     pytest tests/test_suite.py -v -m "not requires_weights"

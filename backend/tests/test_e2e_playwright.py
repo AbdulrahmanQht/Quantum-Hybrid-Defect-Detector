@@ -29,7 +29,7 @@ Environment variables:
 
 Requirements:
     Both servers must be running:
-        uvicorn backend.main:app --port 8000 &
+        python -m app.main &
         cd frontend && npm run dev
 """
 
