@@ -7,15 +7,15 @@ import disconnectImage from '../assets/benchmark/disconnect.jpg'
 import misalignmentImage from '../assets/benchmark/misalignment.jpg'
 import obstacleImage from '../assets/benchmark/obstacle.jpg'
 import ruptureImage from '../assets/benchmark/rupture.jpg'
-import { AlertCircle } from 'lucide-vue-next'
-import { 
-  Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, 
-  LinearScale, PointElement, LineElement, RadialLinearScale 
+import { AlertCircle, Info } from 'lucide-vue-next'
+import {
+  Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale,
+  LinearScale, PointElement, LineElement, RadialLinearScale
 } from 'chart.js'
-import { Bar, Line, Radar, Scatter } from 'vue-chartjs'
+import { Line, Radar, Scatter } from 'vue-chartjs'
 
 ChartJS.register(
-  CategoryScale, LinearScale, BarElement, PointElement, 
+  CategoryScale, LinearScale, BarElement, PointElement,
   LineElement, RadialLinearScale, Title, Tooltip, Legend
 )
 import { useRouter } from 'vue-router'
@@ -30,16 +30,16 @@ const selectedModelKey = ref('CNN')
 const selectedNoiseType = ref('gaussian')
 
 const datasetImageMap = {
-  Deformation:  deformationImage,
-  Deposition:   depositionImage,
-  Disconnect:   disconnectImage,
+  Deformation: deformationImage,
+  Deposition: depositionImage,
+  Disconnect: disconnectImage,
   Misalignment: misalignmentImage,
-  Obstacle:     obstacleImage,
-  Rupture:      ruptureImage,
+  Obstacle: obstacleImage,
+  Rupture: ruptureImage,
 }
 
 const modelMeta = {
-  CNN:     { accent: 'benchmark-accent--blue' },
+  CNN: { accent: 'benchmark-accent--blue' },
   QNN_CPU: { accent: 'benchmark-accent--teal' },
   QNN_GPU: { accent: 'benchmark-accent--violet' },
 }
@@ -73,9 +73,9 @@ onMounted(async () => {
   }
 })
 
-const evaluation      = computed(() => benchmarkData.value?.clean_evaluation ?? {})
-const latencyMap      = computed(() => benchmarkData.value?.inference_latency_ms ?? {})
-const config          = computed(() => benchmarkData.value?.config ?? {})
+const evaluation = computed(() => benchmarkData.value?.clean_evaluation ?? {})
+const latencyMap = computed(() => benchmarkData.value?.inference_latency_ms ?? {})
+const config = computed(() => benchmarkData.value?.config ?? {})
 const noiseRobustness = computed(() => benchmarkData.value?.noise_robustness ?? {})
 
 const models = computed(() => {
@@ -84,41 +84,41 @@ const models = computed(() => {
     const model = evaluation.value?.[key] ?? {}
     return {
       key,
-      name:     t(`benchmark.models.${key}`),
-      accent:   modelMeta[key].accent,
+      name: t(`benchmark.models.${key}`),
+      accent: modelMeta[key].accent,
       accuracy: Number(model?.accuracy ?? 0),
-      f1:       Number(model?.averages?.weighted?.f1 ?? 0),
-      latency:  Number(latencyMap.value?.[key] ?? 0),
-      samples:  Number(model?.n_samples ?? 0),
+      f1: Number(model?.averages?.weighted?.f1 ?? 0),
+      latency: Number(latencyMap.value?.[key] ?? 0),
+      samples: Number(model?.n_samples ?? 0),
     }
   })
 })
 
 const datasetSummary = computed(() => ({
-  testSetSize:     config.value?.test_set_size ?? 0,
+  testSetSize: config.value?.test_set_size ?? 0,
   imageResolution: config.value?.image_resolution ?? '-',
-  classNames:      config.value?.class_names ?? [],
-  faultClasses:    (config.value?.class_names ?? []).length,
+  classNames: config.value?.class_names ?? [],
+  faultClasses: (config.value?.class_names ?? []).length,
   modelsEvaluated: models.value.length,
-  batchSize:       config.value?.batch_size ?? '-',
-  trainingEpochs:  config.value?.training_epochs ?? '-',
-  nQubits:         config.value?.n_qubits ?? '-',
-  qDepth:          config.value?.q_depth ?? '-',
-  device:          benchmarkData.value?.device ?? '-',
+  batchSize: config.value?.batch_size ?? '-',
+  trainingEpochs: config.value?.training_epochs ?? '-',
+  nQubits: config.value?.n_qubits ?? '-',
+  qDepth: config.value?.q_depth ?? '-',
+  device: benchmarkData.value?.device ?? '-',
 }))
 
-const bestAccuracyKey   = computed(() => models.value.length ? [...models.value].sort((a, b) => b.accuracy - a.accuracy)[0]?.key : null)
+const bestAccuracyKey = computed(() => models.value.length ? [...models.value].sort((a, b) => b.accuracy - a.accuracy)[0]?.key : null)
 const fastestLatencyKey = computed(() => models.value.length ? [...models.value].sort((a, b) => a.latency - b.latency)[0]?.key : null)
 
-const selectedModel     = computed(() => evaluation.value?.[selectedModelKey.value] ?? {})
+const selectedModel = computed(() => evaluation.value?.[selectedModelKey.value] ?? {})
 const selectedNoiseData = computed(() => noiseRobustness.value?.[selectedNoiseType.value] ?? [])
-const classNames        = computed(() => config.value?.class_names ?? [])
+const classNames = computed(() => config.value?.class_names ?? [])
 const localizedClassNames = computed(() => classNames.value.map(n => t(`classify.${n}`) || n))
-const confusionMatrix   = computed(() => selectedModel.value?.confusion_matrix ?? [])
-const perClassMetrics   = computed(() => selectedModel.value?.per_class ?? {})
+const confusionMatrix = computed(() => selectedModel.value?.confusion_matrix ?? [])
+const perClassMetrics = computed(() => selectedModel.value?.per_class ?? {})
 
 const modelOptions = computed(() => models.value.map(m => ({ label: m.name, value: m.key })))
-const noiseTypes   = computed(() => Object.keys(noiseRobustness.value))
+const noiseTypes = computed(() => Object.keys(noiseRobustness.value))
 const noiseOptions = computed(() =>
   noiseTypes.value.map(key => ({ label: t(`benchmark.robustness.${key}`), value: key }))
 )
@@ -143,9 +143,9 @@ const perClassRows = computed(() => {
   const rows = Object.entries(perClassMetrics.value).map(([className, metrics]) => ({
     className: t(`classify.${className}`) || className,
     precision: Number(metrics?.precision ?? 0),
-    recall:    Number(metrics?.recall    ?? 0),
-    f1:        Number(metrics?.f1        ?? 0),
-    support:   Number(metrics?.support   ?? 0),
+    recall: Number(metrics?.recall ?? 0),
+    f1: Number(metrics?.f1 ?? 0),
+    support: Number(metrics?.support ?? 0),
   }));
 
   // Append macro‑average row if the data is available
@@ -155,9 +155,9 @@ const perClassRows = computed(() => {
     rows.push({
       className: t('benchmark.diagnostics.average') || 'Average',   // add translation key
       precision: Number(macro.precision ?? 0),
-      recall:    Number(macro.recall    ?? 0),
-      f1:        Number(macro.f1        ?? 0),
-      support:   Number(totalSamples),
+      recall: Number(macro.recall ?? 0),
+      f1: Number(macro.f1 ?? 0),
+      support: Number(totalSamples),
     });
   }
   return rows;
@@ -165,8 +165,8 @@ const perClassRows = computed(() => {
 
 const robustnessRows = computed(() =>
   selectedNoiseData.value.map(row => ({
-    level:   row.level,
-    CNN:     Number(row.CNN     ?? 0),
+    level: row.level,
+    CNN: Number(row.CNN ?? 0),
     QNN_CPU: Number(row.QNN_CPU ?? 0),
     QNN_GPU: Number(row.QNN_GPU ?? 0),
   }))
@@ -175,18 +175,17 @@ const robustnessRows = computed(() =>
 const configCards = computed(() => [
   { label: t('benchmark.summary.resolution'), value: datasetSummary.value.imageResolution },
   { label: t('benchmark.summary.batch_size'), value: datasetSummary.value.batchSize },
-  { label: t('benchmark.summary.epochs'),     value: datasetSummary.value.trainingEpochs },
-  { label: t('benchmark.summary.qubits'),     value: datasetSummary.value.nQubits },
-  { label: t('benchmark.summary.q_depth'),    value: datasetSummary.value.qDepth },
-  { label: t('benchmark.summary.device'),     value: datasetSummary.value.device },
+  { label: t('benchmark.summary.epochs'), value: datasetSummary.value.trainingEpochs },
+  { label: t('benchmark.summary.qubits'), value: datasetSummary.value.nQubits },
+  { label: t('benchmark.summary.q_depth'), value: datasetSummary.value.qDepth },
+  { label: t('benchmark.summary.device'), value: datasetSummary.value.device },
 ])
 
-const generatedAt = computed(() => benchmarkData.value?.generated_at?.slice(0, 10) || t('benchmark.hero.live'))
-const isArabic    = computed(() => locale.value === 'AR')
-const textDir     = computed(() => isArabic.value ? 'rtl' : 'ltr')
+const isArabic = computed(() => locale.value === 'AR')
+const textDir = computed(() => isArabic.value ? 'rtl' : 'ltr')
 
 const modelBadgeKey = (modelKey) => {
-  if (modelKey === bestAccuracyKey.value)   return 'benchmark.performance.best_accuracy'
+  if (modelKey === bestAccuracyKey.value) return 'benchmark.performance.best_accuracy'
   if (modelKey === fastestLatencyKey.value) return 'benchmark.performance.fastest'
   return 'benchmark.performance.benchmark'
 }
@@ -196,7 +195,7 @@ const formatMetric = (value, digits = 2) => Number(value || 0).toFixed(digits)
 
 const getModelColor = (key, alpha = 1) => {
   const colors = {
-    CNN:     `rgba(37, 99, 235, ${alpha})`,
+    CNN: `rgba(37, 99, 235, ${alpha})`,
     QNN_CPU: `rgba(13, 148, 136, ${alpha})`,
     QNN_GPU: `rgba(124, 58, 237, ${alpha})`,
   }
@@ -276,7 +275,7 @@ const scatterOptions = computed(() => {
     ..._baseScatterOptions,
     scales: {
       x: { ..._baseScatterOptions.scales.x, min: Math.floor(Math.min(...lats) * 0.7), max: Math.ceil(Math.max(...lats) * 1.3) },
-      y: { ..._baseScatterOptions.scales.y, min: Math.floor(Math.min(...accs)) - 2,    max: Math.min(100, Math.ceil(Math.max(...accs)) + 1) },
+      y: { ..._baseScatterOptions.scales.y, min: Math.floor(Math.min(...accs)) - 2, max: Math.min(100, Math.ceil(Math.max(...accs)) + 1) },
     },
   }
 })
@@ -331,7 +330,7 @@ const robustnessChartData = computed(() => {
   return {
     labels: data.map(d => d.level),
     datasets: [
-      { label: 'CNN',     data: data.map(d => d.CNN_accuracy),     borderColor: getModelColor('CNN'),     tension: 0.3, fill: false },
+      { label: 'CNN', data: data.map(d => d.CNN_accuracy), borderColor: getModelColor('CNN'), tension: 0.3, fill: false },
       { label: 'QNN CPU', data: data.map(d => d.QNN_CPU_accuracy), borderColor: getModelColor('QNN_CPU'), tension: 0.3, fill: false },
       { label: 'QNN GPU', data: data.map(d => d.QNN_GPU_accuracy), borderColor: getModelColor('QNN_GPU'), tension: 0.3, fill: false },
     ],
@@ -377,14 +376,27 @@ onErrorCaptured((err) => {
     :dir="textDir"
   >
     <!-- ── Loading ── -->
-    <div v-if="isLoading" class="benchmark-state">
+    <div
+      v-if="isLoading"
+      class="benchmark-state"
+    >
       <Card class="glass-card">
         <template #content>
           <div class="state-stack">
-            <ProgressSpinner strokeWidth="4" class="benchmark-spinner" />
-            <p class="section-text">{{ t('benchmark.states.loading') }}</p>
+            <ProgressSpinner
+              stroke-width="4"
+              class="benchmark-spinner"
+            />
+            <p class="section-text">
+              {{ t('benchmark.states.loading') }}
+            </p>
             <div class="skeleton-grid">
-              <Skeleton v-for="item in 3" :key="item" height="11rem" borderRadius="24px" />
+              <Skeleton
+                v-for="item in 3"
+                :key="item"
+                height="11rem"
+                border-radius="24px"
+              />
             </div>
           </div>
         </template>
@@ -392,25 +404,41 @@ onErrorCaptured((err) => {
     </div>
 
     <!-- Error  -->
-    <div v-else-if="error" class="px-4 mx-auto max-w-screen-2xl sm:px-6 lg:px-8">
+    <div
+      v-else-if="error"
+      class="px-4 mx-auto max-w-screen-2xl sm:px-6 lg:px-8"
+    >
       <div class="glass-card flex flex-col items-center p-6 text-center">
         <AlertCircle class="w-12 h-12 mb-3 text-red-500" />
         <!-- t() gracefully returns the key if it's not a translation key -->
-        <h3 class="text-lg font-medium text-red-500">{{ t(error) }}</h3>
+        <h3 class="text-lg font-medium text-red-500">
+          {{ t(error) }}
+        </h3>
       </div>
     </div>
 
     <template v-else-if="benchmarkData">
-
       <!-- ══════════════════════════════════════════
            HERO
       ══════════════════════════════════════════ -->
       <section class="hero-shell">
         <!-- Left copy -->
         <div class="hero-copy">
-          <h1 class="hero-title" :dir="textDir">{{ t('benchmark.hero.title') }}</h1>
-          <h2 class="hero-subtitle" :dir="textDir">{{ t('benchmark.hero.subtitle') }}</h2>
-          <p class="hero-description">{{ t('benchmark.hero.description') }}</p>
+          <h1
+            class="hero-title"
+            :dir="textDir"
+          >
+            {{ t('benchmark.hero.title') }}
+          </h1>
+          <h2
+            class="hero-subtitle"
+            :dir="textDir"
+          >
+            {{ t('benchmark.hero.subtitle') }}
+          </h2>
+          <p class="hero-description">
+            {{ t('benchmark.hero.description') }}
+          </p>
 
           <div class="hero-stats">
             <div class="hero-stat-card">
@@ -432,19 +460,34 @@ onErrorCaptured((err) => {
           <template #content>
             <div class="panel-topline">
               <span class="eyebrow">{{ t('benchmark.hero.accuracy_overview') }}</span>
-              <Tag :value="t('benchmark.hero.loaded')" severity="success" rounded />
+              <Tag
+                :value="t('benchmark.hero.loaded')"
+                severity="success"
+                rounded
+              />
             </div>
 
             <div class="hero-metric-list">
-              <div v-for="model in models" :key="model.key" class="hero-metric-row">
+              <div
+                v-for="model in models"
+                :key="model.key"
+                class="hero-metric-row"
+              >
                 <div class="hero-metric-head">
                   <div class="hero-metric-title">
-                    <span class="model-dot" :class="model.accent"></span>
+                    <span
+                      class="model-dot"
+                      :class="model.accent"
+                    />
                     <span>{{ model.name }}</span>
                   </div>
                   <strong>{{ formatPercent(model.accuracy, 2) }}</strong>
                 </div>
-                <ProgressBar :value="model.accuracy" :showValue="false" :class="['metric-progress', model.accent]" />
+                <ProgressBar
+                  :value="model.accuracy"
+                  :show-value="false"
+                  :class="['metric-progress', model.accent]"
+                />
               </div>
             </div>
           </template>
@@ -457,14 +500,32 @@ onErrorCaptured((err) => {
       <section class="dataset-shell">
         <Card class="glass-card dataset-card">
           <template #content>
-            <div class="section-heading dataset-heading" :class="{ 'section-heading--rtl': isArabic }">
-              <div class="section-heading__text dataset-heading-text" :dir="textDir">
-                <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">
+            <div
+              class="section-heading dataset-heading"
+              :class="{ 'section-heading--rtl': isArabic }"
+            >
+              <div
+                class="section-heading__text dataset-heading-text"
+                :dir="textDir"
+              >
+                <span
+                  class="eyebrow"
+                  :class="{ 'eyebrow--ar': isArabic }"
+                >
                   {{ t('benchmark.dataset.eyebrow') }}
                 </span>
-                <h3 class="section-title dataset-title" :dir="textDir">{{ t('benchmark.dataset.title') }}</h3>
+                <h3
+                  class="section-title dataset-title"
+                  :dir="textDir"
+                >
+                  {{ t('benchmark.dataset.title') }}
+                </h3>
               </div>
-              <Tag :value="t('benchmark.dataset.carousel_badge')" rounded class="hero-badge" />
+              <Tag
+                :value="t('benchmark.dataset.carousel_badge')"
+                rounded
+                class="hero-badge"
+              />
             </div>
 
             <!-- carousel + right metadata side by side -->
@@ -474,20 +535,35 @@ onErrorCaptured((err) => {
                 <div class="dataset-carousel-wrap">
                   <Carousel
                     :value="datasetSamples"
-                    :numVisible="1"
-                    :numScroll="1"
+                    :num-visible="1"
+                    :num-scroll="1"
                     circular
-                    :autoplayInterval="4500"
+                    :autoplay-interval="4500"
                     class="dataset-carousel"
                     dir="ltr"
                   >
                     <template #item="{ data }">
                       <div class="dataset-slide">
-                        <img :src="data.image" :alt="data.title" class="dataset-image" />
-                        <div class="dataset-overlay" :dir="textDir">
-                          <Tag :value="data.label" rounded class="slide-tag" />
-                          <h4 class="dataset-slide-title">{{ data.title }}</h4>
-                          <p class="dataset-slide-text">{{ data.text }}</p>
+                        <img
+                          :src="data.image"
+                          :alt="data.title"
+                          class="dataset-image"
+                        >
+                        <div
+                          class="dataset-overlay"
+                          :dir="textDir"
+                        >
+                          <Tag
+                            :value="data.label"
+                            rounded
+                            class="slide-tag"
+                          />
+                          <h4 class="dataset-slide-title">
+                            {{ data.title }}
+                          </h4>
+                          <p class="dataset-slide-text">
+                            {{ data.text }}
+                          </p>
                         </div>
                       </div>
                     </template>
@@ -498,7 +574,11 @@ onErrorCaptured((err) => {
               <!-- Right: facts + notes + classes -->
               <div class="dataset-copy">
                 <div class="fact-grid">
-                  <div v-for="fact in datasetFacts" :key="fact.label" class="fact-card">
+                  <div
+                    v-for="fact in datasetFacts"
+                    :key="fact.label"
+                    class="fact-card"
+                  >
                     <span class="fact-label">{{ fact.label }}</span>
                     <span class="fact-value">{{ fact.value }}</span>
                   </div>
@@ -511,7 +591,12 @@ onErrorCaptured((err) => {
                   </p>
                   <p class="section-text dataset-note">
                     <strong>{{ t('benchmark.dataset.source_label') }}</strong>
-                    <a :href="t('benchmark.dataset.source_url')" target="_blank" rel="noreferrer" class="dataset-link">
+                    <a
+                      :href="t('benchmark.dataset.source_url')"
+                      target="_blank"
+                      rel="noreferrer"
+                      class="dataset-link"
+                    >
                       {{ t('benchmark.dataset.source_name') }}
                     </a>
                   </p>
@@ -520,7 +605,11 @@ onErrorCaptured((err) => {
                 <div>
                   <span class="classes-heading">{{ t('benchmark.dataset.fault_classes', 'Fault Classes') }}</span>
                   <div class="classes-grid">
-                    <span v-for="item in localizedClassNames" :key="item" class="class-chip">{{ item }}</span>
+                    <span
+                      v-for="item in localizedClassNames"
+                      :key="item"
+                      class="class-chip"
+                    >{{ item }}</span>
                   </div>
                 </div>
               </div>
@@ -529,7 +618,12 @@ onErrorCaptured((err) => {
             <div class="dataset-steps-card">
               <span class="steps-title">{{ t('benchmark.dataset.pipeline_title') }}</span>
               <ol class="dataset-steps">
-                <li v-for="step in datasetSteps" :key="step">{{ step }}</li>
+                <li
+                  v-for="step in datasetSteps"
+                  :key="step"
+                >
+                  {{ step }}
+                </li>
               </ol>
             </div>
           </template>
@@ -542,58 +636,113 @@ onErrorCaptured((err) => {
       <section class="content-section">
         <Card class="glass-card">
           <template #content>
-            <div class="section-heading" :class="{ 'section-heading--rtl': isArabic }">
-              <div class="section-heading__text" :dir="textDir">
-                <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">{{ t('benchmark.performance.eyebrow') }}</span>
-                <h3 class="section-title" :dir="textDir">{{ t('benchmark.performance.title') }}</h3>
-                <p class="section-text-nowrap">{{ t('benchmark.performance.description') }}</p>
+            <div
+              class="section-heading"
+              :class="{ 'section-heading--rtl': isArabic }"
+            >
+              <div
+                class="section-heading__text"
+                :dir="textDir"
+              >
+                <span
+                  class="eyebrow"
+                  :class="{ 'eyebrow--ar': isArabic }"
+                >{{ t('benchmark.performance.eyebrow')
+                }}</span>
+                <h3
+                  class="section-title"
+                  :dir="textDir"
+                >
+                  {{ t('benchmark.performance.title') }}
+                </h3>
+                <p class="section-text-nowrap">
+                  {{ t('benchmark.performance.description') }}
+                </p>
               </div>
             </div>
 
             <div class="performance-grid">
-              <div v-for="model in models" :key="model.key" class="performance-inner-card">
+              <div
+                v-for="model in models"
+                :key="model.key"
+                class="performance-inner-card"
+              >
                 <div class="performance-card-head">
                   <div class="hero-metric-title">
-                    <span class="model-dot" :class="model.accent"></span>
+                    <span
+                      class="model-dot"
+                      :class="model.accent"
+                    />
                     <span>{{ model.name }}</span>
                   </div>
-                  <Tag :value="t(modelBadgeKey(model.key))" rounded />
+                  <Tag
+                    :value="t(modelBadgeKey(model.key))"
+                    rounded
+                  />
                 </div>
 
-                <div class="kpi-value">{{ formatPercent(model.accuracy, 2) }}</div>
-                <p class="metric-caption">{{ t('benchmark.performance.clean_accuracy') }}</p>
+                <div class="kpi-value">
+                  {{ formatPercent(model.accuracy, 2) }}
+                </div>
+                <p class="metric-caption">
+                  {{ t('benchmark.performance.clean_accuracy') }}
+                </p>
 
                 <div class="metric-block">
-                <div class="metric-row">
-                  <span>{{ t('benchmark.performance.latency') }}</span>
-                  <strong>{{ formatMetric(model.latency, 3) }} ms</strong>
-                </div>
+                  <div class="metric-row">
+                    <span>{{ t('benchmark.performance.latency') }}</span>
+                    <strong>{{ formatMetric(model.latency, 3) }} ms</strong>
+                  </div>
                   <div class="metric-line">
                     <span>{{ t('benchmark.performance.weighted_f1') }}</span>
                     <strong>{{ formatMetric(model.f1, 2) }}</strong>
                   </div>
-                  <ProgressBar :value="model.f1" :showValue="false" :class="['metric-progress', model.accent]" />
+                  <ProgressBar
+                    :value="model.f1"
+                    :show-value="false"
+                    :class="['metric-progress', model.accent]"
+                  />
                 </div>
               </div>
             </div>
             <div class="chart-pair-grid">
-
               <div class="chart-card">
-                <span class="chart-card-title">{{ t('benchmark.charts.radar_title') }}</span>
-                <p class="chart-card-sub">{{ t('benchmark.charts.radar_sub') }}</p>
+                <div class="flex items-center gap-2">
+                  <span class="chart-card-title">{{ t('benchmark.charts.radar_title') }}</span>
+                  <Info
+                    v-tooltip.top="t('benchmark.charts.radar_tooltip')"
+                    class="bm-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
+                  />
+                </div>
+                <p class="chart-card-sub">
+                  {{ t('benchmark.charts.radar_sub') }}
+                </p>
                 <div class="chart-shell chart-shell--lg">
-                  <Radar :data="radarChartData" :options="radarOptions" />
+                  <Radar
+                    :data="radarChartData"
+                    :options="radarOptions"
+                  />
                 </div>
               </div>
 
               <div class="chart-card">
-                <span class="chart-card-title">{{ t('benchmark.charts.scatter_title') }}</span>
-                <p class="chart-card-sub">{{ t('benchmark.charts.scatter_sub') }}</p>
+                <div class="flex items-center gap-2">
+                  <span class="chart-card-title">{{ t('benchmark.charts.scatter_title') }}</span>
+                  <Info
+                    v-tooltip.top="t('benchmark.charts.scatter_tooltip')"
+                    class="bm-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
+                  />
+                </div>
+                <p class="chart-card-sub">
+                  {{ t('benchmark.charts.scatter_sub') }}
+                </p>
                 <div class="chart-shell chart-shell--lg">
-                  <Scatter :data="scatterChartData" :options="scatterOptions" />
+                  <Scatter
+                    :data="scatterChartData"
+                    :options="scatterOptions"
+                  />
                 </div>
               </div>
-
             </div>
           </template>
         </Card>
@@ -605,21 +754,41 @@ onErrorCaptured((err) => {
       <section class="content-section">
         <Card class="glass-card">
           <template #content>
-            <div class="section-heading" :class="{ 'section-heading--rtl': isArabic }">
-              <div class="section-heading__text" :dir="textDir">
-                <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">{{ t('benchmark.robustness.eyebrow') }}</span>
-                <h3 class="section-title" :dir="textDir">{{ t('benchmark.robustness.title') }}</h3>
-                <p class="section-text-nowrap">{{ t('benchmark.robustness.description') }}</p>
+            <div
+              class="section-heading"
+              :class="{ 'section-heading--rtl': isArabic }"
+            >
+              <div
+                class="section-heading__text"
+                :dir="textDir"
+              >
+                <span
+                  class="eyebrow"
+                  :class="{ 'eyebrow--ar': isArabic }"
+                >{{ t('benchmark.robustness.eyebrow')
+                }}</span>
+                <h3
+                  class="section-title"
+                  :dir="textDir"
+                >
+                  {{ t('benchmark.robustness.title') }}
+                </h3>
+                <p class="section-text-nowrap">
+                  {{ t('benchmark.robustness.description') }}
+                </p>
               </div>
             </div>
 
-            <div class="flex flex-wrap gap-2 mb-4" dir="ltr">
+            <div
+              class="flex flex-wrap gap-2 mb-4"
+              dir="ltr"
+            >
               <button
                 v-for="opt in noiseOptions"
                 :key="opt.value"
-                @click="selectedNoiseType = opt.value"
                 class="px-3 py-1.5 rounded-lg text-sm transition-colors"
                 :class="selectedNoiseType === opt.value ? 'bm-tab-active' : 'bm-tab-inactive'"
+                @click="selectedNoiseType = opt.value"
               >
                 {{ opt.label }}
               </button>
@@ -628,34 +797,69 @@ onErrorCaptured((err) => {
               <template #content>
                 <DataTable
                   :value="robustnessRows"
-                  responsiveLayout="scroll"
+                  responsive-layout="scroll"
                   class="bm-datatable-robustness"
                   :class="isArabic ? 'bm-table-rtl' : ''"
                 >
-                  <Column field="level"   :header="t('benchmark.robustness.level')" />
-                  <Column field="CNN"     :header="t('benchmark.models.CNN')">
+                  <Column
+                    field="level"
+                    :header="t('benchmark.robustness.level')"
+                  />
+                  <Column
+                    field="CNN"
+                    :header="t('benchmark.models.CNN')"
+                  >
                     <template #body="{ data }">
-                      <span class="font-mono" style="color: #2563eb">{{ formatPercent(data.CNN, 2) }}</span>
+                      <span
+                        class="font-mono"
+                        style="color: #2563eb"
+                      >{{ formatPercent(data.CNN, 2) }}</span>
                     </template>
                   </Column>
-                  <Column field="QNN_CPU" :header="t('benchmark.models.QNN_CPU')">
+                  <Column
+                    field="QNN_CPU"
+                    :header="t('benchmark.models.QNN_CPU')"
+                  >
                     <template #body="{ data }">
-                      <span class="font-mono" style="color: #0d9488">{{ formatPercent(data.QNN_CPU, 2) }}</span>
+                      <span
+                        class="font-mono"
+                        style="color: #0d9488"
+                      >{{ formatPercent(data.QNN_CPU, 2) }}</span>
                     </template>
                   </Column>
-                  <Column field="QNN_GPU" :header="t('benchmark.models.QNN_GPU')">
+                  <Column
+                    field="QNN_GPU"
+                    :header="t('benchmark.models.QNN_GPU')"
+                  >
                     <template #body="{ data }">
-                      <span class="font-mono" style="color: #7c3aed">{{ formatPercent(data.QNN_GPU, 2) }}</span>
+                      <span
+                        class="font-mono"
+                        style="color: #7c3aed"
+                      >{{ formatPercent(data.QNN_GPU, 2) }}</span>
                     </template>
                   </Column>
                 </DataTable>
               </template>
             </Card>
-            <div class="chart-card" style="margin-top: 1rem;">
-              <span class="chart-card-title">{{ t('benchmark.charts.robustness_title') }}</span>
-              <p class="chart-card-sub">{{ t('benchmark.charts.robustness_sub') }}</p>
+            <div
+              class="chart-card"
+              style="margin-top: 1rem;"
+            >
+              <div class="flex items-center gap-2">
+                <span class="chart-card-title">{{ t('benchmark.charts.robustness_title') }}</span>
+                <Info
+                  v-tooltip.top="t('benchmark.charts.robustness_tooltip')"
+                  class="bm-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
+                />
+              </div>
+              <p class="chart-card-sub">
+                {{ t('benchmark.charts.robustness_sub') }}
+              </p>
               <div class="chart-shell chart-shell--md">
-                <Line :data="robustnessChartData" :options="robustnessChartOptions" />
+                <Line
+                  :data="robustnessChartData"
+                  :options="robustnessChartOptions"
+                />
               </div>
             </div>
           </template>
@@ -668,21 +872,38 @@ onErrorCaptured((err) => {
       <section class="content-section">
         <Card class="glass-card">
           <template #content>
-            <div class="section-heading" :class="{ 'section-heading--rtl': isArabic }">
-              <div class="section-heading__text" :dir="textDir">
-                <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">{{ t('benchmark.diagnostics.eyebrow') }}</span>
-                <h3 class="section-title" :dir="textDir">{{ t('benchmark.diagnostics.title') }}</h3>
-                <p class="section-text">{{ t('benchmark.diagnostics.description') }}</p>
+            <div
+              class="section-heading"
+              :class="{ 'section-heading--rtl': isArabic }"
+            >
+              <div
+                class="section-heading__text"
+                :dir="textDir"
+              >
+                <span
+                  class="eyebrow"
+                  :class="{ 'eyebrow--ar': isArabic }"
+                >{{ t('benchmark.diagnostics.eyebrow')
+                }}</span>
+                <h3
+                  class="section-title"
+                  :dir="textDir"
+                >
+                  {{ t('benchmark.diagnostics.title') }}
+                </h3>
+                <p class="section-text">
+                  {{ t('benchmark.diagnostics.description') }}
+                </p>
               </div>
             </div>
 
-            <div class="flex flex-wrap gap-2 mb-4" >
+            <div class="flex flex-wrap gap-2 mb-4">
               <button
                 v-for="opt in modelOptions"
                 :key="opt.value"
-                @click="selectedModelKey = opt.value"
                 class="px-3 py-1.5 rounded-lg text-sm transition-colors"
                 :class="selectedModelKey === opt.value ? 'bm-tab-active' : 'bm-tab-inactive'"
+                @click="selectedModelKey = opt.value"
               >
                 {{ opt.label }}
               </button>
@@ -697,12 +918,22 @@ onErrorCaptured((err) => {
                     <thead>
                       <tr>
                         <th>{{ t('benchmark.diagnostics.actual') }}</th>
-                        <th v-for="name in localizedClassNames" :key="`head-${name}`">{{ name }}</th>
+                        <th
+                          v-for="name in localizedClassNames"
+                          :key="`head-${name}`"
+                        >
+                          {{ name }}
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="(row, rowIndex) in confusionMatrix" :key="`row-${rowIndex}`">
-                        <td class="matrix-axis">{{ localizedClassNames[rowIndex] || rowIndex }}</td>
+                      <tr
+                        v-for="(row, rowIndex) in confusionMatrix"
+                        :key="`row-${rowIndex}`"
+                      >
+                        <td class="matrix-axis">
+                          {{ localizedClassNames[rowIndex] || rowIndex }}
+                        </td>
                         <td
                           v-for="(value, colIndex) in row"
                           :key="`cell-${rowIndex}-${colIndex}`"
@@ -722,33 +953,75 @@ onErrorCaptured((err) => {
                   <template #content>
                     <DataTable
                       :value="perClassRows"
-                      responsiveLayout="scroll"
+                      responsive-layout="scroll"
                       class="bm-datatable-diag"
                       :class="isArabic ? 'bm-table-rtl' : ''"
                     >
-                      <Column field="className"  :header="t('benchmark.diagnostics.class')" />
-                      <Column field="precision"  :header="t('benchmark.diagnostics.precision')">
-                        <template #body="{ data }"><span class="font-mono">{{ formatMetric(data.precision, 2) }}</span></template>
+                      <Column
+                        field="className"
+                        :header="t('benchmark.diagnostics.class')"
+                      />
+                      <Column
+                        field="precision"
+                        :header="t('benchmark.diagnostics.precision')"
+                      >
+                        <template #body="{ data }">
+                          <span class="font-mono">{{ formatMetric(data.precision, 2)
+                          }}</span>
+                        </template>
                       </Column>
-                      <Column field="recall"     :header="t('benchmark.diagnostics.recall')">
-                        <template #body="{ data }"><span class="font-mono">{{ formatMetric(data.recall, 2) }}</span></template>
+                      <Column
+                        field="recall"
+                        :header="t('benchmark.diagnostics.recall')"
+                      >
+                        <template #body="{ data }">
+                          <span class="font-mono">{{ formatMetric(data.recall, 2)
+                          }}</span>
+                        </template>
                       </Column>
-                      <Column field="f1"         :header="t('benchmark.diagnostics.f1')">
-                        <template #body="{ data }"><span class="font-mono" style="color: var(--q-teal)">{{ formatMetric(data.f1, 2) }}</span></template>
+                      <Column
+                        field="f1"
+                        :header="t('benchmark.diagnostics.f1')"
+                      >
+                        <template #body="{ data }">
+                          <span
+                            class="font-mono"
+                            style="color: var(--q-teal)"
+                          >{{
+                            formatMetric(data.f1, 2) }}</span>
+                        </template>
                       </Column>
-                      <Column field="support"    :header="t('benchmark.diagnostics.support')" />
+                      <Column
+                        field="support"
+                        :header="t('benchmark.diagnostics.support')"
+                      />
                     </DataTable>
                   </template>
                 </Card>
               </div>
             </div>
-            <div class="diag-inner-card diag-inner-card--full" style="margin-top: 1rem;">
-              <span class="diag-title">{{ t('benchmark.charts.reliability_title') }}</span>
-              <p class="chart-card-sub" style="margin: -0.5rem 0 1rem;">
+            <div
+              class="diag-inner-card diag-inner-card--full"
+              style="margin-top: 1rem;"
+            >
+              <div class="flex items-center gap-2">
+                <span class="diag-title">{{ t('benchmark.charts.reliability_title') }}</span>
+                <Info
+                  v-tooltip.top="t('benchmark.charts.reliability_tooltip')"
+                  class="bm-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
+                />
+              </div>
+              <p
+                class="chart-card-sub"
+                style="margin: -0.5rem 0 1rem;"
+              >
                 {{ t('benchmark.charts.reliability_sub') }}
               </p>
               <div class="chart-shell chart-shell--md">
-                <Line :data="reliabilityChartData" :options="chartOptions" />
+                <Line
+                  :data="reliabilityChartData"
+                  :options="chartOptions"
+                />
               </div>
             </div>
           </template>
@@ -761,15 +1034,33 @@ onErrorCaptured((err) => {
       <section class="content-section">
         <Card class="glass-card">
           <template #content>
-            <div class="section-heading" :class="{ 'section-heading--rtl': isArabic }">
-              <div class="section-heading__text" :dir="textDir">
-                <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">{{ t('benchmark.config.eyebrow') }}</span>
-                <h3 class="section-title" :dir="textDir">{{ t('benchmark.config.title') }}</h3>
+            <div
+              class="section-heading"
+              :class="{ 'section-heading--rtl': isArabic }"
+            >
+              <div
+                class="section-heading__text"
+                :dir="textDir"
+              >
+                <span
+                  class="eyebrow"
+                  :class="{ 'eyebrow--ar': isArabic }"
+                >{{ t('benchmark.config.eyebrow') }}</span>
+                <h3
+                  class="section-title"
+                  :dir="textDir"
+                >
+                  {{ t('benchmark.config.title') }}
+                </h3>
               </div>
             </div>
 
             <div class="config-grid">
-              <div v-for="item in configCards" :key="item.label" class="config-card-item">
+              <div
+                v-for="item in configCards"
+                :key="item.label"
+                class="config-card-item"
+              >
                 <span class="config-label">{{ item.label }}</span>
                 <strong class="config-value">{{ item.value }}</strong>
               </div>
@@ -777,11 +1068,18 @@ onErrorCaptured((err) => {
           </template>
         </Card>
       </section>
-
     </template>
 
-    <div v-else class="benchmark-state">
-      <Message severity="warn" :closable="false">{{ t('benchmark.states.empty') }}</Message>
+    <div
+      v-else
+      class="benchmark-state"
+    >
+      <Message
+        severity="warn"
+        :closable="false"
+      >
+        {{ t('benchmark.states.empty') }}
+      </Message>
     </div>
   </div>
 </template>
@@ -806,6 +1104,7 @@ onErrorCaptured((err) => {
   box-shadow: var(--q-shadow);
   border-radius: 28px;
 }
+
 .p-dark .glass-card {
   background: rgba(14, 28, 41, 0.74);
 }
@@ -814,10 +1113,13 @@ onErrorCaptured((err) => {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
   gap: 1.5rem;
-  align-items: start; /* was stretch */
+  align-items: start;
+  /* was stretch */
 }
 
-.hero-copy { padding: 1.25rem 0; }
+.hero-copy {
+  padding: 1.25rem 0;
+}
 
 .hero-badge {
   margin-bottom: 1rem;
@@ -827,7 +1129,7 @@ onErrorCaptured((err) => {
 }
 
 .hero-title {
-  
+
   margin: 0 0 0.7rem;
   color: var(--q-text);
   font-family: var(--q-font-display);
@@ -849,14 +1151,14 @@ onErrorCaptured((err) => {
 .control-label {
   color: var(--q-muted);
   line-height: 1.8;
-  
+
 }
 
 .section-text-nowrap {
   color: var(--q-muted);
   line-height: 1.8;
   white-space: nowrap;
-  
+
 }
 
 .hero-stats {
@@ -888,7 +1190,7 @@ onErrorCaptured((err) => {
 
 .hero-panel {
   margin-bottom: 15px;
-  align-self: end; 
+  align-self: end;
 }
 
 .panel-topline {
@@ -899,8 +1201,15 @@ onErrorCaptured((err) => {
   margin-bottom: 1.25rem;
 }
 
-.hero-metric-list { display: grid; gap: 1rem; }
-.hero-metric-row  { display: grid; gap: 0.55rem; }
+.hero-metric-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.hero-metric-row {
+  display: grid;
+  gap: 0.55rem;
+}
 
 .hero-metric-head,
 .hero-metric-title,
@@ -929,27 +1238,47 @@ onErrorCaptured((err) => {
   flex-shrink: 0;
 }
 
-.benchmark-accent--blue   { background: #2563eb; }
-.benchmark-accent--teal   { background: #0d9488; }
-.benchmark-accent--violet { background: #7c3aed; }
+.benchmark-accent--blue {
+  background: #2563eb;
+}
+
+.benchmark-accent--teal {
+  background: #0d9488;
+}
+
+.benchmark-accent--violet {
+  background: #7c3aed;
+}
 
 :deep(.metric-progress .p-progressbar) {
   height: 0.6rem;
   background: rgba(13, 31, 45, 0.08);
   border-radius: 999px;
 }
+
 .p-dark :deep(.metric-progress .p-progressbar) {
   background: rgba(255, 255, 255, 0.08);
 }
-:deep(.metric-progress.benchmark-accent--blue   .p-progressbar-value) { background: #2563eb; }
-:deep(.metric-progress.benchmark-accent--teal   .p-progressbar-value) { background: #0d9488; }
-:deep(.metric-progress.benchmark-accent--violet .p-progressbar-value) { background: #7c3aed; }
+
+:deep(.metric-progress.benchmark-accent--blue .p-progressbar-value) {
+  background: #2563eb;
+}
+
+:deep(.metric-progress.benchmark-accent--teal .p-progressbar-value) {
+  background: #0d9488;
+}
+
+:deep(.metric-progress.benchmark-accent--violet .p-progressbar-value) {
+  background: #7c3aed;
+}
 
 /* ══════════════════════════════════════════════
    DATASET
 ══════════════════════════════════════════════ */
 .dataset-shell,
-.content-section { margin-top: 2rem; }
+.content-section {
+  margin-top: 2rem;
+}
 
 .dataset-heading-text {
   max-width: none;
@@ -961,6 +1290,7 @@ onErrorCaptured((err) => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 /* allow wrap at small breakpoints where nowrap would overflow */
 @media (max-width: 1080px) {
   .dataset-title {
@@ -999,12 +1329,15 @@ onErrorCaptured((err) => {
   border-radius: 999px;
   transition: background 0.2s;
 }
+
 :deep(.dataset-carousel .p-carousel-indicator.p-highlight button),
 :deep(.dataset-carousel .p-carousel-indicator button:hover) {
   background: var(--q-teal) !important;
 }
 
-:deep(.dataset-carousel .p-carousel-item) { display: block; }
+:deep(.dataset-carousel .p-carousel-item) {
+  display: block;
+}
 
 .dataset-slide {
   position: relative;
@@ -1083,8 +1416,14 @@ onErrorCaptured((err) => {
   font-size: 0.82rem;
 }
 
-.dataset-notes { display: grid; gap: 0.75rem; }
-.dataset-note  { margin: 0; }
+.dataset-notes {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.dataset-note {
+  margin: 0;
+}
 
 .dataset-note strong {
   color: var(--q-text);
@@ -1096,7 +1435,10 @@ onErrorCaptured((err) => {
   text-decoration: none;
   font-weight: 700;
 }
-.dataset-link:hover { text-decoration: underline; }
+
+.dataset-link:hover {
+  text-decoration: underline;
+}
 
 .classes-heading {
   display: block;
@@ -1131,6 +1473,7 @@ onErrorCaptured((err) => {
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.42);
 }
+
 .p-dark .dataset-steps-card {
   background: rgba(12, 24, 36, 0.82);
 }
@@ -1146,11 +1489,13 @@ onErrorCaptured((err) => {
 /* Horizontal flow — looks natural across the full width */
 .dataset-steps {
   margin: 0;
-  padding-inline-start: 1.25rem;    /* indent the numbers */
+  padding-inline-start: 1.25rem;
+  /* indent the numbers */
   color: var(--q-muted);
   line-height: 1.75;
   font-size: 0.9rem;
-  list-style-type: square;          /* ensures numbers (1,2,3…) */
+  list-style-type: square;
+  /* ensures numbers (1,2,3…) */
   /* list-style-position: outside;  (default) */
 }
 
@@ -1167,7 +1512,9 @@ onErrorCaptured((err) => {
 
 
 
-.section-heading__text { max-width: 820px; }
+.section-heading__text {
+  max-width: 820px;
+}
 
 .eyebrow {
   display: inline-block;
@@ -1221,8 +1568,14 @@ onErrorCaptured((err) => {
   font-family: var(--q-font-display);
 }
 
-.metric-caption { margin: 0 0 1.1rem; }
-.metric-block   { display: grid; gap: 0.55rem; }
+.metric-caption {
+  margin: 0 0 1.1rem;
+}
+
+.metric-block {
+  display: grid;
+  gap: 0.55rem;
+}
 
 .performance-card-head {
   display: flex;
@@ -1261,7 +1614,9 @@ onErrorCaptured((err) => {
   padding: 0 !important;
 }
 
-.bm-fill-card { flex: 1; }
+.bm-fill-card {
+  flex: 1;
+}
 
 :deep(.p-datatable) {
   background: transparent;
@@ -1299,13 +1654,15 @@ onErrorCaptured((err) => {
   background: var(--q-surface-soft) !important;
   transition: background 0.15s ease;
 }
+
 .robustness-inner-card :deep(.p-card-body) {
   padding: 0.5rem 0.75rem !important;
 }
 
 /* Reduce DataTable row padding while keeping font sizes */
 .bm-datatable-robustness :deep(.p-datatable-tbody > tr > td) {
-  padding: 0.5rem 1rem;   /* smaller vertical padding */
+  padding: 0.5rem 1rem;
+  /* smaller vertical padding */
 }
 
 .bm-datatable-robustness :deep(.p-datatable-thead > tr > th) {
@@ -1324,8 +1681,13 @@ onErrorCaptured((err) => {
 }
 
 /* RTL table alignment */
-:deep(.bm-table-rtl .p-datatable-thead > tr > th) { text-align: right !important; }
-:deep(.bm-table-rtl .p-datatable-tbody > tr > td) { text-align: right !important; }
+:deep(.bm-table-rtl .p-datatable-thead > tr > th) {
+  text-align: right !important;
+}
+
+:deep(.bm-table-rtl .p-datatable-tbody > tr > td) {
+  text-align: right !important;
+}
 
 /* ══════════════════════════════════════════════
    DIAGNOSTICS — inside glass wrapper
@@ -1359,7 +1721,8 @@ onErrorCaptured((err) => {
 
 .matrix-wrap {
   position: relative;
-  flex: 1;                 /* take remaining vertical space */
+  flex: 1;
+  /* take remaining vertical space */
   overflow: auto;
 }
 
@@ -1389,8 +1752,13 @@ onErrorCaptured((err) => {
   background: rgba(255, 255, 255, 0.06);
 }
 
-.matrix-table th { font-size: 0.8rem; }
-.matrix-axis     { font-weight: 700; }
+.matrix-table th {
+  font-size: 0.8rem;
+}
+
+.matrix-axis {
+  font-weight: 700;
+}
 
 .matrix-cell--diag {
   background: var(--q-teal) !important;
@@ -1436,7 +1804,9 @@ onErrorCaptured((err) => {
 /* ══════════════════════════════════════════════
    STATES
 ══════════════════════════════════════════════ */
-.benchmark-state { margin-top: 1rem; }
+.benchmark-state {
+  margin-top: 1rem;
+}
 
 .state-stack {
   display: grid;
@@ -1444,7 +1814,9 @@ onErrorCaptured((err) => {
   text-align: center;
 }
 
-.benchmark-spinner { margin: 0 auto; }
+.benchmark-spinner {
+  margin: 0 auto;
+}
 
 .skeleton-grid {
   display: grid;
@@ -1485,6 +1857,7 @@ onErrorCaptured((err) => {
 }
 
 @media (max-width: 1080px) {
+
   .hero-shell,
   .dataset-layout,
   .performance-grid,
@@ -1494,6 +1867,7 @@ onErrorCaptured((err) => {
 }
 
 @media (max-width: 820px) {
+
   .hero-stats,
   .fact-grid,
   .config-grid {
@@ -1502,6 +1876,7 @@ onErrorCaptured((err) => {
 }
 
 @media (max-width: 640px) {
+
   .hero-stats,
   .fact-grid,
   .config-grid {
@@ -1514,14 +1889,25 @@ onErrorCaptured((err) => {
     height: 320px;
   }
 }
+
 .chart-shell {
-  position: relative; /* required by Chart.js when maintainAspectRatio: false */
+  position: relative;
+  /* required by Chart.js when maintainAspectRatio: false */
   width: 100%;
 }
 
-.chart-shell--sm { height: 260px; }
-.chart-shell--md { height: 320px; }
-.chart-shell--lg { height: 380px; }
+.chart-shell--sm {
+  height: 260px;
+}
+
+.chart-shell--md {
+  height: 320px;
+}
+
+.chart-shell--lg {
+  height: 380px;
+}
+
 .chart-pair-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1561,5 +1947,15 @@ onErrorCaptured((err) => {
   .chart-pair-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.bm-info-icon {
+  color: var(--q-teal);
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
+}
+
+.bm-info-icon:hover {
+  opacity: 1;
 }
 </style>

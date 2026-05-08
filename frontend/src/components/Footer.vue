@@ -10,20 +10,59 @@ const isArabic = computed(() => locale.value === 'AR')
 </script>
 
 <template>
-  <footer class="site-footer" :class="{ 'site-footer--ar': isArabic }" :dir="isArabic ? 'rtl' : 'ltr'">
+  <footer
+    class="site-footer"
+    :class="{ 'site-footer--ar': isArabic }"
+    :dir="isArabic ? 'rtl' : 'ltr'"
+  >
     <div class="site-footer__top">
       <div class="site-footer__grid">
-        <div class="site-footer__col" :dir="isArabic ? 'rtl' : 'ltr'">
-          <h4 class="site-footer__heading">{{ t('footer.navigationTitle') }}</h4>
-          <RouterLink to="/" class="site-footer__link">{{ t('navbar.home') }}</RouterLink>
-          <RouterLink to="/classify" class="site-footer__link">{{ t('navbar.classify') }}</RouterLink>
-          <RouterLink to="/benchmark" class="site-footer__link">{{ t('navbar.benchmark') }}</RouterLink>
-          <RouterLink to="/quantum-advantage" class="site-footer__link">{{ t('navbar.quantum_advantage') }}</RouterLink>
-          <RouterLink to="/contact" class="site-footer__link">{{ t('navbar.contact') }}</RouterLink>
+        <div
+          class="site-footer__col"
+          :dir="isArabic ? 'rtl' : 'ltr'"
+        >
+          <h4 class="site-footer__heading">
+            {{ t('footer.navigationTitle') }}
+          </h4>
+          <RouterLink
+            to="/"
+            class="site-footer__link"
+          >
+            {{ t('navbar.home') }}
+          </RouterLink>
+          <RouterLink
+            to="/classify"
+            class="site-footer__link"
+          >
+            {{ t('navbar.classify') }}
+          </RouterLink>
+          <RouterLink
+            to="/benchmark"
+            class="site-footer__link"
+          >
+            {{ t('navbar.benchmark') }}
+          </RouterLink>
+          <RouterLink
+            to="/quantum-advantage"
+            class="site-footer__link"
+          >
+            {{ t('navbar.quantum_advantage') }}
+          </RouterLink>
+          <RouterLink
+            to="/contact"
+            class="site-footer__link"
+          >
+            {{ t('navbar.contact') }}
+          </RouterLink>
         </div>
 
-        <div class="site-footer__col" :dir="isArabic ? 'rtl' : 'ltr'">
-          <h4 class="site-footer__heading">{{ t('footer.teamTitle') }}</h4>
+        <div
+          class="site-footer__col"
+          :dir="isArabic ? 'rtl' : 'ltr'"
+        >
+          <h4 class="site-footer__heading">
+            {{ t('footer.teamTitle') }}
+          </h4>
           <a
             v-for="person in teamLinks"
             :key="person.name"
@@ -37,13 +76,26 @@ const isArabic = computed(() => locale.value === 'AR')
           </a>
         </div>
 
-        <div class="site-footer__col" :dir="isArabic ? 'rtl' : 'ltr'">
-          <h4 class="site-footer__heading">{{ t('footer.contactTitle') }}</h4>
-          <RouterLink to="/contact" class="site-footer__link">
+        <div
+          class="site-footer__col"
+          :dir="isArabic ? 'rtl' : 'ltr'"
+        >
+          <h4 class="site-footer__heading">
+            {{ t('footer.contactTitle') }}
+          </h4>
+          <RouterLink
+            to="/contact"
+            class="site-footer__link"
+          >
             <Mail :size="14" />
             <span>{{ t('footer.emailLabel') }}</span>
           </RouterLink>
-          <a :href="t('footer.githubHref')" target="_blank" rel="noreferrer" class="site-footer__link">
+          <a
+            :href="t('footer.githubHref')"
+            target="_blank"
+            rel="noreferrer"
+            class="site-footer__link"
+          >
             <Github :size="14" />
             <span>{{ t('footer.githubLabel') }}</span>
           </a>
@@ -79,13 +131,13 @@ const isArabic = computed(() => locale.value === 'AR')
 
 .site-footer__grid {
   /* Reducing this from 1400px keeps the columns from spreading too far */
-  max-width: 1100px; 
+  max-width: 1100px;
   margin: 0 auto;
   display: grid;
   /* Using specific fractions to give the middle column (Research Team) more room */
   grid-template-columns: 1fr 1.5fr 1fr;
   /* Reverting to space-between now that the container is narrower */
-  justify-content: space-between; 
+  justify-content: space-between;
   gap: 2rem;
 }
 
@@ -97,6 +149,7 @@ const isArabic = computed(() => locale.value === 'AR')
   align-items: flex-start;
   text-align: start;
 }
+
 .site-footer:not([dir="rtl"]) .site-footer__link:hover {
   transform: translateX(4px);
 }
@@ -110,7 +163,7 @@ const isArabic = computed(() => locale.value === 'AR')
   font-weight: 800;
   color: var(--q-teal);
   margin-bottom: 0.35rem;
-  text-align: start; 
+  text-align: start;
 }
 
 .site-footer__link {
@@ -126,7 +179,7 @@ const isArabic = computed(() => locale.value === 'AR')
 /* Logical hover effect: works for both EN and AR */
 .site-footer__link:hover {
   color: var(--q-text);
-  margin-inline-start: 4px; 
+  margin-inline-start: 4px;
 }
 
 /* 4. REMOVE all the .site-footer--ar blocks at the bottom of your file */
@@ -153,6 +206,7 @@ const isArabic = computed(() => locale.value === 'AR')
     gap: 2rem;
   }
 }
+
 .site-footer--ar .site-footer__heading {
   direction: rtl;
   text-align: right;
@@ -176,6 +230,7 @@ const isArabic = computed(() => locale.value === 'AR')
   text-align: right;
   unicode-bidi: plaintext;
 }
+
 .site-footer--ar .site-footer__bottom-inner {
   direction: rtl;
   text-align: right;

@@ -25,7 +25,7 @@ const toggleLanguage = () => {
   const next = locale.value === 'EN' ? 'AR' : 'EN'
   locale.value = next
   Cookies.set(LANG_KEY, next, { expires: 365, path: '/' })
-  
+
   document.documentElement.classList.toggle('lang-ar', next === 'AR')
   document.documentElement.lang = next === 'AR' ? 'ar' : 'en'
 }
@@ -44,15 +44,37 @@ const closeMenu = () => {
 <template>
   <header class="qnn-bar">
     <div class="qnn-inner">
-      <router-link to="/" class="qnn-logo" @click="closeMenu">
-        <img src="/qnn_logo_final_no_text.svg" alt="QNN" />
-        <div class="qnn-logo-copy" lang="en" translate="no">
-          <span class="qnn-logo-title" lang="en" translate="no">Quantum-Hybrid</span>
-          <span class="qnn-logo-subtitle" lang="en" translate="no">Defect Detector</span>
+      <router-link
+        to="/"
+        class="qnn-logo"
+        @click="closeMenu"
+      >
+        <img
+          src="/qnn_logo_final_no_text.svg"
+          alt="QNN"
+        >
+        <div
+          class="qnn-logo-copy"
+          lang="en"
+          translate="no"
+        >
+          <span
+            class="qnn-logo-title"
+            lang="en"
+            translate="no"
+          >Quantum-Hybrid</span>
+          <span
+            class="qnn-logo-subtitle"
+            lang="en"
+            translate="no"
+          >Defect Detector</span>
         </div>
       </router-link>
 
-      <nav class="qnn-nav" :class="{ 'qnn-nav--open': menuOpen }">
+      <nav
+        class="qnn-nav"
+        :class="{ 'qnn-nav--open': menuOpen }"
+      >
         <router-link
           v-for="item in items"
           :key="item.to"
@@ -61,27 +83,43 @@ const closeMenu = () => {
           :class="{ 'qnn-link--quantum': item.isQuantum }"
           @click="closeMenu"
         >
-          <component :is="item.lucideIcon" class="qnn-link-icon" />
+          <component
+            :is="item.lucideIcon"
+            class="qnn-link-icon"
+          />
           <span>{{ item.label }}</span>
         </router-link>
       </nav>
 
       <div class="qnn-actions">
-        <button class="qnn-lang-btn" @click="toggleLanguage">
+        <button
+          class="qnn-lang-btn"
+          @click="toggleLanguage"
+        >
           <Languages :size="14" />
           <span>{{ currentLang === 'EN' ? 'العربية' : 'English' }}</span>
         </button>
 
         <button
           class="qnn-icon-btn"
-          @click="toggleTheme"
           :aria-label="isDark ? 'Light mode' : 'Dark mode'"
+          @click="toggleTheme"
         >
-          <component :is="isDark ? markRaw(Sun) : markRaw(Moon)" :size="16" />
+          <component
+            :is="isDark ? markRaw(Sun) : markRaw(Moon)"
+            :size="16"
+          />
         </button>
 
-        <button class="qnn-icon-btn qnn-burger" @click="menuOpen = !menuOpen" aria-label="Toggle menu">
-          <component :is="menuOpen ? markRaw(X) : markRaw(Menu)" :size="19" />
+        <button
+          class="qnn-icon-btn qnn-burger"
+          aria-label="Toggle menu"
+          @click="menuOpen = !menuOpen"
+        >
+          <component
+            :is="menuOpen ? markRaw(X) : markRaw(Menu)"
+            :size="19"
+          />
         </button>
       </div>
     </div>

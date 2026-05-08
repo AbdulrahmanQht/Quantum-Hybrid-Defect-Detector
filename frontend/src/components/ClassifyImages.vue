@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { Info } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 
 const { t, locale } = useI18n()
@@ -142,10 +143,10 @@ async function handleFile(file) {
 function persistState() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      fileName:       selectedFile.value?.name,
+      fileName: selectedFile.value?.name,
       previewDataUrl: storedDataUrl.value,
-      results:        results.value,
-      noisyResults:   noisyResults.value,
+      results: results.value,
+      noisyResults: noisyResults.value,
       compareWithNoise: compareWithNoise.value,
       noiseLevel: noiseLevel.value,
       appliedNoiseLevel: appliedNoiseLevel.value,
@@ -194,50 +195,50 @@ async function uploadImage() {
 
     const data = await res.json()
 
-const modelMeta = computed(() => ({
-  CNN: {
-    key: 'CNN',
-    label: t('classify.models.cnn'),
-    color: '#2563eb' // blue (clear, strong anchor)
-  },
-  QNN_CPU: {
-    key: 'QNN_CPU',
-    label: t('classify.models.qnn_cpu'),
-    color: '#0d9488' // teal (distinct from blue)
-  },
-  QNN_GPU: {
-    key: 'QNN_GPU',
-    label: t('classify.models.qnn_gpu'),
-    color: '#7c3aed' // green (separate from teal)
-  }
-}))
+    const modelMeta = computed(() => ({
+      CNN: {
+        key: 'CNN',
+        label: t('classify.models.cnn'),
+        color: '#2563eb' // blue (clear, strong anchor)
+      },
+      QNN_CPU: {
+        key: 'QNN_CPU',
+        label: t('classify.models.qnn_cpu'),
+        color: '#0d9488' // teal (distinct from blue)
+      },
+      QNN_GPU: {
+        key: 'QNN_GPU',
+        label: t('classify.models.qnn_gpu'),
+        color: '#7c3aed' // green (separate from teal)
+      }
+    }))
 
     const parseSet = (set) => [
-    {
-      modelKey: modelMeta.value.CNN.key,
-      modelName: modelMeta.value.CNN.label,
-      prediction: set.CNN.predicted_class,
-      confidence: set.CNN.confidence * 100,
-      latency: set.CNN.inference_latency_ms,
-      color: modelMeta.value.CNN.color
-    },
-    {
-      modelKey: modelMeta.value.QNN_CPU.key,
-      modelName: modelMeta.value.QNN_CPU.label,
-      prediction: set.QNN_CPU.predicted_class,
-      confidence: set.QNN_CPU.confidence * 100,
-      latency: set.QNN_CPU.inference_latency_ms,
-      color: modelMeta.value.QNN_CPU.color
-    },
-    ...(set.QNN_GPU ? [{
-      modelKey: modelMeta.value.QNN_GPU.key,
-      modelName: modelMeta.value.QNN_GPU.label,
-      prediction: set.QNN_GPU.predicted_class,
-      confidence: set.QNN_GPU.confidence * 100,
-      latency: set.QNN_GPU.inference_latency_ms,
-      color: modelMeta.value.QNN_GPU.color
-    }] : [])
-  ]
+      {
+        modelKey: modelMeta.value.CNN.key,
+        modelName: modelMeta.value.CNN.label,
+        prediction: set.CNN.predicted_class,
+        confidence: set.CNN.confidence * 100,
+        latency: set.CNN.inference_latency_ms,
+        color: modelMeta.value.CNN.color
+      },
+      {
+        modelKey: modelMeta.value.QNN_CPU.key,
+        modelName: modelMeta.value.QNN_CPU.label,
+        prediction: set.QNN_CPU.predicted_class,
+        confidence: set.QNN_CPU.confidence * 100,
+        latency: set.QNN_CPU.inference_latency_ms,
+        color: modelMeta.value.QNN_CPU.color
+      },
+      ...(set.QNN_GPU ? [{
+        modelKey: modelMeta.value.QNN_GPU.key,
+        modelName: modelMeta.value.QNN_GPU.label,
+        prediction: set.QNN_GPU.predicted_class,
+        confidence: set.QNN_GPU.confidence * 100,
+        latency: set.QNN_GPU.inference_latency_ms,
+        color: modelMeta.value.QNN_GPU.color
+      }] : [])
+    ]
 
 
     results.value = parseSet(data.clean)
@@ -386,6 +387,12 @@ const confidenceComparisonChartData = computed(() => {
   }
 })
 
+const cnnIsHighestConfidenceUnderNoise = computed(() => {
+  if (!noisyResults.value || noisyResults.value.length < 2) return false
+  const cnn = noisyResults.value.find(r => r.modelKey === 'CNN')
+  if (!cnn) return false
+  return noisyResults.value.every(r => r.modelKey === 'CNN' || cnn.confidence >= r.confidence)
+})
 
 // --- Reset ---
 function reset() {
@@ -402,7 +409,7 @@ function reset() {
   activeResultsView.value = 'clean'
   if (fileInput.value) fileInput.value.value = ''
   localStorage.removeItem(STORAGE_KEY)
-  isRestored.value    = false
+  isRestored.value = false
   storedDataUrl.value = null
   appliedNoiseLevel.value = null
 }
@@ -412,13 +419,13 @@ function exportToCSV() {
   if (!results.value) return
 
   const headers = [
-    'Condition', 
-    'Model Name', 
-    'Prediction Class', 
-    'Confidence (%)', 
-    'Latency (ms)', 
-    'Match Status', 
-    'Confidence Delta (%)', 
+    'Condition',
+    'Model Name',
+    'Prediction Class',
+    'Confidence (%)',
+    'Latency (ms)',
+    'Match Status',
+    'Confidence Delta (%)',
     'Latency Delta (ms)'
   ]
   const rows = [headers.join(',')]
@@ -456,6 +463,7 @@ function sanitizeFilename(name) {
 }
 
 function stripColor(results) {
+  // eslint-disable-next-line no-unused-vars
   return results.map(({ color, ...rest }) => rest)
 }
 
@@ -471,7 +479,7 @@ function exportToJSON() {
   const jsonData = {
     timestamp: new Date().toISOString(),
     fileName: sanitizeFilename(selectedFile.value?.name),
-    
+
     // Clean Section with Units
     clean: {
       topPrediction: formatResults([topResult.value])[0],
@@ -485,7 +493,7 @@ function exportToJSON() {
         topPrediction: formatResults([noisyTopResult.value])[0],
         allResults: formatResults(noisyResults.value)
       },
-      
+
       // Comparison Section
       comparison: cleanNoisyComparisonRows.value.map(c => ({
         modelKey: c.modelKey,
@@ -518,30 +526,30 @@ onMounted(() => {
     const saved = JSON.parse(raw)
 
     // Results first — before any watched refs are assigned
-    if (saved.results)      results.value      = saved.results
+    if (saved.results) results.value = saved.results
     if (saved.noisyResults) noisyResults.value = saved.noisyResults
-    activeResultsView.value = saved.noisyResults ? 'compare' : 'clean'
+    activeResultsView.value = 'clean'
 
     // Locked-in noise level for the restored results
     if (saved.appliedNoiseLevel != null) appliedNoiseLevel.value = saved.appliedNoiseLevel
 
     // Watched slider refs last — watchers may fire here, results are already in place
     compareWithNoise.value = saved.compareWithNoise ?? false
-    noiseLevel.value       = saved.noiseLevel       ?? 0.3
+    noiseLevel.value = saved.noiseLevel ?? 0.3
 
     // Preview / file sentinel
     if (saved.previewDataUrl) {
-      previewUrl.value    = saved.previewDataUrl
+      previewUrl.value = saved.previewDataUrl
       storedDataUrl.value = saved.previewDataUrl
-      selectedFile.value  = { name: saved.fileName ?? 'image', restored: true }
-      isRestored.value    = true
+      selectedFile.value = { name: saved.fileName ?? 'image', restored: true }
+      isRestored.value = true
     }
   } catch {
     // Ignore corrupted storage
   }
 })
 
-watch(results,      persistState, { deep: true })
+watch(results, persistState, { deep: true })
 watch(noisyResults, persistState, { deep: true })
 watch([compareWithNoise, noiseLevel], persistState)
 watch(noisyResults, (value) => {
@@ -554,13 +562,17 @@ onUnmounted(() => {
 </script>
 
 <template>
-  
-  <div class="classify-shell" :class="{ 'classify-shell--ar': locale === 'AR' }">
+  <div
+    class="classify-shell"
+    :class="{ 'classify-shell--ar': locale === 'AR' }"
+  >
     <div class="classify-header">
       <span class="classify-eyebrow">
         {{ t('classify.eyebrow') }}
       </span>
-      <h1 class="classify-title">{{ t('classify.title') }}</h1>
+      <h1 class="classify-title">
+        {{ t('classify.title') }}
+      </h1>
       <p class="classify-subtitle">
         {{ t('classify.subtitle') }}
       </p>
@@ -574,7 +586,7 @@ onUnmounted(() => {
           accept=".jpg,.jpeg,.png,.webp"
           class="hidden"
           @change="onFileChange"
-        />
+        >
 
         <div
           v-if="!selectedFile"
@@ -596,69 +608,93 @@ onUnmounted(() => {
           </p>
         </div>
 
-        <div v-else dir="ltr" class="classify-preview-stack">
+        <div
+          v-else
+          dir="ltr"
+          class="classify-preview-stack"
+        >
           <Transition name="slide-down">
-              <div v-if="isRestored" class="restored-banner">
-                <i class="pi pi-history" />
-                {{ t('classify.restored_hint') }}
-              </div>
-            </Transition>
+            <div
+              v-if="isRestored"
+              class="restored-banner"
+            >
+              <i class="pi pi-history" />
+              {{ t('classify.restored_hint') }}
+            </div>
+          </Transition>
           <div class="preview-frame">
             <Image
               :src="previewUrl"
               :alt="selectedFile.name"
-              imageClass="max-h-72 object-contain"
+              image-class="max-h-72 object-contain"
               preview
             />
             <div class="preview-overlay">
-              <p class="preview-filename">{{ selectedFile.name }}</p>
+              <p class="preview-filename">
+                {{ selectedFile.name }}
+              </p>
             </div>
-            
           </div>
 
-          <div class="noise-panel" :dir="locale === 'AR' ? 'rtl' : 'ltr'">
-  <div class="noise-panel__header">
-    <div>
-      <p class="noise-panel__title">{{ t('classify.noise_toggle') }}</p>
-      <p class="noise-panel__subtitle">{{ t('classify.noise_toggle_sub') }}</p>
-    </div>
-    <ToggleSwitch v-model="compareWithNoise" />
-  </div>
+          <div
+            class="noise-panel"
+            :dir="locale === 'AR' ? 'rtl' : 'ltr'"
+          >
+            <div class="noise-panel__header">
+              <div>
+                <p class="noise-panel__title">
+                  {{ t('classify.noise_toggle') }}
+                </p>
+                <p class="noise-panel__subtitle">
+                  {{ t('classify.noise_toggle_sub') }}
+                </p>
+              </div>
+              <ToggleSwitch v-model="compareWithNoise" />
+            </div>
 
-  <Transition name="slide-down">
-    <div v-if="compareWithNoise" class="noise-panel__body">
-      <div class="noise-panel__meta">
-        <span class="noise-panel__label">{{ t('classify.noise_severity') }}</span>
-        <span
-          class="noise-panel__badge"
-          :class="{
-            'noise-panel__badge--mild': noiseLevel <= 0.3,
-            'noise-panel__badge--degraded': noiseLevel > 0.3 && noiseLevel <= 0.6,
-            'noise-panel__badge--severe': noiseLevel > 0.6
-          }"
-        >
-          {{ noiseSeverityLabel }} · {{ noiseLevel.toFixed(2) }}
-        </span>
-      </div>
+            <Transition name="slide-down">
+              <div
+                v-if="compareWithNoise"
+                class="noise-panel__body"
+              >
+                <div class="noise-panel__meta">
+                  <span class="noise-panel__label">{{ t('classify.noise_severity') }}</span>
+                  <span
+                    class="noise-panel__badge"
+                    :class="{
+                      'noise-panel__badge--mild': noiseLevel <= 0.3,
+                      'noise-panel__badge--degraded': noiseLevel > 0.3 && noiseLevel <= 0.6,
+                      'noise-panel__badge--severe': noiseLevel > 0.6
+                    }"
+                  >
+                    {{ noiseSeverityLabel }} · {{ noiseLevel.toFixed(2) }}
+                  </span>
+                </div>
 
-      <div class="noise-slider-wrap" dir="ltr">
-        <Slider
-          v-model="sliderNoiseLevel"
-          :min="0.05"
-          :max="1.0"
-          :step="0.05"
-          class="w-full noise-slider"
-        />
-      </div>
+                <div
+                  class="noise-slider-wrap"
+                  dir="ltr"
+                >
+                  <Slider
+                    v-model="sliderNoiseLevel"
+                    :min="0.05"
+                    :max="1.0"
+                    :step="0.05"
+                    class="w-full noise-slider"
+                  />
+                </div>
 
-      <div class="noise-panel__scale" dir="ltr">
-        <span>{{ t('classify.noise_low') }}</span>
-        <span>{{ t('classify.noise_medium') }}</span>
-        <span>{{ t('classify.noise_high') }}</span>
-      </div>
-        </div>
-      </Transition>
-    </div>
+                <div
+                  class="noise-panel__scale"
+                  dir="ltr"
+                >
+                  <span>{{ t('classify.noise_low') }}</span>
+                  <span>{{ t('classify.noise_medium') }}</span>
+                  <span>{{ t('classify.noise_high') }}</span>
+                </div>
+              </div>
+            </Transition>
+          </div>
 
           <div class="classify-actions">
             <Button
@@ -681,7 +717,10 @@ onUnmounted(() => {
       </template>
     </Card>
 
-    <div v-if="!selectedFile" class="classify-choose-row">
+    <div
+      v-if="!selectedFile"
+      class="classify-choose-row"
+    >
       <Button
         :label="t('classify.choose')"
         icon="pi pi-folder-open"
@@ -691,16 +730,27 @@ onUnmounted(() => {
       />
     </div>
 
-    <Message v-if="error" severity="error" :closable="true" class="mb-4" @close="error = null">
+    <Message
+      v-if="error"
+      severity="error"
+      :closable="true"
+      class="mb-4"
+      style="margin-top: 1rem;"
+      @close="error = null"
+    >
       {{ error }}
     </Message>
 
-    <div v-if="results && topResult" class="results-stack animate-fadein">
-
-        <div class="result-summary-grid" :class="{ 'result-summary-grid--single': !noisyTopResult }">
+    <div
+      v-if="results && topResult"
+      class="results-stack animate-fadein"
+    >
+      <div
+        class="result-summary-grid"
+        :class="{ 'result-summary-grid--single': !noisyTopResult }"
+      >
         <!-- Top Prediction Card -->
         <Card class="q-glass result-card result-summary-card result-summary-card--clean transition-colors duration-300">
-
           <template #content>
             <div class="flex items-center gap-4">
               <i class="pi pi-chart-bar flex-shrink-0 text-4xl text-[var(--q-teal)]" />
@@ -737,182 +787,89 @@ onUnmounted(() => {
                 </p>
                 <p class="font-mono text-xs text-[var(--q-muted)]">
                   {{ noisyTopResult.modelName }} &nbsp;·&nbsp;
-                  {{ noisyTopResult.confidence.toFixed(1) }}% {{ t('classify.confidence').toLowerCase() }} &nbsp; ·&nbsp;
+                  {{ noisyTopResult.confidence.toFixed(1) }}% {{ t('classify.confidence').toLowerCase() }} &nbsp;
+                  ·&nbsp;
                   {{ noisyTopResult.latency.toFixed(1) }}ms
                 </p>
               </div>
             </div>
           </template>
         </Card>
-        </div>
+      </div>
 
-        <div v-if="compareWithNoise" class="results-view-switch" :dir="locale === 'AR' ? 'rtl' : 'ltr'">
-          <SelectButton
-            v-model="activeResultsView"
-            :options="resultsViewOptions"
-            optionLabel="label"
-            optionValue="value"
-            :allowEmpty="false"
-          />
-        </div>
+      <div
+        v-if="compareWithNoise"
+        class="results-view-switch"
+        :dir="locale === 'AR' ? 'rtl' : 'ltr'"
+      >
+        <SelectButton
+          v-model="activeResultsView"
+          :options="resultsViewOptions"
+          option-label="label"
+          option-value="value"
+          :allow-empty="false"
+        />
+      </div>
 
-        <div v-if="activeResultsView === 'clean'" class="results-view-panel animate-fadein">
-          <!-- Model Comparison Table -->
-          <Card class="q-glass result-card">
-            <template #title>
+      <div
+        v-if="activeResultsView === 'clean'"
+        class="results-view-panel animate-fadein"
+      >
+        <!-- Model Comparison Table -->
+        <Card class="q-glass result-card">
+          <template #title>
+            <div class="flex items-center gap-2">
               <span class="font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500">
                 {{ t('classify.model_comparison') }}
               </span>
-            </template>
-            <template #content>
-              <DataTable :value="results" responsiveLayout="scroll" class="classify-results-table">
-
-                <Column field="modelName" :header="t('classify.model')">
-                  <template #body="{ data }">
-                    <div class="flex items-center gap-2">
-                      <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" :style="{ background: data.color }" />
-                      <span class="font-medium text-slate-800 dark:text-slate-200">{{ data.modelName }}</span>
-                    </div>
-                  </template>
-                </Column>
-
-                <Column field="prediction" :header="t('classify.prediction')">
-                  <template #body="{ data }">
-                    <Tag
-                      :value="t('classify.' + data.prediction)"
-                      severity="danger"
-                    />
-                  </template>
-                </Column>
-
-                <Column field="confidence" :header="t('classify.confidence')">
-                  <template #body="{ data }">
-                    <div class="flex items-center gap-3 min-w-40">
-                      <ProgressBar
-                        :value="parseFloat(data.confidence.toFixed(1))"
-                        :showValue="false"
-                        class="flex-1"
-                        :pt="{
-                          root: { style: 'height: 6px;' },
-                          value: { style: `background: ${data.color};` }
-                        }"
-                      />
-                      <span class="w-12 font-mono text-xs text-right text-slate-500 dark:text-slate-400 shrink-0">
-                        {{ data.confidence.toFixed(1) }}%
-                      </span>
-                    </div>
-                  </template>
-                </Column>
-
-                <Column field="latency" :header="t('classify.latency')">
-                  <template #body="{ data }">
-                    <span class="font-mono text-xs text-slate-500 dark:text-slate-400">
-                      {{ data.latency.toFixed(1) }} ms
-                    </span>
-                  </template>
-                </Column>
-
-              </DataTable>
-            </template>
-          </Card>
-
-          <!-- Charts -->
-          <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Card class="q-glass result-card">
-              <template #title>
-                <span
-                  class="chart-card-title font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500"
-                  :dir="locale === 'AR' ? 'rtl' : 'ltr'"
-                  :class="{ 'chart-card-title--ar': locale === 'AR' }"
-                >
-                  {{ t('classify.confidence_scores') }}
-                </span>
-              </template>
-              <template #content>
-                <div class="chart-wrap" dir="ltr">
-                  <Chart type="bar" :data="confidenceChartData" :options="chartOptions" class="h-52" />
-                </div>
-              </template>
-            </Card>
-
-            <Card class="q-glass result-card">
-              <template #title>
-                <span
-                  class="chart-card-title font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500"
-                  :dir="locale === 'AR' ? 'rtl' : 'ltr'"
-                  :class="{ 'chart-card-title--ar': locale === 'AR' }"
-                >
-                  {{ t('classify.inference_latency') }}
-                </span>
-              </template>
-              <template #content>
-                <div class="chart-wrap" dir="ltr">
-                  <Chart type="bar" :data="latencyChartData" :options="chartOptions" class="h-52" />
-                </div>
-              </template>
-            </Card>
-
-            <Card class="q-glass result-card lg:col-span-2">
-              <template #title>
-                <span
-                  class="chart-card-title font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500"
-                  :dir="locale === 'AR' ? 'rtl' : 'ltr'"
-                  :class="{ 'chart-card-title--ar': locale === 'AR' }"
-                >
-                  {{ t('classify.distribution') }}
-                </span>
-              </template>
-              <template #content>
-                <div class="flex justify-center">
-                  <div class="chart-wrap chart-wrap--center" dir="ltr">
-                    <Chart type="pie" :data="confidenceChartData" :options="pieOptions" class="w-full max-w-sm h-60" />
-                  </div>
-                </div>
-              </template>
-            </Card>
-          </div>
-        </div>
-
-      <!-- Noisy Results -->
-      <div v-if="noisyResults && noisyTopResult && activeResultsView === 'noisy'" class="results-view-panel animate-fadein">
-        
-        <!-- Noisy Model Comparison Table -->
-        <Card class="q-glass result-card">
-          <template #title>
-            <div class="noisy-card-header">
-              <span class="font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500">
-                {{ t('classify.model_comparison') }} · {{ t('classify.noisy_label') }}
-              </span>
-              <span class="noise-level-chip">
-                {{ t('classify.noise_severity') }} {{ appliedNoiseLevel?.toFixed(2) }}
-              </span>
-          </div>
-            
+              <Info
+                v-tooltip.top="t('classify.tooltips.model_comparison')"
+                class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
+              />
+            </div>
           </template>
           <template #content>
-            <DataTable :value="noisyResults" responsiveLayout="scroll" class="classify-results-table">
-              <Column field="modelName" :header="t('classify.model')">
+            <DataTable
+              :value="results"
+              responsive-layout="scroll"
+              class="classify-results-table"
+            >
+              <Column
+                field="modelName"
+                :header="t('classify.model')"
+              >
                 <template #body="{ data }">
                   <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" :style="{ background: data.color }" />
+                    <span
+                      class="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      :style="{ background: data.color }"
+                    />
                     <span class="font-medium text-slate-800 dark:text-slate-200">{{ data.modelName }}</span>
                   </div>
                 </template>
               </Column>
-              <Column field="prediction" :header="t('classify.prediction')">
+
+              <Column
+                field="prediction"
+                :header="t('classify.prediction')"
+              >
                 <template #body="{ data }">
                   <Tag
-                  :value="t('classify.' + data.prediction)"
-                  severity="danger"
-                />
+                    :value="t('classify.' + data.prediction)"
+                    severity="danger"
+                  />
                 </template>
               </Column>
-              <Column field="confidence" :header="t('classify.confidence')">
+
+              <Column
+                field="confidence"
+                :header="t('classify.confidence')"
+              >
                 <template #body="{ data }">
                   <div class="flex items-center gap-3 min-w-40">
                     <ProgressBar
                       :value="parseFloat(data.confidence.toFixed(1))"
-                      :showValue="false"
+                      :show-value="false"
                       class="flex-1"
                       :pt="{
                         root: { style: 'height: 6px;' },
@@ -925,7 +882,11 @@ onUnmounted(() => {
                   </div>
                 </template>
               </Column>
-              <Column field="latency" :header="t('classify.latency')">
+
+              <Column
+                field="latency"
+                :header="t('classify.latency')"
+              >
                 <template #body="{ data }">
                   <span class="font-mono text-xs text-slate-500 dark:text-slate-400">
                     {{ data.latency.toFixed(1) }} ms
@@ -936,84 +897,354 @@ onUnmounted(() => {
           </template>
         </Card>
 
-        <!-- Noisy Charts -->
+        <!-- Charts -->
         <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card class="q-glass result-card">
             <template #title>
-              <span
-                class="chart-card-title font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500"
+              <div
+                class="flex items-center gap-2"
                 :dir="locale === 'AR' ? 'rtl' : 'ltr'"
-                :class="{ 'chart-card-title--ar': locale === 'AR' }"
               >
-                {{ t('classify.noisy_confidence_scores') }}
-              </span>
+                <span
+                  class="chart-card-title font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500"
+                  :class="{ 'chart-card-title--ar': locale === 'AR' }"
+                >
+                  {{ t('classify.confidence_scores') }}
+                </span>
+                <Info
+                  v-tooltip.top="t('classify.tooltips.confidence_scores')"
+                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
+                />
+              </div>
             </template>
             <template #content>
-              <div class="chart-wrap" dir="ltr">
-                <Chart type="bar" :data="noisyConfidenceChartData" :options="chartOptions" class="h-52" />
+              <div
+                class="chart-wrap"
+                dir="ltr"
+              >
+                <Chart
+                  type="bar"
+                  :data="confidenceChartData"
+                  :options="chartOptions"
+                  class="h-52"
+                />
               </div>
             </template>
           </Card>
 
           <Card class="q-glass result-card">
             <template #title>
-              <span
-                class="chart-card-title font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500"
+              <div
+                class="flex items-center gap-2"
                 :dir="locale === 'AR' ? 'rtl' : 'ltr'"
-                :class="{ 'chart-card-title--ar': locale === 'AR' }"
               >
-                {{ t('classify.noisy_inference_latency') }}
-              </span>
+                <span
+                  class="chart-card-title font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500"
+                  :class="{ 'chart-card-title--ar': locale === 'AR' }"
+                >
+                  {{ t('classify.inference_latency') }}
+                </span>
+                <Info
+                  v-tooltip.top="t('classify.tooltips.inference_latency')"
+                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
+                />
+              </div>
             </template>
             <template #content>
-              <div class="chart-wrap" dir="ltr">
-                <Chart type="bar" :data="noisyLatencyChartData" :options="chartOptions" class="h-52" />
+              <div
+                class="chart-wrap"
+                dir="ltr"
+              >
+                <Chart
+                  type="bar"
+                  :data="latencyChartData"
+                  :options="chartOptions"
+                  class="h-52"
+                />
               </div>
             </template>
           </Card>
 
           <Card class="q-glass result-card lg:col-span-2">
             <template #title>
-              <span
-                class="chart-card-title font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500"
+              <div
+                class="flex items-center gap-2"
                 :dir="locale === 'AR' ? 'rtl' : 'ltr'"
-                :class="{ 'chart-card-title--ar': locale === 'AR' }"
               >
-                {{ t('classify.noisy_distribution') }}
-              </span>
+                <span
+                  class="chart-card-title font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500"
+                  :class="{ 'chart-card-title--ar': locale === 'AR' }"
+                >
+                  {{ t('classify.distribution') }}
+                </span>
+                <Info
+                  v-tooltip.top="t('classify.tooltips.distribution')"
+                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
+                />
+              </div>
             </template>
             <template #content>
               <div class="flex justify-center">
-                <div class="chart-wrap chart-wrap--center" dir="ltr">
-                  <Chart type="pie" :data="noisyConfidenceChartData" :options="pieOptions" class="w-full max-w-sm h-60" />
+                <div
+                  class="chart-wrap chart-wrap--center"
+                  dir="ltr"
+                >
+                  <Chart
+                    type="pie"
+                    :data="confidenceChartData"
+                    :options="pieOptions"
+                    class="w-full max-w-sm h-60"
+                  />
                 </div>
               </div>
             </template>
           </Card>
         </div>
+      </div>
 
-        </div>
-
-      <!-- Clean vs Noisy Comparison -->
-      <div v-if="noisyResults && noisyTopResult && activeResultsView === 'compare'" class="results-view-panel animate-fadein">
-
+      <!-- Noisy Results -->
+      <div
+        v-if="noisyResults && noisyTopResult && activeResultsView === 'noisy'"
+        class="results-view-panel animate-fadein"
+      >
+        <!-- Noisy Model Comparison Table -->
         <Card class="q-glass result-card">
           <template #title>
             <div class="noisy-card-header">
-              <span class="font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500">
-                {{ t('classify.clean_noisy_delta') }}
-              </span>
+              <div class="flex items-center gap-2">
+                <span class="font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500">
+                  {{ t('classify.model_comparison') }} · {{ t('classify.noisy_label') }}
+                </span>
+                <Info
+                  v-tooltip.top="t('classify.tooltips.noisy_confidence')"
+                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
+                />
+              </div>
               <span class="noise-level-chip">
                 {{ t('classify.noise_severity') }} {{ appliedNoiseLevel?.toFixed(2) }}
               </span>
             </div>
           </template>
           <template #content>
-            <DataTable :value="cleanNoisyComparisonRows" responsiveLayout="scroll" class="classify-results-table">
-              <Column field="modelName" :header="t('classify.model')">
+            <DataTable
+              :value="noisyResults"
+              responsive-layout="scroll"
+              class="classify-results-table"
+            >
+              <Column
+                field="modelName"
+                :header="t('classify.model')"
+              >
                 <template #body="{ data }">
                   <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" :style="{ background: data.color }" />
+                    <span
+                      class="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      :style="{ background: data.color }"
+                    />
+                    <span class="font-medium text-slate-800 dark:text-slate-200">{{ data.modelName }}</span>
+                  </div>
+                </template>
+              </Column>
+              <Column
+                field="prediction"
+                :header="t('classify.prediction')"
+              >
+                <template #body="{ data }">
+                  <Tag
+                    :value="t('classify.' + data.prediction)"
+                    severity="danger"
+                  />
+                </template>
+              </Column>
+              <Column
+                field="confidence"
+                :header="t('classify.confidence')"
+              >
+                <template #body="{ data }">
+                  <div class="flex items-center gap-3 min-w-40">
+                    <ProgressBar
+                      :value="parseFloat(data.confidence.toFixed(1))"
+                      :show-value="false"
+                      class="flex-1"
+                      :pt="{
+                        root: { style: 'height: 6px;' },
+                        value: { style: `background: ${data.color};` }
+                      }"
+                    />
+                    <span class="w-12 font-mono text-xs text-right text-slate-500 dark:text-slate-400 shrink-0">
+                      {{ data.confidence.toFixed(1) }}%
+                    </span>
+                  </div>
+                </template>
+              </Column>
+              <Column
+                field="latency"
+                :header="t('classify.latency')"
+              >
+                <template #body="{ data }">
+                  <span class="font-mono text-xs text-slate-500 dark:text-slate-400">
+                    {{ data.latency.toFixed(1) }} ms
+                  </span>
+                </template>
+              </Column>
+            </DataTable>
+          </template>
+        </Card>
+
+        <!-- CNN overconfidence warning -->
+        <Transition name="slide-down">
+          <div
+            v-if="cnnIsHighestConfidenceUnderNoise"
+            class="classify-overconfidence-banner"
+          >
+            <Info class="w-4 h-4 flex-shrink-0" />
+            <span>{{ t('classify.cnn_overconfidence_warning') }}</span>
+          </div>
+        </Transition>
+
+        <!-- Noisy Charts -->
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Card class="q-glass result-card">
+            <template #title>
+              <div
+                class="flex items-center gap-2"
+                :dir="locale === 'AR' ? 'rtl' : 'ltr'"
+              >
+                <span
+                  class="chart-card-title font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500"
+                  :class="{ 'chart-card-title--ar': locale === 'AR' }"
+                >
+                  {{ t('classify.noisy_confidence_scores') }}
+                </span>
+                <Info
+                  v-tooltip.top="t('classify.tooltips.noisy_confidence')"
+                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
+                />
+              </div>
+            </template>
+            <template #content>
+              <div
+                class="chart-wrap"
+                dir="ltr"
+              >
+                <Chart
+                  type="bar"
+                  :data="noisyConfidenceChartData"
+                  :options="chartOptions"
+                  class="h-52"
+                />
+              </div>
+            </template>
+          </Card>
+
+          <Card class="q-glass result-card">
+            <template #title>
+              <div
+                class="flex items-center gap-2"
+                :dir="locale === 'AR' ? 'rtl' : 'ltr'"
+              >
+                <span
+                  class="chart-card-title font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500"
+                  :class="{ 'chart-card-title--ar': locale === 'AR' }"
+                >
+                  {{ t('classify.noisy_inference_latency') }}
+                </span>
+                <Info
+                  v-tooltip.top="t('classify.tooltips.inference_latency')"
+                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
+                />
+              </div>
+            </template>
+            <template #content>
+              <div
+                class="chart-wrap"
+                dir="ltr"
+              >
+                <Chart
+                  type="bar"
+                  :data="noisyLatencyChartData"
+                  :options="chartOptions"
+                  class="h-52"
+                />
+              </div>
+            </template>
+          </Card>
+
+          <Card class="q-glass result-card lg:col-span-2">
+            <template #title>
+              <div
+                class="flex items-center gap-2"
+                :dir="locale === 'AR' ? 'rtl' : 'ltr'"
+              >
+                <span
+                  class="chart-card-title font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500"
+                  :class="{ 'chart-card-title--ar': locale === 'AR' }"
+                >
+                  {{ t('classify.noisy_distribution') }}
+                </span>
+                <Info
+                  v-tooltip.top="t('classify.tooltips.distribution')"
+                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
+                />
+              </div>
+            </template>
+            <template #content>
+              <div class="flex justify-center">
+                <div
+                  class="chart-wrap chart-wrap--center"
+                  dir="ltr"
+                >
+                  <Chart
+                    type="pie"
+                    :data="noisyConfidenceChartData"
+                    :options="pieOptions"
+                    class="w-full max-w-sm h-60"
+                  />
+                </div>
+              </div>
+            </template>
+          </Card>
+        </div>
+      </div>
+
+      <!-- Clean vs Noisy Comparison -->
+      <div
+        v-if="noisyResults && noisyTopResult && activeResultsView === 'compare'"
+        class="results-view-panel animate-fadein"
+      >
+        <Card class="q-glass result-card">
+          <template #title>
+            <div class="noisy-card-header">
+              <div class="flex items-center gap-2">
+                <span class="font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500">
+                  {{ t('classify.clean_noisy_delta') }}
+                </span>
+                <Info
+                  v-tooltip.top="t('classify.tooltips.clean_noisy_delta')"
+                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
+                />
+              </div>
+              <span class="noise-level-chip">
+                {{ t('classify.noise_severity') }} {{ appliedNoiseLevel?.toFixed(2) }}
+              </span>
+            </div>
+          </template>
+          <template #content>
+            <DataTable
+              :value="cleanNoisyComparisonRows"
+              responsive-layout="scroll"
+              class="classify-results-table"
+            >
+              <Column
+                field="modelName"
+                :header="t('classify.model')"
+              >
+                <template #body="{ data }">
+                  <div class="flex items-center gap-2">
+                    <span
+                      class="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      :style="{ background: data.color }"
+                    />
                     <span class="font-medium text-slate-800 dark:text-slate-200">{{ data.modelName }}</span>
                   </div>
                 </template>
@@ -1067,8 +1298,8 @@ onUnmounted(() => {
                     <span class="text-[12px] text-slate-400 dark:text-slate-500">
                       {{ data.cleanLatency.toFixed(1) }}ms ➔ {{ data.noisyLatency.toFixed(1) }}ms
                     </span>
-                    <span 
-                      :class="data.latencyDelta > 0 ? 'text-amber-500' : 'text-emerald-500'" 
+                    <span
+                      :class="data.latencyDelta > 0 ? 'text-amber-500' : 'text-emerald-500'"
                       class="font-bold"
                     >
                       {{ data.latencyDelta >= 0 ? '+' : '' }}{{ data.latencyDelta.toFixed(1) }} ms
@@ -1079,30 +1310,61 @@ onUnmounted(() => {
             </DataTable>
           </template>
         </Card>
-        <Card class="q-glass result-card">
-        <template #title>
-          <span
-            class="chart-card-title font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500"
-            :dir="locale === 'AR' ? 'rtl' : 'ltr'"
-            :class="{ 'chart-card-title--ar': locale === 'AR' }"
+        <!-- CNN overconfidence warning -->
+        <Transition name="slide-down">
+          <div
+            v-if="cnnIsHighestConfidenceUnderNoise"
+            class="classify-overconfidence-banner"
           >
-            {{ t('classify.clean_vs_noisy') }}
-          </span>
-        </template>
-        <template #content>
-          <div class="chart-wrap" dir="ltr">
-            <Chart type="bar" :data="confidenceComparisonChartData" :options="comparisonChartOptions" class="w-full h-72" />
+            <Info class="w-4 h-4 flex-shrink-0" />
+            <span>{{ t('classify.cnn_overconfidence_warning') }}</span>
           </div>
-        </template>
-      </Card>
+        </Transition>
+        <Card class="q-glass result-card">
+          <template #title>
+            <div
+              class="flex items-center gap-2"
+              :dir="locale === 'AR' ? 'rtl' : 'ltr'"
+            >
+              <span
+                class="chart-card-title font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500"
+                :class="{ 'chart-card-title--ar': locale === 'AR' }"
+              >
+                {{ t('classify.clean_vs_noisy') }}
+              </span>
+              <Info
+                v-tooltip.top="t('classify.tooltips.clean_vs_noisy')"
+                class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
+              />
+            </div>
+          </template>
+          <template #content>
+            <div
+              class="chart-wrap"
+              dir="ltr"
+            >
+              <Chart
+                type="bar"
+                :data="confidenceComparisonChartData"
+                :options="comparisonChartOptions"
+                class="w-full h-72"
+              />
+            </div>
+          </template>
+        </Card>
       </div>
 
       <!-- Export -->
-      <Card v-if="results && topResult" class="q-glass result-card results-export-card">
+      <Card
+        v-if="results && topResult"
+        class="q-glass result-card results-export-card"
+      >
         <template #content>
           <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
             <div>
-              <p class="font-semibold text-slate-800 dark:text-slate-100 mb-0.5">{{ t('classify.export_title') }}</p>
+              <p class="font-semibold text-slate-800 dark:text-slate-100 mb-0.5">
+                {{ t('classify.export_title') }}
+              </p>
               <p class="text-sm text-slate-500 dark:text-slate-400">
                 {{ t('classify.export_subtitle') }}
               </p>
@@ -1128,13 +1390,18 @@ onUnmounted(() => {
           </div>
         </template>
       </Card>
-    </div> 
+    </div>
 
     <!-- Export success -->
-    <Message v-if="exportSuccess" severity="success" :closable="true" @close="exportSuccess = null">
+    <Message
+      v-if="exportSuccess"
+      severity="success"
+      :closable="true"
+      @close="exportSuccess = null"
+    >
       {{ exportSuccess }}
     </Message>
-    </div>
+  </div>
 </template>
 
 <style scoped>
@@ -1349,6 +1616,7 @@ onUnmounted(() => {
   color: #dc2626;
   border-color: rgba(239, 68, 68, 0.28);
 }
+
 .p-dark .noise-panel__badge--mild {
   color: #facc15;
 }
@@ -1417,6 +1685,7 @@ onUnmounted(() => {
 .p-dark :deep(.noise-panel .p-slider .p-slider-handle) {
   background: var(--q-navy) !important;
 }
+
 .noise-slider-wrap,
 .noise-slider-wrap :deep(.p-slider) {
   direction: ltr !important;
@@ -1459,14 +1728,17 @@ onUnmounted(() => {
 .result-summary-card::before {
   content: '';
   position: absolute;
-  inset: 0 auto 0 0; /* Top, Right, Bottom, Left */
+  inset: 0 auto 0 0;
+  /* Top, Right, Bottom, Left */
   width: 3px;
   border-radius: 999px;
 }
+
 .classify-shell--ar .result-summary-card::before {
   /* This moves the bar to the right (Right: 0, Left: auto) */
   inset: 0 0 0 auto;
 }
+
 .result-summary-card--clean::before {
   background: var(--q-teal);
 }
@@ -1475,53 +1747,86 @@ onUnmounted(() => {
   background: #f59e0b;
 }
 
+
 .results-view-switch {
   display: flex;
   justify-content: center;
-  margin: 0.5rem 0 0;
+  margin: 1.5rem 0 1rem;
 }
 
+/* Container matched to .qnn-nav */
 .results-view-switch :deep(.p-selectbutton) {
   display: inline-flex;
-  padding: 0.2rem;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3rem;
   border: 1px solid var(--q-bar-border);
-  border-radius: 18px;
-  background: var(--q-surface-soft);
-  gap: 0.2rem;
-  overflow: hidden;
-}
-
-.results-view-switch :deep(.p-togglebutton) {
-  border: none !important;
-  border-radius: 14px !important;
-  background: transparent !important;
-  color: var(--q-muted) !important;
-  box-shadow: none !important;
-  padding: 0.45rem 1.1rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  transition: background 0.18s ease, color 0.18s ease;
-}
-
-.results-view-switch :deep(.p-togglebutton.p-highlight) {
-  background: var(--q-teal) !important;
-  color: #fff !important;
-  box-shadow: 0 2px 8px rgba(42, 184, 184, 0.25) !important;
-}
-
-.results-view-switch :deep(.p-togglebutton:not(.p-highlight):hover) {
-  background: rgba(42, 184, 184, 0.1) !important;
-  color: var(--q-text) !important;
-}
-
-.results-view-switch :deep(.p-togglebutton:focus-visible) {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(42, 184, 184, 0.35) !important;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.45);
 }
 
 .p-dark .results-view-switch :deep(.p-selectbutton) {
-  background: rgba(15, 23, 42, 0.72);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Base Button State matched to .qnn-link */
+.results-view-switch :deep(.p-togglebutton) {
+  border: none !important;
+  background: transparent !important;
+  color: var(--q-muted) !important;
+  border-radius: 999px !important;
+  padding: 0.58rem 1.25rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  box-shadow: none !important;
+  transition: color 0.2s, background 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+/* Hover state for INACTIVE buttons */
+.results-view-switch :deep(.p-togglebutton:not(.p-highlight):not(.p-togglebutton-checked):hover) {
+  color: var(--q-text) !important;
+  background: var(--q-teal-soft) !important;
+}
+
+/* ACTIVE STATE: Bulletproof targeting for PV3 and PV4 */
+.results-view-switch :deep(.p-togglebutton.p-highlight),
+.results-view-switch :deep(.p-togglebutton.p-togglebutton-checked),
+.results-view-switch :deep(.p-togglebutton[aria-pressed="true"]) {
+  background: var(--q-teal-soft) !important;
+  background-color: var(--q-teal-soft) !important;
+  color: var(--q-text) !important;
+  box-shadow: inset 0 0 0 1px rgba(42, 184, 184, 0.15) !important;
+}
+
+/* Kill the default PrimeVue interaction layers (the gray box culprits) */
+.results-view-switch :deep(.p-togglebutton::before),
+.results-view-switch :deep(.p-togglebutton::after) {
+  display: none !important;
+}
+
+/* Make sure the inner label spans don't block the background */
+.results-view-switch :deep(.p-togglebutton-content),
+.results-view-switch :deep(.p-togglebutton-label) {
+  background: transparent !important;
+}
+
+/* Focus ring */
+.results-view-switch :deep(.p-togglebutton:focus-visible) {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--q-bar-bg), 0 0 0 4px var(--q-teal) !important;
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .results-view-switch :deep(.p-selectbutton) {
+    width: 100%;
+    grid-auto-flow: row;
+    border-radius: 22px;
+  }
+
+  .results-view-switch :deep(.p-togglebutton) {
+    border-radius: 14px !important;
+  }
 }
 
 .results-view-panel {
@@ -1539,8 +1844,15 @@ onUnmounted(() => {
 }
 
 @keyframes fadein {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .slide-down-enter-active,
@@ -1590,11 +1902,13 @@ onUnmounted(() => {
     flex-direction: column;
   }
 }
+
 .lang-ar .noise-panel__scale,
 .lang-ar .noise-panel__scale span {
-    direction: ltr !important;
-    unicode-bidi: normal !important;
+  direction: ltr !important;
+  unicode-bidi: normal !important;
 }
+
 .classify-shell--ar .upload-dropzone__title,
 .classify-shell--ar .upload-dropzone__meta,
 .classify-shell--ar .noise-panel__title,
@@ -1605,14 +1919,17 @@ onUnmounted(() => {
   direction: rtl;
   unicode-bidi: plaintext;
 }
+
 .classify-shell--ar .classify-header,
 .classify-shell--ar .upload-dropzone {
   text-align: center;
 }
+
 .lang-ar .p-slider,
 .lang-ar .p-slider * {
-    direction: ltr !important;
+  direction: ltr !important;
 }
+
 .chart-wrap {
   direction: ltr;
   width: 100%;
@@ -1626,6 +1943,7 @@ onUnmounted(() => {
 .chart-wrap :deep(canvas) {
   width: 100% !important;
 }
+
 .chart-card-title--ar {
   direction: rtl;
   text-align: right;
@@ -1633,6 +1951,7 @@ onUnmounted(() => {
   letter-spacing: 0;
   text-transform: none;
 }
+
 .classify-shell--ar :deep(.p-card-title) {
   text-align: right;
 }
@@ -1658,6 +1977,7 @@ onUnmounted(() => {
 .classify-shell--ar :deep(.classify-results-table .text-right) {
   text-align: left;
 }
+
 .restored-banner {
   display: flex;
   align-items: center;
@@ -1670,19 +1990,23 @@ onUnmounted(() => {
   font-size: 0.82rem;
   font-weight: 600;
 }
-.lang-ar .restored-banner{
+
+.lang-ar .restored-banner {
   text-align: right;
   direction: rtl;
 }
-html[lang="ar"] .restored-banner{
+
+html[lang="ar"] .restored-banner {
   text-align: right;
   direction: rtl;
 }
+
 .results-view-panel {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
+
 .noisy-card-header {
   display: flex;
   align-items: center;
@@ -1708,5 +2032,39 @@ html[lang="ar"] .restored-banner{
   color: #fbbf24;
   border-color: rgba(245, 158, 11, 0.25);
   background: rgba(245, 158, 11, 0.08);
+}
+
+.classify-info-icon {
+  color: var(--q-teal);
+  opacity: 0.65;
+  transition: opacity 0.15s ease;
+}
+
+.classify-info-icon:hover {
+  opacity: 1;
+}
+
+.classify-overconfidence-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.07);
+  color: #b45309;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.p-dark .classify-overconfidence-banner {
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.25);
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.classify-shell--ar .classify-overconfidence-banner {
+  direction: rtl;
+  text-align: right;
 }
 </style>

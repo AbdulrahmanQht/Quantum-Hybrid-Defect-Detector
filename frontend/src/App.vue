@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, nextTick } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import NavBar from './components/NavBar.vue'
 import Footer from './components/Footer.vue'
 import { useRouter } from 'vue-router'
@@ -35,7 +35,7 @@ onUnmounted(() => {
     <main class="relative z-[1]">
       <RouterView />
     </main>
-    <Footer/>
+    <Footer />
   </div>
 </template>
 

@@ -53,17 +53,34 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="home-page px-4 pb-20 pt-6 md:px-8 xl:px-14" :class="{ 'home-page--ar': isArabic }">
+  <div
+    class="home-page px-4 pb-20 pt-6 md:px-8 xl:px-14"
+    :class="{ 'home-page--ar': isArabic }"
+  >
     <section class="hero-shell">
       <div class="hero-copy">
-        <Tag :value="t('home.hero.badge')" rounded class="hero-badge" />
-        <h1 class="hero-title">{{ t('home.hero.title') }}</h1>
-        <h2 class="hero-subtitle">{{ t('home.hero.subtitle') }}</h2>
-        <p class="hero-description">{{ t('home.hero.description') }}</p>
+        <Tag
+          :value="t('home.hero.badge')"
+          rounded
+          class="hero-badge"
+        />
+        <h1 class="hero-title">
+          {{ t('home.hero.title') }}
+        </h1>
+        <h2 class="hero-subtitle">
+          {{ t('home.hero.subtitle') }}
+        </h2>
+        <p class="hero-description">
+          {{ t('home.hero.description') }}
+        </p>
 
         <div class="hero-actions">
           <RouterLink to="/classify">
-            <Button :label="t('home.hero.button')" class="hero-primary-btn" size="large">
+            <Button
+              :label="t('home.hero.button')"
+              class="hero-primary-btn"
+              size="large"
+            >
               <template #icon>
                 <ArrowRight :class="['h-4 w-4', { 'hero-arrow--rtl': isArabic }]" />
               </template>
@@ -71,7 +88,12 @@ onUnmounted(() => {
           </RouterLink>
 
           <RouterLink to="/benchmark">
-            <Button :label="t('home.hero.secondaryButton')" severity="secondary" outlined size="large" />
+            <Button
+              :label="t('home.hero.secondaryButton')"
+              severity="secondary"
+              outlined
+              size="large"
+            />
           </RouterLink>
 
           <RouterLink to="/quantum-advantage">
@@ -89,12 +111,24 @@ onUnmounted(() => {
       <div class="hero-visual">
         <div class="hero-visual-card">
           <div class="hero-image-wrap">
-            <img :src="heroLight" class="block dark:hidden hero-image" alt="Hero Light" />
-            <img :src="heroDark" class="hidden dark:block hero-image" alt="Hero Dark" />
+            <img
+              :src="heroLight"
+              class="block dark:hidden hero-image"
+              alt="Hero Light"
+            >
+            <img
+              :src="heroDark"
+              class="hidden dark:block hero-image"
+              alt="Hero Dark"
+            >
           </div>
 
           <div class="hero-stat-grid">
-            <div v-for="item in stats" :key="item.label" class="hero-stat-card">
+            <div
+              v-for="item in stats"
+              :key="item.label"
+              class="hero-stat-card"
+            >
               <span class="hero-stat-value">{{ item.value }}</span>
               <span class="hero-stat-label">{{ item.label }}</span>
             </div>
@@ -109,15 +143,22 @@ onUnmounted(() => {
           <div class="section-heading">
             <div>
               <span class="eyebrow">{{ t('home.sections.overviewEyebrow') }}</span>
-              <h3 class="section-title">{{ t('home.sections.overviewTitle') }}</h3>
+              <h3 class="section-title">
+                {{ t('home.sections.overviewTitle') }}
+              </h3>
             </div>
             <Microscope class="section-icon" />
           </div>
-          <p class="section-text">{{ t('home.sections.overviewText') }}</p>
+          <p class="section-text">
+            {{ t('home.sections.overviewText') }}
+          </p>
         </template>
       </Card>
 
-      <transition name="slide-fade" mode="out-in">
+      <transition
+        name="slide-fade"
+        mode="out-in"
+      >
         <Card
           v-if="slides.length"
           :key="currentIndex"
@@ -128,11 +169,15 @@ onUnmounted(() => {
             <div class="section-heading">
               <div>
                 <span class="eyebrow">{{ t('home.sections.sliderEyebrow') }}</span>
-                <h3 class="section-title">{{ slides[currentIndex].title }}</h3>
+                <h3 class="section-title">
+                  {{ slides[currentIndex].title }}
+                </h3>
               </div>
               <Zap class="section-icon" />
             </div>
-            <p class="section-text">{{ slides[currentIndex].text }}</p>
+            <p class="section-text">
+              {{ slides[currentIndex].text }}
+            </p>
           </template>
         </Card>
       </transition>
@@ -140,25 +185,39 @@ onUnmounted(() => {
 
     <section class="highlights-section">
       <div
-  class="section-heading section-heading--highlights mb-6"
-  :class="{ 'section-heading--rtl': isArabic }"
->
-  <div class="section-heading__text" :dir="isArabic ? 'rtl' : 'ltr'">
-    <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">
-      {{ t('home.sections.highlightsEyebrow') }}
-    </span>
-    <h3 class="section-title">
-      {{ t('home.sections.highlightsTitle') }}
-    </h3>
-  </div>
-  <ShieldCheck class="section-icon" />
-</div>
+        class="section-heading section-heading--highlights mb-6"
+        :class="{ 'section-heading--rtl': isArabic }"
+      >
+        <div
+          class="section-heading__text"
+          :dir="isArabic ? 'rtl' : 'ltr'"
+        >
+          <span
+            class="eyebrow"
+            :class="{ 'eyebrow--ar': isArabic }"
+          >
+            {{ t('home.sections.highlightsEyebrow') }}
+          </span>
+          <h3 class="section-title">
+            {{ t('home.sections.highlightsTitle') }}
+          </h3>
+        </div>
+        <ShieldCheck class="section-icon" />
+      </div>
 
       <div class="highlights-grid">
-        <Card v-for="item in highlights" :key="item.title" class="feature-card">
+        <Card
+          v-for="item in highlights"
+          :key="item.title"
+          class="feature-card"
+        >
           <template #content>
-            <h4 class="feature-title">{{ item.title }}</h4>
-            <p class="feature-text">{{ item.text }}</p>
+            <h4 class="feature-title">
+              {{ item.title }}
+            </h4>
+            <p class="feature-text">
+              {{ item.text }}
+            </p>
           </template>
         </Card>
       </div>
@@ -166,30 +225,48 @@ onUnmounted(() => {
 
     <section class="team-section">
       <div
-  class="section-heading section-heading--team mb-6"
-  :class="{ 'section-heading--rtl': isArabic }"
->
-  <div class="section-heading__text" :dir="isArabic ? 'rtl' : 'ltr'">
-    <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">
-      {{ t('home.team.eyebrow') }}
-    </span>
-    <h3 class="section-title">
-      {{ t('home.team.title') }}
-    </h3>
-  </div>
-  <Users class="section-icon" />
-</div>
+        class="section-heading section-heading--team mb-6"
+        :class="{ 'section-heading--rtl': isArabic }"
+      >
+        <div
+          class="section-heading__text"
+          :dir="isArabic ? 'rtl' : 'ltr'"
+        >
+          <span
+            class="eyebrow"
+            :class="{ 'eyebrow--ar': isArabic }"
+          >
+            {{ t('home.team.eyebrow') }}
+          </span>
+          <h3 class="section-title">
+            {{ t('home.team.title') }}
+          </h3>
+        </div>
+        <Users class="section-icon" />
+      </div>
 
       <div class="team-group">
-        <h4 class="team-group-title">{{ t('home.team.supervisorsTitle') }}</h4>
+        <h4 class="team-group-title">
+          {{ t('home.team.supervisorsTitle') }}
+        </h4>
         <div class="team-grid team-grid--supervisors">
-          <Card v-for="person in supervisors" :key="person.name" class="team-card">
+          <Card
+            v-for="person in supervisors"
+            :key="person.name"
+            class="team-card"
+          >
             <template #content>
               <div class="team-card-top">
-                <div class="team-avatar">{{ person.name.charAt(4) }}</div>
+                <div class="team-avatar">
+                  {{ person.name.charAt(4) }}
+                </div>
                 <div>
-                  <h5 class="team-name">{{ person.name }}</h5>
-                  <p class="team-role">{{ person.role }}</p>
+                  <h5 class="team-name">
+                    {{ person.name }}
+                  </h5>
+                  <p class="team-role">
+                    {{ person.role }}
+                  </p>
                 </div>
               </div>
             </template>
@@ -198,24 +275,46 @@ onUnmounted(() => {
       </div>
 
       <div class="team-group">
-        <h4 class="team-group-title">{{ t('home.team.researchersTitle') }}</h4>
+        <h4 class="team-group-title">
+          {{ t('home.team.researchersTitle') }}
+        </h4>
         <div class="team-grid">
-          <Card v-for="person in researchers" :key="person.name" class="team-card">
+          <Card
+            v-for="person in researchers"
+            :key="person.name"
+            class="team-card"
+          >
             <template #content>
               <div class="team-card-top">
-                <div class="team-avatar">{{ person.name.charAt(0) }}</div>
+                <div class="team-avatar">
+                  {{ person.name.charAt(0) }}
+                </div>
                 <div>
-                  <h5 class="team-name">{{ person.name }}</h5>
-                  <p class="team-role">{{ person.role }}</p>
+                  <h5 class="team-name">
+                    {{ person.name }}
+                  </h5>
+                  <p class="team-role">
+                    {{ person.role }}
+                  </p>
                 </div>
               </div>
 
               <div class="team-links">
-                <a :href="person.github" target="_blank" rel="noreferrer" class="team-link">
+                <a
+                  :href="person.github"
+                  target="_blank"
+                  rel="noreferrer"
+                  class="team-link"
+                >
                   <Github class="h-4 w-4" />
                   <span>{{ t('home.team.github') }}</span>
                 </a>
-                <a :href="person.linkedin" target="_blank" rel="noreferrer" class="team-link">
+                <a
+                  :href="person.linkedin"
+                  target="_blank"
+                  rel="noreferrer"
+                  class="team-link"
+                >
                   <Linkedin class="h-4 w-4" />
                   <span>{{ t('home.team.linkedin') }}</span>
                 </a>
@@ -241,9 +340,11 @@ onUnmounted(() => {
   min-height: calc(100vh - 110px);
   padding: 2rem 0 3rem;
 }
+
 .home-page--ar .hero-visual {
   order: -1;
 }
+
 .hero-copy {
   max-width: 720px;
 }
@@ -536,6 +637,7 @@ onUnmounted(() => {
 
 
 @media (max-width: 1200px) {
+
   .highlights-grid,
   .team-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -543,6 +645,7 @@ onUnmounted(() => {
 }
 
 @media (max-width: 960px) {
+
   .hero-shell,
   .section-grid {
     grid-template-columns: 1fr;
@@ -560,6 +663,7 @@ onUnmounted(() => {
 }
 
 @media (max-width: 640px) {
+
   .highlights-grid,
   .team-grid,
   .team-grid--supervisors,
@@ -604,6 +708,7 @@ onUnmounted(() => {
   letter-spacing: 0;
   text-transform: none;
 }
+
 .hero-arrow--rtl {
   transform: scaleX(-1);
 }

@@ -1,7 +1,6 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
-import Cookies from 'js-cookie';
 import { useI18n } from 'vue-i18n'
 
 const { t, locale } = useI18n()
@@ -23,12 +22,12 @@ onMounted(() => {
       const parsed = JSON.parse(saved)
       // Assign all at once → single watcher trigger, prevents mid-hydration wipe
       contact.value = {
-        name:    parsed.name    ?? '',
+        name: parsed.name ?? '',
         subject: parsed.subject ?? '',
         message: parsed.message ?? '',
       }
     }
-  } catch (e) {
+  } catch {
     // ignore corrupted data
   }
 })
@@ -114,7 +113,10 @@ async function sendEmail() {
 </script>
 
 <template>
-  <div class="contact-root" :class="{ 'contact-root--ar': isArabic }">
+  <div
+    class="contact-root"
+    :class="{ 'contact-root--ar': isArabic }"
+  >
     <Toast />
 
     <section class="contact-shell">
@@ -127,30 +129,48 @@ async function sendEmail() {
         <div class="contact-side__orb contact-side__orb--two" />
         <div class="contact-side__content">
           <span class="contact-side__eyebrow">{{ t('contact.sideEyebrow') }}</span>
-          <h2 class="contact-side__title">{{ t('contact.sideTitle') }}</h2>
-          <p class="contact-side__text">{{ t('contact.sideText') }}</p>
+          <h2 class="contact-side__title">
+            {{ t('contact.sideTitle') }}
+          </h2>
+          <p class="contact-side__text">
+            {{ t('contact.sideText') }}
+          </p>
         </div>
       </aside>
 
 
-      <main class="contact-card q-glass" :dir="dir">
+      <main
+        class="contact-card q-glass"
+        :dir="dir"
+      >
         <header class="form-header">
-          <h1 class="form-title">{{ t('contact.pageTitle') }}</h1>
-          <p class="form-subtitle">{{ t('contact.pageSubtitle') }}</p>
+          <h1 class="form-title">
+            {{ t('contact.pageTitle') }}
+          </h1>
+          <p class="form-subtitle">
+            {{ t('contact.pageSubtitle') }}
+          </p>
         </header>
 
-        <form class="form-body" @submit.prevent="sendEmail" novalidate>
+        <form
+          class="form-body"
+          novalidate
+          @submit.prevent="sendEmail"
+        >
           <div class="field-group">
             <div class="field-label-row">
-              <label class="field-label" for="contact-name">{{ t('contact.name') }}</label>
+              <label
+                class="field-label"
+                for="contact-name"
+              >{{ t('contact.name') }}</label>
               <Button
                 v-if="contact.name || contact.subject || contact.message"
                 type="button"
                 icon="pi pi-times"
                 :disabled="isSending"
                 class="clear-fab"
-                @click="resetEmail"
                 :aria-label="t('contact.clear')"
+                @click="resetEmail"
               />
             </div>
             <InputText
@@ -161,13 +181,19 @@ async function sendEmail() {
               autocomplete="name"
               @blur="touch('name')"
             />
-            <small v-if="errors.name" class="field-error">
+            <small
+              v-if="errors.name"
+              class="field-error"
+            >
               <i class="pi pi-exclamation-circle" /> {{ t('contact.required') }}
             </small>
           </div>
 
           <div class="field-group">
-            <label class="field-label" for="contact-subject">{{ t('contact.subject') }}</label>
+            <label
+              class="field-label"
+              for="contact-subject"
+            >{{ t('contact.subject') }}</label>
             <InputText
               id="contact-subject"
               v-model="contact.subject"
@@ -175,13 +201,19 @@ async function sendEmail() {
               :class="['field-input', { 'p-invalid': errors.subject }]"
               @blur="touch('subject')"
             />
-            <small v-if="errors.subject" class="field-error">
+            <small
+              v-if="errors.subject"
+              class="field-error"
+            >
               <i class="pi pi-exclamation-circle" /> {{ t('contact.required') }}
             </small>
           </div>
 
           <div class="field-group">
-            <label class="field-label" for="contact-message">{{ t('contact.message') }}</label>
+            <label
+              class="field-label"
+              for="contact-message"
+            >{{ t('contact.message') }}</label>
             <Textarea
               id="contact-message"
               v-model="contact.message"
@@ -191,20 +223,22 @@ async function sendEmail() {
               auto-resize
               @blur="touch('message')"
             />
-            <small v-if="errors.message" class="field-error">
+            <small
+              v-if="errors.message"
+              class="field-error"
+            >
               <i class="pi pi-exclamation-circle" /> {{ t('contact.required') }}
             </small>
           </div>
-            
-            <Button
-              type="submit"
-              :label="isSending ? t('contact.sending') : t('contact.send')"
-              icon="pi pi-envelope"
-              :loading="isSending"
-              :disabled="isSending"
-              class="submit-btn"
-            />
-            
+
+          <Button
+            type="submit"
+            :label="isSending ? t('contact.sending') : t('contact.send')"
+            icon="pi pi-envelope"
+            :loading="isSending"
+            :disabled="isSending"
+            class="submit-btn"
+          />
         </form>
       </main>
     </section>
@@ -218,6 +252,7 @@ async function sendEmail() {
   padding: 1.5rem 1rem 3rem;
   color: var(--q-text);
 }
+
 .contact-root--ar .contact-side__title {
   font-size: clamp(2.2rem, 4.2vw, 3.5rem);
   line-height: 1.2;
@@ -245,9 +280,11 @@ async function sendEmail() {
 .contact-root--ar :deep(input) {
   font-size: 1rem !important;
 }
+
 .lang-ar * {
   direction: rtl;
 }
+
 .lang-ar .contact-side__eyebrow {
   font-size: 0.95rem;
   letter-spacing: 0;
@@ -294,6 +331,7 @@ async function sendEmail() {
 .lang-ar .site-footer__heading {
   font-family: var(--q-font-display);
 }
+
 .contact-shell {
   max-width: 1280px;
   margin: 0 auto;
@@ -496,14 +534,18 @@ async function sendEmail() {
     border-radius: 24px;
   }
 }
+
 .contact-card {
-  position: relative; /* needed for the absolute fab */
+  position: relative;
+  /* needed for the absolute fab */
 }
+
 .field-label-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
+
 :deep(.clear-fab.p-button) {
   width: 2.1rem !important;
   height: 2.1rem !important;

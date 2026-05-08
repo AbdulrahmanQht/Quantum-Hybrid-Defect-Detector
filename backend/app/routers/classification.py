@@ -161,15 +161,18 @@ async def classify_image(
     
     # Fast fail checks for file type and size before processing to save resources
     if not check_content_type(file.content_type):
+        logger.error("Unsupported media type. Only images are allowed.")
         raise HTTPException(status_code=415, detail="Unsupported media type. Only images are allowed.")
 
     # Reading all bytes at once for performance, reading 1 byte at a time was causing a bottleneck.
     file_bytes = await file.read()
     if not check_file_size(len(file_bytes)):
+        logger.error("File too large")
         raise HTTPException(status_code=413, detail="File too large")
     
     # Magic bytes check: rejects files whose content doesn't match their claimed type
     if not check_magic_bytes(file_bytes, file.content_type):
+        logger.error("File content does not match a supported image format.")
         raise HTTPException(status_code=415, detail="File content does not match a supported image format.")
     
 
