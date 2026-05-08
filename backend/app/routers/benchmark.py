@@ -14,7 +14,9 @@ import json
 import os
 from typing import List, Dict, Any, Optional
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Response, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from pydantic import BaseModel, Field
 import pandas as pd
 
@@ -22,6 +24,7 @@ from backend.utils.logger import Logger
 
 logger = Logger()
 router = APIRouter(prefix="/api/v1", tags=["Benchmark"])
+limiter = Limiter(key_func=get_remote_address)
 
 BASE_BENCHMARK_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "benchmark")
 BENCHMARK_FILE = os.path.join(BASE_BENCHMARK_DIR, "benchmark_results.json")
@@ -211,7 +214,8 @@ def _get_cached_benchmark() -> BenchmarkResults:
     return _benchmark_cache
 
 @router.get("/benchmark", response_model=BenchmarkResults)
-def get_benchmark(response: Response) -> BenchmarkResults:
+@limiter.limit("300/minute")
+def get_benchmark(request: Request, response: Response) -> BenchmarkResults:
     # Instruct the browser to cache this response for 10 hour (36000 seconds)
     response.headers["Cache-Control"] = "public, max-age=36000"
     return _get_cached_benchmark()

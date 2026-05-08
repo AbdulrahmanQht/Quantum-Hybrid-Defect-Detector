@@ -10,92 +10,50 @@ const isArabic = computed(() => locale.value === 'AR')
 </script>
 
 <template>
-  <footer
-    class="site-footer"
-    :class="{ 'site-footer--ar': isArabic }"
-    :dir="isArabic ? 'rtl' : 'ltr'"
-  >
+  <footer class="site-footer" :class="{ 'site-footer--ar': isArabic }" :dir="isArabic ? 'rtl' : 'ltr'">
     <div class="site-footer__top">
       <div class="site-footer__grid">
-        <div
-          class="site-footer__col"
-          :dir="isArabic ? 'rtl' : 'ltr'"
-        >
+        <div class="site-footer__col" :dir="isArabic ? 'rtl' : 'ltr'">
           <h4 class="site-footer__heading">
             {{ t('footer.navigationTitle') }}
           </h4>
-          <RouterLink
-            to="/"
-            class="site-footer__link"
-          >
+          <RouterLink to="/" class="site-footer__link">
             {{ t('navbar.home') }}
           </RouterLink>
-          <RouterLink
-            to="/classify"
-            class="site-footer__link"
-          >
+          <RouterLink to="/classify" class="site-footer__link">
             {{ t('navbar.classify') }}
           </RouterLink>
-          <RouterLink
-            to="/benchmark"
-            class="site-footer__link"
-          >
+          <RouterLink to="/benchmark" class="site-footer__link">
             {{ t('navbar.benchmark') }}
           </RouterLink>
-          <RouterLink
-            to="/quantum-advantage"
-            class="site-footer__link"
-          >
+          <RouterLink to="/quantum-advantage" class="site-footer__link">
             {{ t('navbar.quantum_advantage') }}
           </RouterLink>
-          <RouterLink
-            to="/contact"
-            class="site-footer__link"
-          >
+          <RouterLink to="/contact" class="site-footer__link">
             {{ t('navbar.contact') }}
           </RouterLink>
         </div>
 
-        <div
-          class="site-footer__col"
-          :dir="isArabic ? 'rtl' : 'ltr'"
-        >
+        <div class="site-footer__col" :dir="isArabic ? 'rtl' : 'ltr'">
           <h4 class="site-footer__heading">
             {{ t('footer.teamTitle') }}
           </h4>
-          <a
-            v-for="person in teamLinks"
-            :key="person.name"
-            :href="person.linkedin"
-            target="_blank"
-            rel="noreferrer"
-            class="site-footer__link"
-          >
+          <a v-for="person in teamLinks" :key="person.name" :href="person.linkedin" target="_blank" rel="noreferrer"
+            class="site-footer__link">
             <Linkedin :size="14" />
             <span>{{ person.name }}</span>
           </a>
         </div>
 
-        <div
-          class="site-footer__col"
-          :dir="isArabic ? 'rtl' : 'ltr'"
-        >
+        <div class="site-footer__col" :dir="isArabic ? 'rtl' : 'ltr'">
           <h4 class="site-footer__heading">
             {{ t('footer.contactTitle') }}
           </h4>
-          <RouterLink
-            to="/contact"
-            class="site-footer__link"
-          >
+          <RouterLink to="/contact" class="site-footer__link">
             <Mail :size="14" />
             <span>{{ t('footer.emailLabel') }}</span>
           </RouterLink>
-          <a
-            :href="t('footer.githubHref')"
-            target="_blank"
-            rel="noreferrer"
-            class="site-footer__link"
-          >
+          <a :href="t('footer.githubHref')" target="_blank" rel="noreferrer" class="site-footer__link">
             <Github :size="14" />
             <span>{{ t('footer.githubLabel') }}</span>
           </a>

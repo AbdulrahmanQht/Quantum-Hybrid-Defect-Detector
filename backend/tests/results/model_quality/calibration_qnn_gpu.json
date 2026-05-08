@@ -1,0 +1,138 @@
+{
+  "model": "QNN_GPU",
+  "n_samples": 2833,
+  "ece": 0.051111,
+  "ece_threshold_warn": 0.05,
+  "ece_threshold_fail": 0.1,
+  "verdict": "WARN",
+  "per_class_ece": {
+    "Deformation": 0.019163,
+    "Deposition": 0.022036,
+    "Disconnect": 0.016262,
+    "Misalignment": 0.015641,
+    "Obstacle": 0.026606,
+    "Rupture": 0.018134
+  },
+  "bins": [
+    {
+      "bin_lower": 0.0,
+      "bin_upper": 0.0667,
+      "count": 0,
+      "mean_confidence": null,
+      "accuracy": null,
+      "calibration_gap": null
+    },
+    {
+      "bin_lower": 0.0667,
+      "bin_upper": 0.1333,
+      "count": 0,
+      "mean_confidence": null,
+      "accuracy": null,
+      "calibration_gap": null
+    },
+    {
+      "bin_lower": 0.1333,
+      "bin_upper": 0.2,
+      "count": 0,
+      "mean_confidence": null,
+      "accuracy": null,
+      "calibration_gap": null
+    },
+    {
+      "bin_lower": 0.2,
+      "bin_upper": 0.2667,
+      "count": 0,
+      "mean_confidence": null,
+      "accuracy": null,
+      "calibration_gap": null
+    },
+    {
+      "bin_lower": 0.2667,
+      "bin_upper": 0.3333,
+      "count": 6,
+      "mean_confidence": 0.3231,
+      "accuracy": 0.0,
+      "calibration_gap": 0.3231
+    },
+    {
+      "bin_lower": 0.3333,
+      "bin_upper": 0.4,
+      "count": 9,
+      "mean_confidence": 0.3693,
+      "accuracy": 0.5556,
+      "calibration_gap": 0.1862
+    },
+    {
+      "bin_lower": 0.4,
+      "bin_upper": 0.4667,
+      "count": 22,
+      "mean_confidence": 0.4424,
+      "accuracy": 0.4091,
+      "calibration_gap": 0.0333
+    },
+    {
+      "bin_lower": 0.4667,
+      "bin_upper": 0.5333,
+      "count": 48,
+      "mean_confidence": 0.4974,
+      "accuracy": 0.6042,
+      "calibration_gap": 0.1067
+    },
+    {
+      "bin_lower": 0.5333,
+      "bin_upper": 0.6,
+      "count": 45,
+      "mean_confidence": 0.5674,
+      "accuracy": 0.6444,
+      "calibration_gap": 0.077
+    },
+    {
+      "bin_lower": 0.6,
+      "bin_upper": 0.6667,
+      "count": 61,
+      "mean_confidence": 0.6341,
+      "accuracy": 0.7705,
+      "calibration_gap": 0.1363
+    },
+    {
+      "bin_lower": 0.6667,
+      "bin_upper": 0.7333,
+      "count": 68,
+      "mean_confidence": 0.7028,
+      "accuracy": 0.8235,
+      "calibration_gap": 0.1207
+    },
+    {
+      "bin_lower": 0.7333,
+      "bin_upper": 0.8,
+      "count": 96,
+      "mean_confidence": 0.7713,
+      "accuracy": 0.9167,
+      "calibration_gap": 0.1453
+    },
+    {
+      "bin_lower": 0.8,
+      "bin_upper": 0.8667,
+      "count": 210,
+      "mean_confidence": 0.8373,
+      "accuracy": 0.9143,
+      "calibration_gap": 0.077
+    },
+    {
+      "bin_lower": 0.8667,
+      "bin_upper": 0.9333,
+      "count": 518,
+      "mean_confidence": 0.908,
+      "accuracy": 0.9846,
+      "calibration_gap": 0.0766
+    },
+    {
+      "bin_lower": 0.9333,
+      "bin_upper": 1.0,
+      "count": 1750,
+      "mean_confidence": 0.97,
+      "accuracy": 0.996,
+      "calibration_gap": 0.026
+    }
+  ]
+}

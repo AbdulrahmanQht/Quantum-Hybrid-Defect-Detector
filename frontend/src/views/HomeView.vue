@@ -44,7 +44,9 @@ const nextCard = () => {
 let interval = null
 
 onMounted(() => {
-  interval = setInterval(nextCard, 5000)
+  interval = setInterval(() => {
+    if (!document.hidden) nextCard()
+  }, 5000)
 })
 
 onUnmounted(() => {
@@ -53,17 +55,10 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div
-    class="home-page px-4 pb-20 pt-6 md:px-8 xl:px-14"
-    :class="{ 'home-page--ar': isArabic }"
-  >
+  <div class="home-page px-4 pb-20 pt-6 md:px-8 xl:px-14" :class="{ 'home-page--ar': isArabic }">
     <section class="hero-shell">
       <div class="hero-copy">
-        <Tag
-          :value="t('home.hero.badge')"
-          rounded
-          class="hero-badge"
-        />
+        <Tag :value="t('home.hero.badge')" rounded class="hero-badge" />
         <h1 class="hero-title">
           {{ t('home.hero.title') }}
         </h1>
@@ -76,11 +71,7 @@ onUnmounted(() => {
 
         <div class="hero-actions">
           <RouterLink to="/classify">
-            <Button
-              :label="t('home.hero.button')"
-              class="hero-primary-btn"
-              size="large"
-            >
+            <Button :label="t('home.hero.button')" class="hero-primary-btn" size="large">
               <template #icon>
                 <ArrowRight :class="['h-4 w-4', { 'hero-arrow--rtl': isArabic }]" />
               </template>
@@ -88,22 +79,12 @@ onUnmounted(() => {
           </RouterLink>
 
           <RouterLink to="/benchmark">
-            <Button
-              :label="t('home.hero.secondaryButton')"
-              severity="secondary"
-              outlined
-              size="large"
-            />
+            <Button :label="t('home.hero.secondaryButton')" severity="secondary" outlined size="large" />
           </RouterLink>
 
           <RouterLink to="/quantum-advantage">
-            <Button
-              :label="t('home.hero.tertiaryButton')"
-              severity="contrast"
-              text
-              size="large"
-              class="hero-tertiary-btn"
-            />
+            <Button :label="t('home.hero.tertiaryButton')" severity="contrast" text size="large"
+              class="hero-tertiary-btn" />
           </RouterLink>
         </div>
       </div>
@@ -111,24 +92,12 @@ onUnmounted(() => {
       <div class="hero-visual">
         <div class="hero-visual-card">
           <div class="hero-image-wrap">
-            <img
-              :src="heroLight"
-              class="block dark:hidden hero-image"
-              alt="Hero Light"
-            >
-            <img
-              :src="heroDark"
-              class="hidden dark:block hero-image"
-              alt="Hero Dark"
-            >
+            <img :src="heroLight" class="block dark:hidden hero-image" alt="Hero Light">
+            <img :src="heroDark" class="hidden dark:block hero-image" alt="Hero Dark">
           </div>
 
           <div class="hero-stat-grid">
-            <div
-              v-for="item in stats"
-              :key="item.label"
-              class="hero-stat-card"
-            >
+            <div v-for="item in stats" :key="item.label" class="hero-stat-card">
               <span class="hero-stat-value">{{ item.value }}</span>
               <span class="hero-stat-label">{{ item.label }}</span>
             </div>
@@ -155,16 +124,8 @@ onUnmounted(() => {
         </template>
       </Card>
 
-      <transition
-        name="slide-fade"
-        mode="out-in"
-      >
-        <Card
-          v-if="slides.length"
-          :key="currentIndex"
-          class="glass-card slider-card"
-          @click="nextCard"
-        >
+      <transition name="slide-fade" mode="out-in">
+        <Card v-if="slides.length" :key="currentIndex" class="glass-card slider-card" @click="nextCard">
           <template #content>
             <div class="section-heading">
               <div>
@@ -184,18 +145,9 @@ onUnmounted(() => {
     </section>
 
     <section class="highlights-section">
-      <div
-        class="section-heading section-heading--highlights mb-6"
-        :class="{ 'section-heading--rtl': isArabic }"
-      >
-        <div
-          class="section-heading__text"
-          :dir="isArabic ? 'rtl' : 'ltr'"
-        >
-          <span
-            class="eyebrow"
-            :class="{ 'eyebrow--ar': isArabic }"
-          >
+      <div class="section-heading section-heading--highlights mb-6" :class="{ 'section-heading--rtl': isArabic }">
+        <div class="section-heading__text" :dir="isArabic ? 'rtl' : 'ltr'">
+          <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">
             {{ t('home.sections.highlightsEyebrow') }}
           </span>
           <h3 class="section-title">
@@ -206,11 +158,7 @@ onUnmounted(() => {
       </div>
 
       <div class="highlights-grid">
-        <Card
-          v-for="item in highlights"
-          :key="item.title"
-          class="feature-card"
-        >
+        <Card v-for="item in highlights" :key="item.title" class="feature-card">
           <template #content>
             <h4 class="feature-title">
               {{ item.title }}
@@ -224,18 +172,9 @@ onUnmounted(() => {
     </section>
 
     <section class="team-section">
-      <div
-        class="section-heading section-heading--team mb-6"
-        :class="{ 'section-heading--rtl': isArabic }"
-      >
-        <div
-          class="section-heading__text"
-          :dir="isArabic ? 'rtl' : 'ltr'"
-        >
-          <span
-            class="eyebrow"
-            :class="{ 'eyebrow--ar': isArabic }"
-          >
+      <div class="section-heading section-heading--team mb-6" :class="{ 'section-heading--rtl': isArabic }">
+        <div class="section-heading__text" :dir="isArabic ? 'rtl' : 'ltr'">
+          <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">
             {{ t('home.team.eyebrow') }}
           </span>
           <h3 class="section-title">
@@ -250,11 +189,7 @@ onUnmounted(() => {
           {{ t('home.team.supervisorsTitle') }}
         </h4>
         <div class="team-grid team-grid--supervisors">
-          <Card
-            v-for="person in supervisors"
-            :key="person.name"
-            class="team-card"
-          >
+          <Card v-for="person in supervisors" :key="person.name" class="team-card">
             <template #content>
               <div class="team-card-top">
                 <div class="team-avatar">
@@ -279,11 +214,7 @@ onUnmounted(() => {
           {{ t('home.team.researchersTitle') }}
         </h4>
         <div class="team-grid">
-          <Card
-            v-for="person in researchers"
-            :key="person.name"
-            class="team-card"
-          >
+          <Card v-for="person in researchers" :key="person.name" class="team-card">
             <template #content>
               <div class="team-card-top">
                 <div class="team-avatar">
@@ -300,21 +231,11 @@ onUnmounted(() => {
               </div>
 
               <div class="team-links">
-                <a
-                  :href="person.github"
-                  target="_blank"
-                  rel="noreferrer"
-                  class="team-link"
-                >
+                <a :href="person.github" target="_blank" rel="noreferrer" class="team-link">
                   <Github class="h-4 w-4" />
                   <span>{{ t('home.team.github') }}</span>
                 </a>
-                <a
-                  :href="person.linkedin"
-                  target="_blank"
-                  rel="noreferrer"
-                  class="team-link"
-                >
+                <a :href="person.linkedin" target="_blank" rel="noreferrer" class="team-link">
                   <Linkedin class="h-4 w-4" />
                   <span>{{ t('home.team.linkedin') }}</span>
                 </a>

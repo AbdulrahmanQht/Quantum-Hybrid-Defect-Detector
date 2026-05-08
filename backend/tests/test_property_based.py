@@ -45,7 +45,7 @@ pytestmark = pytest.mark.skipif(
     reason="hypothesis not installed: pip install hypothesis --break-system-packages",
 )
 
-from .utils.noise import (
+from backend.utils.noise import (
     apply_noise,
     noise_gaussian,
     noise_blur,
@@ -60,7 +60,7 @@ from .utils.noise import (
 BACKEND_DIR = Path(__file__).parent.parent.resolve()
 sys.path.insert(0, str(BACKEND_DIR))
 
-RESULTS_DIR = "results" / "property_based"
+RESULTS_DIR = BACKEND_DIR / "tests" / "results" / "property_based"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -384,7 +384,7 @@ class TestValidatorHypothesis:
 
     def _get_validator(self):
         try:
-            from .utils.validate import check_magic_bytes, check_file_size, check_dimensions
+            from backend.utils.validate import check_magic_bytes, check_file_size, check_dimensions
             return check_magic_bytes, check_file_size, check_dimensions
         except ImportError:
             pytest.skip(".utils.validate not importable")

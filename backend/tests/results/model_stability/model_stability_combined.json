@@ -1,0 +1,42 @@
+{
+  "generated_at": "2026-05-08T19:05:05Z",
+  "determinism": {
+    "generated_at": "2026-05-08T19:03:43Z",
+    "model": "CNN",
+    "n_images": 50,
+    "n_runs": 2,
+    "max_logit_diff_between_runs": 0.0,
+    "deterministic": true
+  },
+  "soak": {
+    "generated_at": "2026-05-08T19:05:05Z",
+    "n_soak_images": 500,
+    "memory_growth_limit_mb": 50.0,
+    "models": {
+      "CNN": {
+        "cpu_memory_growth_mb": 1.13,
+        "gpu_memory_growth_mb": 1.77,
+        "prediction_drifts": 0,
+        "model_params_unchanged": true,
+        "throughput_img_per_s": 190.26,
+        "verdict": "PASS"
+      },
+      "QNN_CPU": {
+        "cpu_memory_growth_mb": 0.0,
+        "gpu_memory_growth_mb": 1.77,
+        "prediction_drifts": 0,
+        "model_params_unchanged": true,
+        "throughput_img_per_s": 31.77,
+        "verdict": "PASS"
+      },
+      "QNN_GPU": {
+        "cpu_memory_growth_mb": 0.0,
+        "gpu_memory_growth_mb": 1.77,
+        "prediction_drifts": 0,
+        "model_params_unchanged": true,
+        "throughput_img_per_s": 7.96,
+        "verdict": "PASS"
+      }
+    }
+  }
+}

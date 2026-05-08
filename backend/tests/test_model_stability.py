@@ -40,7 +40,7 @@ Run:
     pytest tests/test_model_stability.py -v
     pytest tests/test_model_stability.py -v -k "Determinism"
     pytest tests/test_model_stability.py -v -k "Soak"
-    pytest tests/test_model_stability.py -v -s          # prints per-100 memory readings
+    pytest tests/test_model_stability.py -v -s # prints per-100 memory readings
 """
 
 from __future__ import annotations
@@ -61,7 +61,7 @@ import torch.nn.functional as F
 BACKEND_DIR = Path(__file__).parent.parent.resolve()
 sys.path.insert(0, str(BACKEND_DIR))
 
-RESULTS_DIR = "results" / "model_stability"
+RESULTS_DIR = BACKEND_DIR / "tests" / "results" / "model_stability"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 CLASS_NAMES = [
@@ -175,7 +175,7 @@ def soak_images():
 def cnn_model(device):
     if _CNN_CKPT is None:
         pytest.skip("CNN checkpoint not found")
-    from .models.cnn import CNN
+    from backend.models.cnn import CNN
     m = CNN(num_classes=6)
     m.load_model(_CNN_CKPT, device)
     m.eval()
@@ -186,7 +186,7 @@ def cnn_model(device):
 def qnn_cpu_model(device):
     if _QNN_CPU_CKPT is None:
         pytest.skip("QNN-CPU checkpoint not found")
-    from .models.qnn_cpu import HybridQnnCPU
+    from backend.models.qnn_cpu import HybridQnnCPU
     m = HybridQnnCPU(num_classes=6, n_qubits=6, q_depth=2)
     m.load_model(_QNN_CPU_CKPT, device)
     m.eval()
@@ -200,7 +200,7 @@ def qnn_gpu_model():
     if _QNN_GPU_CKPT is None:
         pytest.skip("QNN-GPU checkpoint not found")
     gpu_device = torch.device("cuda")
-    from .models.qnn_gpu import HybridQnnGPU
+    from backend.models.qnn_gpu import HybridQnnGPU
     m = HybridQnnGPU(num_classes=6, n_qubits=6, q_depth=2)
     m.load_model(_QNN_GPU_CKPT, gpu_device)
     m.eval()
@@ -368,7 +368,7 @@ class TestCheckpointRoundTrip:
             path = tmp.name
         try:
             cnn_model.save_model(path)
-            from .models.cnn import CNN
+            from backend.models.cnn import CNN
             m2 = CNN(num_classes=6)
             m2.load_model(path, device)
             m2.eval()
@@ -390,7 +390,7 @@ class TestCheckpointRoundTrip:
             path = tmp.name
         try:
             qnn_cpu_model.save_model(path)
-            from .models.qnn_cpu import HybridQnnCPU
+            from backend.models.qnn_cpu import HybridQnnCPU
             m2 = HybridQnnCPU(num_classes=6, n_qubits=6, q_depth=2)
             m2.load_model(path, device)
             m2.eval()
@@ -413,7 +413,7 @@ class TestCheckpointRoundTrip:
             path = tmp.name
         try:
             qnn_gpu_model.save_model(path)
-            from .models.qnn_gpu import HybridQnnGPU
+            from backend.models.qnn_gpu import HybridQnnGPU
             m2 = HybridQnnGPU(num_classes=6, n_qubits=6, q_depth=2)
             m2.load_model(path, torch.device("cuda"))
             m2.eval()
@@ -550,7 +550,7 @@ class TestPreprocessingDeterminism:
 
     def test_inference_transform_is_deterministic(self):
         try:
-            from .data.preprocessing import PreProcessing
+            from backend.data.preprocessing import PreProcessing
             from PIL import Image
         except ImportError:
             pytest.skip("PreProcessing or Pillow not available")

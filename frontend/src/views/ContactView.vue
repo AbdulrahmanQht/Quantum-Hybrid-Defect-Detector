@@ -113,18 +113,11 @@ async function sendEmail() {
 </script>
 
 <template>
-  <div
-    class="contact-root"
-    :class="{ 'contact-root--ar': isArabic }"
-  >
+  <div class="contact-root" :class="{ 'contact-root--ar': isArabic }">
     <Toast />
 
     <section class="contact-shell">
-      <aside
-        class="contact-side q-glass"
-        :dir="locale === 'AR' ? 'rtl' : 'ltr'"
-        aria-hidden="true"
-      >
+      <aside class="contact-side q-glass" :dir="locale === 'AR' ? 'rtl' : 'ltr'" aria-hidden="true">
         <div class="contact-side__orb contact-side__orb--one" />
         <div class="contact-side__orb contact-side__orb--two" />
         <div class="contact-side__content">
@@ -139,10 +132,7 @@ async function sendEmail() {
       </aside>
 
 
-      <main
-        class="contact-card q-glass"
-        :dir="dir"
-      >
+      <main class="contact-card q-glass" :dir="dir">
         <header class="form-header">
           <h1 class="form-title">
             {{ t('contact.pageTitle') }}
@@ -152,93 +142,40 @@ async function sendEmail() {
           </p>
         </header>
 
-        <form
-          class="form-body"
-          novalidate
-          @submit.prevent="sendEmail"
-        >
+        <form class="form-body" novalidate @submit.prevent="sendEmail">
           <div class="field-group">
             <div class="field-label-row">
-              <label
-                class="field-label"
-                for="contact-name"
-              >{{ t('contact.name') }}</label>
-              <Button
-                v-if="contact.name || contact.subject || contact.message"
-                type="button"
-                icon="pi pi-times"
-                :disabled="isSending"
-                class="clear-fab"
-                :aria-label="t('contact.clear')"
-                @click="resetEmail"
-              />
+              <label class="field-label" for="contact-name">{{ t('contact.name') }}</label>
+              <Button v-if="contact.name || contact.subject || contact.message" type="button" icon="pi pi-times"
+                :disabled="isSending" class="clear-fab" :aria-label="t('contact.clear')" @click="resetEmail" />
             </div>
-            <InputText
-              id="contact-name"
-              v-model="contact.name"
-              :placeholder="t('contact.namePlaceholder')"
-              :class="['field-input', { 'p-invalid': errors.name }]"
-              autocomplete="name"
-              @blur="touch('name')"
-            />
-            <small
-              v-if="errors.name"
-              class="field-error"
-            >
+            <InputText id="contact-name" v-model="contact.name" :placeholder="t('contact.namePlaceholder')"
+              :class="['field-input', { 'p-invalid': errors.name }]" autocomplete="name" @blur="touch('name')" />
+            <small v-if="errors.name" class="field-error" role="alert">
               <i class="pi pi-exclamation-circle" /> {{ t('contact.required') }}
             </small>
           </div>
 
           <div class="field-group">
-            <label
-              class="field-label"
-              for="contact-subject"
-            >{{ t('contact.subject') }}</label>
-            <InputText
-              id="contact-subject"
-              v-model="contact.subject"
-              :placeholder="t('contact.subjectPlaceholder')"
-              :class="['field-input', { 'p-invalid': errors.subject }]"
-              @blur="touch('subject')"
-            />
-            <small
-              v-if="errors.subject"
-              class="field-error"
-            >
+            <label class="field-label" for="contact-subject">{{ t('contact.subject') }}</label>
+            <InputText id="contact-subject" v-model="contact.subject" :placeholder="t('contact.subjectPlaceholder')"
+              :class="['field-input', { 'p-invalid': errors.subject }]" @blur="touch('subject')" />
+            <small v-if="errors.subject" class="field-error" role="alert">
               <i class="pi pi-exclamation-circle" /> {{ t('contact.required') }}
             </small>
           </div>
 
           <div class="field-group">
-            <label
-              class="field-label"
-              for="contact-message"
-            >{{ t('contact.message') }}</label>
-            <Textarea
-              id="contact-message"
-              v-model="contact.message"
-              :placeholder="t('contact.messagePlaceholder')"
-              :class="['field-input', { 'p-invalid': errors.message }]"
-              rows="6"
-              auto-resize
-              @blur="touch('message')"
-            />
-            <small
-              v-if="errors.message"
-              class="field-error"
-            >
+            <label class="field-label" for="contact-message">{{ t('contact.message') }}</label>
+            <Textarea id="contact-message" v-model="contact.message" :placeholder="t('contact.messagePlaceholder')"
+              :class="['field-input', { 'p-invalid': errors.message }]" rows="6" auto-resize @blur="touch('message')" />
+            <small v-if="errors.message" class="field-error" role="alert">
               <i class="pi pi-exclamation-circle" /> {{ t('contact.required') }}
             </small>
           </div>
 
-          <Button
-            type="submit"
-            :label="isSending ? t('contact.sending') : t('contact.send')"
-            icon="pi pi-envelope"
-            :loading="isSending"
-            :disabled="isSending"
-            class="submit-btn"
-          />
+          <Button type="submit" :label="isSending ? t('contact.sending') : t('contact.send')" icon="pi pi-envelope"
+            :loading="isSending" :disabled="isSending" class="submit-btn" />
         </form>
       </main>
     </section>

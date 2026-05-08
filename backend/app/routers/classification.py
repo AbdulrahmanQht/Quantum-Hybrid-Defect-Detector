@@ -132,7 +132,7 @@ def apply_inference_noise(tensor: torch.Tensor, noise_level: float) -> torch.Ten
     return t
 
 @router.post("/classify", response_model=ClassificationResponse)
-@limiter.limit("10/minute")
+@limiter.limit("60/minute")
 async def classify_image(
     request: Request,
     file: UploadFile = File(...),

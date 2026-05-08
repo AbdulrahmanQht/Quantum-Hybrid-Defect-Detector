@@ -39,8 +39,11 @@ class Logger:
             )
 
             file_handler.setFormatter(formatter)
-            self.logger.addHandler(file_handler)
+            stream_handler = logging.StreamHandler(sys.stdout)
+            stream_handler.setFormatter(formatter)
 
+            self.logger.addHandler(file_handler)
+            self.logger.addHandler(stream_handler)
             self.logger.propagate = False
 
     def log_results(self, model_name, latency, confidence, result):

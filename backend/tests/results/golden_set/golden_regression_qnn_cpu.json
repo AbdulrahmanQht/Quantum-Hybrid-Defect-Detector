@@ -1,0 +1,8 @@
+{
+  "generated_at": "2026-05-08T18:14:15Z",
+  "model_key": "QNN_CPU",
+  "source": "real_yolo",
+  "n_regressions": 0,
+  "regressions": [],
+  "verdict": "PASS"
+}

@@ -32,7 +32,7 @@ onUnmounted(() => {
   <div class="app-shell min-h-screen">
     <div class="app-shell__bg" />
     <NavBar />
-    <main class="relative z-[1]">
+    <main id="main-content" class="relative z-[1]">
       <RouterView />
     </main>
     <Footer />

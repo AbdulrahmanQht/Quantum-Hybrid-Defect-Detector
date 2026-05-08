@@ -164,6 +164,24 @@ function onDrop(event) {
   handleFile(event.dataTransfer?.files?.[0])
 }
 
+const modelMeta = computed(() => ({
+  CNN: {
+    key: 'CNN',
+    label: t('classify.models.cnn'),
+    color: '#2563eb' // blue (clear, strong anchor)
+  },
+  QNN_CPU: {
+    key: 'QNN_CPU',
+    label: t('classify.models.qnn_cpu'),
+    color: '#0d9488' // teal (distinct from blue)
+  },
+  QNN_GPU: {
+    key: 'QNN_GPU',
+    label: t('classify.models.qnn_gpu'),
+    color: '#7c3aed' // green (separate from teal)
+  }
+}))
+
 async function uploadImage() {
   if (!selectedFile.value || selectedFile.value.restored) return
 
@@ -194,24 +212,6 @@ async function uploadImage() {
     }
 
     const data = await res.json()
-
-    const modelMeta = computed(() => ({
-      CNN: {
-        key: 'CNN',
-        label: t('classify.models.cnn'),
-        color: '#2563eb' // blue (clear, strong anchor)
-      },
-      QNN_CPU: {
-        key: 'QNN_CPU',
-        label: t('classify.models.qnn_cpu'),
-        color: '#0d9488' // teal (distinct from blue)
-      },
-      QNN_GPU: {
-        key: 'QNN_GPU',
-        label: t('classify.models.qnn_gpu'),
-        color: '#7c3aed' // green (separate from teal)
-      }
-    }))
 
     const parseSet = (set) => [
       {
@@ -562,10 +562,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div
-    class="classify-shell"
-    :class="{ 'classify-shell--ar': locale === 'AR' }"
-  >
+  <div class="classify-shell" :class="{ 'classify-shell--ar': locale === 'AR' }">
     <div class="classify-header">
       <span class="classify-eyebrow">
         {{ t('classify.eyebrow') }}
@@ -580,21 +577,11 @@ onUnmounted(() => {
 
     <Card class="classify-card q-glass">
       <template #content>
-        <input
-          ref="fileInput"
-          type="file"
-          accept=".jpg,.jpeg,.png,.webp"
-          class="hidden"
-          @change="onFileChange"
-        >
+        <input ref="fileInput" type="file" accept=".jpg,.jpeg,.png,.webp" class="hidden" @change="onFileChange">
 
-        <div
-          v-if="!selectedFile"
-          class="upload-dropzone"
-          @click="fileInput.click()"
-          @dragover.prevent
-          @drop.prevent="onDrop"
-        >
+        <div v-if="!selectedFile" class="upload-dropzone" @click="fileInput.click()"
+          @keydown.enter.prevent="fileInput.click()" @keydown.space.prevent="fileInput.click()" @dragover.prevent
+          @drop.prevent="onDrop">
           <div class="upload-dropzone__icon-wrap">
             <i class="pi pi-cloud-upload upload-dropzone__icon" />
           </div>
@@ -608,27 +595,15 @@ onUnmounted(() => {
           </p>
         </div>
 
-        <div
-          v-else
-          dir="ltr"
-          class="classify-preview-stack"
-        >
+        <div v-else dir="ltr" class="classify-preview-stack">
           <Transition name="slide-down">
-            <div
-              v-if="isRestored"
-              class="restored-banner"
-            >
+            <div v-if="isRestored" class="restored-banner">
               <i class="pi pi-history" />
               {{ t('classify.restored_hint') }}
             </div>
           </Transition>
           <div class="preview-frame">
-            <Image
-              :src="previewUrl"
-              :alt="selectedFile.name"
-              image-class="max-h-72 object-contain"
-              preview
-            />
+            <Image :src="previewUrl" :alt="selectedFile.name" image-class="max-h-72 object-contain" preview />
             <div class="preview-overlay">
               <p class="preview-filename">
                 {{ selectedFile.name }}
@@ -636,10 +611,7 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <div
-            class="noise-panel"
-            :dir="locale === 'AR' ? 'rtl' : 'ltr'"
-          >
+          <div class="noise-panel" :dir="locale === 'AR' ? 'rtl' : 'ltr'">
             <div class="noise-panel__header">
               <div>
                 <p class="noise-panel__title">
@@ -653,41 +625,23 @@ onUnmounted(() => {
             </div>
 
             <Transition name="slide-down">
-              <div
-                v-if="compareWithNoise"
-                class="noise-panel__body"
-              >
+              <div v-if="compareWithNoise" class="noise-panel__body">
                 <div class="noise-panel__meta">
                   <span class="noise-panel__label">{{ t('classify.noise_severity') }}</span>
-                  <span
-                    class="noise-panel__badge"
-                    :class="{
-                      'noise-panel__badge--mild': noiseLevel <= 0.3,
-                      'noise-panel__badge--degraded': noiseLevel > 0.3 && noiseLevel <= 0.6,
-                      'noise-panel__badge--severe': noiseLevel > 0.6
-                    }"
-                  >
+                  <span class="noise-panel__badge" :class="{
+                    'noise-panel__badge--mild': noiseLevel <= 0.3,
+                    'noise-panel__badge--degraded': noiseLevel > 0.3 && noiseLevel <= 0.6,
+                    'noise-panel__badge--severe': noiseLevel > 0.6
+                  }">
                     {{ noiseSeverityLabel }} · {{ noiseLevel.toFixed(2) }}
                   </span>
                 </div>
 
-                <div
-                  class="noise-slider-wrap"
-                  dir="ltr"
-                >
-                  <Slider
-                    v-model="sliderNoiseLevel"
-                    :min="0.05"
-                    :max="1.0"
-                    :step="0.05"
-                    class="w-full noise-slider"
-                  />
+                <div class="noise-slider-wrap" dir="ltr">
+                  <Slider v-model="sliderNoiseLevel" :min="0.05" :max="1.0" :step="0.05" class="w-full noise-slider" />
                 </div>
 
-                <div
-                  class="noise-panel__scale"
-                  dir="ltr"
-                >
+                <div class="noise-panel__scale" dir="ltr">
                   <span>{{ t('classify.noise_low') }}</span>
                   <span>{{ t('classify.noise_medium') }}</span>
                   <span>{{ t('classify.noise_high') }}</span>
@@ -697,58 +651,28 @@ onUnmounted(() => {
           </div>
 
           <div class="classify-actions">
-            <Button
-              :label="t('classify.reset')"
-              icon="pi pi-refresh"
-              severity="secondary"
-              outlined
-              :disabled="loading || validating"
-              @click="reset"
-            />
-            <Button
-              :label="validating ? t('classify.validating') : loading ? t('classify.running') : t('classify.run')"
+            <Button :label="t('classify.reset')" icon="pi pi-refresh" severity="secondary" outlined
+              :disabled="loading || validating" @click="reset" />
+            <Button :label="validating ? t('classify.validating') : loading ? t('classify.running') : t('classify.run')"
               :icon="loading || validating ? 'pi pi-spin pi-spinner' : 'pi pi-play'"
-              :disabled="loading || validating || isRestored"
-              class="classify-run-btn"
-              @click="uploadImage"
-            />
+              :disabled="loading || validating || isRestored" class="classify-run-btn" @click="uploadImage" />
           </div>
         </div>
       </template>
     </Card>
 
-    <div
-      v-if="!selectedFile"
-      class="classify-choose-row"
-    >
-      <Button
-        :label="t('classify.choose')"
-        icon="pi pi-folder-open"
-        severity="contrast"
-        :loading="validating"
-        @click="fileInput.click()"
-      />
+    <div v-if="!selectedFile" class="classify-choose-row">
+      <Button :label="t('classify.choose')" icon="pi pi-folder-open" severity="contrast" :loading="validating"
+        @click="fileInput.click()" />
     </div>
 
-    <Message
-      v-if="error"
-      severity="error"
-      :closable="true"
-      class="mb-4"
-      style="margin-top: 1rem;"
-      @close="error = null"
-    >
+    <Message v-if="error" severity="error" :closable="true" role="alert" class="mb-4" style="margin-top: 1rem;"
+      @close="error = null">
       {{ error }}
     </Message>
 
-    <div
-      v-if="results && topResult"
-      class="results-stack animate-fadein"
-    >
-      <div
-        class="result-summary-grid"
-        :class="{ 'result-summary-grid--single': !noisyTopResult }"
-      >
+    <div v-if="results && topResult" class="results-stack animate-fadein">
+      <div class="result-summary-grid" :class="{ 'result-summary-grid--single': !noisyTopResult }">
         <!-- Top Prediction Card -->
         <Card class="q-glass result-card result-summary-card result-summary-card--clean transition-colors duration-300">
           <template #content>
@@ -771,10 +695,8 @@ onUnmounted(() => {
           </template>
         </Card>
 
-        <Card
-          v-if="noisyTopResult"
-          class="q-glass result-card result-summary-card result-summary-card--noisy transition-colors duration-300"
-        >
+        <Card v-if="noisyTopResult"
+          class="q-glass result-card result-summary-card result-summary-card--noisy transition-colors duration-300">
           <template #content>
             <div class="flex items-center gap-4">
               <i class="flex-shrink-0 text-4xl pi pi-sliders-h text-amber-500 dark:text-amber-400" />
@@ -797,24 +719,12 @@ onUnmounted(() => {
         </Card>
       </div>
 
-      <div
-        v-if="compareWithNoise"
-        class="results-view-switch"
-        :dir="locale === 'AR' ? 'rtl' : 'ltr'"
-      >
-        <SelectButton
-          v-model="activeResultsView"
-          :options="resultsViewOptions"
-          option-label="label"
-          option-value="value"
-          :allow-empty="false"
-        />
+      <div v-if="compareWithNoise" class="results-view-switch" :dir="locale === 'AR' ? 'rtl' : 'ltr'">
+        <SelectButton v-model="activeResultsView" :options="resultsViewOptions" option-label="label"
+          option-value="value" :allow-empty="false" />
       </div>
 
-      <div
-        v-if="activeResultsView === 'clean'"
-        class="results-view-panel animate-fadein"
-      >
+      <div v-if="activeResultsView === 'clean'" class="results-view-panel animate-fadein">
         <!-- Model Comparison Table -->
         <Card class="q-glass result-card">
           <template #title>
@@ -822,60 +732,34 @@ onUnmounted(() => {
               <span class="font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500">
                 {{ t('classify.model_comparison') }}
               </span>
-              <Info
-                v-tooltip.top="t('classify.tooltips.model_comparison')"
-                class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
-              />
+              <Info v-tooltip.top="t('classify.tooltips.model_comparison')"
+                class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0" />
             </div>
           </template>
           <template #content>
-            <DataTable
-              :value="results"
-              responsive-layout="scroll"
-              class="classify-results-table"
-            >
-              <Column
-                field="modelName"
-                :header="t('classify.model')"
-              >
+            <DataTable :value="results" responsive-layout="scroll" class="classify-results-table">
+              <Column field="modelName" :header="t('classify.model')">
                 <template #body="{ data }">
                   <div class="flex items-center gap-2">
-                    <span
-                      class="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                      :style="{ background: data.color }"
-                    />
+                    <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" :style="{ background: data.color }" />
                     <span class="font-medium text-slate-800 dark:text-slate-200">{{ data.modelName }}</span>
                   </div>
                 </template>
               </Column>
 
-              <Column
-                field="prediction"
-                :header="t('classify.prediction')"
-              >
+              <Column field="prediction" :header="t('classify.prediction')">
                 <template #body="{ data }">
-                  <Tag
-                    :value="t('classify.' + data.prediction)"
-                    severity="danger"
-                  />
+                  <Tag :value="t('classify.' + data.prediction)" severity="danger" />
                 </template>
               </Column>
 
-              <Column
-                field="confidence"
-                :header="t('classify.confidence')"
-              >
+              <Column field="confidence" :header="t('classify.confidence')">
                 <template #body="{ data }">
                   <div class="flex items-center gap-3 min-w-40">
-                    <ProgressBar
-                      :value="parseFloat(data.confidence.toFixed(1))"
-                      :show-value="false"
-                      class="flex-1"
-                      :pt="{
-                        root: { style: 'height: 6px;' },
-                        value: { style: `background: ${data.color};` }
-                      }"
-                    />
+                    <ProgressBar :value="parseFloat(data.confidence.toFixed(1))" :show-value="false" class="flex-1" :pt="{
+                      root: { style: 'height: 6px;' },
+                      value: { style: `background: ${data.color};` }
+                    }" />
                     <span class="w-12 font-mono text-xs text-right text-slate-500 dark:text-slate-400 shrink-0">
                       {{ data.confidence.toFixed(1) }}%
                     </span>
@@ -883,10 +767,7 @@ onUnmounted(() => {
                 </template>
               </Column>
 
-              <Column
-                field="latency"
-                :header="t('classify.latency')"
-              >
+              <Column field="latency" :header="t('classify.latency')">
                 <template #body="{ data }">
                   <span class="font-mono text-xs text-slate-500 dark:text-slate-400">
                     {{ data.latency.toFixed(1) }} ms
@@ -901,100 +782,59 @@ onUnmounted(() => {
         <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card class="q-glass result-card">
             <template #title>
-              <div
-                class="flex items-center gap-2"
-                :dir="locale === 'AR' ? 'rtl' : 'ltr'"
-              >
+              <div class="flex items-center gap-2" :dir="locale === 'AR' ? 'rtl' : 'ltr'">
                 <span
                   class="chart-card-title font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500"
-                  :class="{ 'chart-card-title--ar': locale === 'AR' }"
-                >
+                  :class="{ 'chart-card-title--ar': locale === 'AR' }">
                   {{ t('classify.confidence_scores') }}
                 </span>
-                <Info
-                  v-tooltip.top="t('classify.tooltips.confidence_scores')"
-                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
-                />
+                <Info v-tooltip.top="t('classify.tooltips.confidence_scores')"
+                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0" />
               </div>
             </template>
             <template #content>
-              <div
-                class="chart-wrap"
-                dir="ltr"
-              >
-                <Chart
-                  type="bar"
-                  :data="confidenceChartData"
-                  :options="chartOptions"
-                  class="h-52"
-                />
+              <div class="chart-wrap" role="img" :aria-label="t('classify.confidence_scores')" dir="ltr">
+                <Chart type="bar" :data="confidenceChartData" :options="chartOptions" class="h-52" />
               </div>
             </template>
           </Card>
 
           <Card class="q-glass result-card">
             <template #title>
-              <div
-                class="flex items-center gap-2"
-                :dir="locale === 'AR' ? 'rtl' : 'ltr'"
-              >
+              <div class="flex items-center gap-2" :dir="locale === 'AR' ? 'rtl' : 'ltr'">
                 <span
                   class="chart-card-title font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500"
-                  :class="{ 'chart-card-title--ar': locale === 'AR' }"
-                >
+                  :class="{ 'chart-card-title--ar': locale === 'AR' }">
                   {{ t('classify.inference_latency') }}
                 </span>
-                <Info
-                  v-tooltip.top="t('classify.tooltips.inference_latency')"
-                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
-                />
+                <Info v-tooltip.top="t('classify.tooltips.inference_latency')"
+                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0" />
               </div>
             </template>
             <template #content>
-              <div
-                class="chart-wrap"
-                dir="ltr"
-              >
-                <Chart
-                  type="bar"
-                  :data="latencyChartData"
-                  :options="chartOptions"
-                  class="h-52"
-                />
+              <div class="chart-wrap" role="img" :aria-label="t('classify.inference_latency')" dir="ltr">
+                <Chart type="bar" :data="latencyChartData" :options="chartOptions" class="h-52" />
               </div>
             </template>
           </Card>
 
           <Card class="q-glass result-card lg:col-span-2">
             <template #title>
-              <div
-                class="flex items-center gap-2"
-                :dir="locale === 'AR' ? 'rtl' : 'ltr'"
-              >
+              <div class="flex items-center gap-2" :dir="locale === 'AR' ? 'rtl' : 'ltr'">
                 <span
                   class="chart-card-title font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500"
-                  :class="{ 'chart-card-title--ar': locale === 'AR' }"
-                >
+                  :class="{ 'chart-card-title--ar': locale === 'AR' }">
                   {{ t('classify.distribution') }}
                 </span>
-                <Info
-                  v-tooltip.top="t('classify.tooltips.distribution')"
-                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
-                />
+                <Info v-tooltip.top="t('classify.tooltips.distribution')"
+                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0" />
               </div>
             </template>
             <template #content>
               <div class="flex justify-center">
-                <div
-                  class="chart-wrap chart-wrap--center"
-                  dir="ltr"
-                >
-                  <Chart
-                    type="pie"
-                    :data="confidenceChartData"
-                    :options="pieOptions"
-                    class="w-full max-w-sm h-60"
-                  />
+                <div class="chart-wrap chart-wrap--center" role="img" :aria-label="t('classify.distribution')"
+                  dir="ltr">
+                  <Chart type="pie" :data="confidenceChartData" :options="pieOptions" class="w-full max-w-sm h-60" />
                 </div>
               </div>
             </template>
@@ -1003,10 +843,8 @@ onUnmounted(() => {
       </div>
 
       <!-- Noisy Results -->
-      <div
-        v-if="noisyResults && noisyTopResult && activeResultsView === 'noisy'"
-        class="results-view-panel animate-fadein"
-      >
+      <div v-if="noisyResults && noisyTopResult && activeResultsView === 'noisy'"
+        class="results-view-panel animate-fadein">
         <!-- Noisy Model Comparison Table -->
         <Card class="q-glass result-card">
           <template #title>
@@ -1015,10 +853,8 @@ onUnmounted(() => {
                 <span class="font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500">
                   {{ t('classify.model_comparison') }} · {{ t('classify.noisy_label') }}
                 </span>
-                <Info
-                  v-tooltip.top="t('classify.tooltips.noisy_confidence')"
-                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
-                />
+                <Info v-tooltip.top="t('classify.tooltips.noisy_confidence')"
+                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0" />
               </div>
               <span class="noise-level-chip">
                 {{ t('classify.noise_severity') }} {{ appliedNoiseLevel?.toFixed(2) }}
@@ -1026,61 +862,34 @@ onUnmounted(() => {
             </div>
           </template>
           <template #content>
-            <DataTable
-              :value="noisyResults"
-              responsive-layout="scroll"
-              class="classify-results-table"
-            >
-              <Column
-                field="modelName"
-                :header="t('classify.model')"
-              >
+            <DataTable :value="noisyResults" responsive-layout="scroll" class="classify-results-table">
+              <Column field="modelName" :header="t('classify.model')">
                 <template #body="{ data }">
                   <div class="flex items-center gap-2">
-                    <span
-                      class="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                      :style="{ background: data.color }"
-                    />
+                    <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" :style="{ background: data.color }" />
                     <span class="font-medium text-slate-800 dark:text-slate-200">{{ data.modelName }}</span>
                   </div>
                 </template>
               </Column>
-              <Column
-                field="prediction"
-                :header="t('classify.prediction')"
-              >
+              <Column field="prediction" :header="t('classify.prediction')">
                 <template #body="{ data }">
-                  <Tag
-                    :value="t('classify.' + data.prediction)"
-                    severity="danger"
-                  />
+                  <Tag :value="t('classify.' + data.prediction)" severity="danger" />
                 </template>
               </Column>
-              <Column
-                field="confidence"
-                :header="t('classify.confidence')"
-              >
+              <Column field="confidence" :header="t('classify.confidence')">
                 <template #body="{ data }">
                   <div class="flex items-center gap-3 min-w-40">
-                    <ProgressBar
-                      :value="parseFloat(data.confidence.toFixed(1))"
-                      :show-value="false"
-                      class="flex-1"
-                      :pt="{
-                        root: { style: 'height: 6px;' },
-                        value: { style: `background: ${data.color};` }
-                      }"
-                    />
+                    <ProgressBar :value="parseFloat(data.confidence.toFixed(1))" :show-value="false" class="flex-1" :pt="{
+                      root: { style: 'height: 6px;' },
+                      value: { style: `background: ${data.color};` }
+                    }" />
                     <span class="w-12 font-mono text-xs text-right text-slate-500 dark:text-slate-400 shrink-0">
                       {{ data.confidence.toFixed(1) }}%
                     </span>
                   </div>
                 </template>
               </Column>
-              <Column
-                field="latency"
-                :header="t('classify.latency')"
-              >
+              <Column field="latency" :header="t('classify.latency')">
                 <template #body="{ data }">
                   <span class="font-mono text-xs text-slate-500 dark:text-slate-400">
                     {{ data.latency.toFixed(1) }} ms
@@ -1093,10 +902,7 @@ onUnmounted(() => {
 
         <!-- CNN overconfidence warning -->
         <Transition name="slide-down">
-          <div
-            v-if="cnnIsHighestConfidenceUnderNoise"
-            class="classify-overconfidence-banner"
-          >
+          <div v-if="cnnIsHighestConfidenceUnderNoise" class="classify-overconfidence-banner">
             <Info class="w-4 h-4 flex-shrink-0" />
             <span>{{ t('classify.cnn_overconfidence_warning') }}</span>
           </div>
@@ -1106,100 +912,60 @@ onUnmounted(() => {
         <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card class="q-glass result-card">
             <template #title>
-              <div
-                class="flex items-center gap-2"
-                :dir="locale === 'AR' ? 'rtl' : 'ltr'"
-              >
+              <div class="flex items-center gap-2" :dir="locale === 'AR' ? 'rtl' : 'ltr'">
                 <span
                   class="chart-card-title font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500"
-                  :class="{ 'chart-card-title--ar': locale === 'AR' }"
-                >
+                  :class="{ 'chart-card-title--ar': locale === 'AR' }">
                   {{ t('classify.noisy_confidence_scores') }}
                 </span>
-                <Info
-                  v-tooltip.top="t('classify.tooltips.noisy_confidence')"
-                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
-                />
+                <Info v-tooltip.top="t('classify.tooltips.noisy_confidence')"
+                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0" />
               </div>
             </template>
             <template #content>
-              <div
-                class="chart-wrap"
-                dir="ltr"
-              >
-                <Chart
-                  type="bar"
-                  :data="noisyConfidenceChartData"
-                  :options="chartOptions"
-                  class="h-52"
-                />
+              <div class="chart-wrap" role="img" :aria-label="t('classify.noisy_confidence_scores')" dir="ltr">
+                <Chart type="bar" :data="noisyConfidenceChartData" :options="chartOptions" class="h-52" />
               </div>
             </template>
           </Card>
 
           <Card class="q-glass result-card">
             <template #title>
-              <div
-                class="flex items-center gap-2"
-                :dir="locale === 'AR' ? 'rtl' : 'ltr'"
-              >
+              <div class="flex items-center gap-2" :dir="locale === 'AR' ? 'rtl' : 'ltr'">
                 <span
                   class="chart-card-title font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500"
-                  :class="{ 'chart-card-title--ar': locale === 'AR' }"
-                >
+                  :class="{ 'chart-card-title--ar': locale === 'AR' }">
                   {{ t('classify.noisy_inference_latency') }}
                 </span>
-                <Info
-                  v-tooltip.top="t('classify.tooltips.inference_latency')"
-                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
-                />
+                <Info v-tooltip.top="t('classify.tooltips.inference_latency')"
+                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0" />
               </div>
             </template>
             <template #content>
-              <div
-                class="chart-wrap"
-                dir="ltr"
-              >
-                <Chart
-                  type="bar"
-                  :data="noisyLatencyChartData"
-                  :options="chartOptions"
-                  class="h-52"
-                />
+              <div class="chart-wrap" role="img" :aria-label="t('classify.noisy_inference_latency')" dir="ltr">
+                <Chart type="bar" :data="noisyLatencyChartData" :options="chartOptions" class="h-52" />
               </div>
             </template>
           </Card>
 
           <Card class="q-glass result-card lg:col-span-2">
             <template #title>
-              <div
-                class="flex items-center gap-2"
-                :dir="locale === 'AR' ? 'rtl' : 'ltr'"
-              >
+              <div class="flex items-center gap-2" :dir="locale === 'AR' ? 'rtl' : 'ltr'">
                 <span
                   class="chart-card-title font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500"
-                  :class="{ 'chart-card-title--ar': locale === 'AR' }"
-                >
+                  :class="{ 'chart-card-title--ar': locale === 'AR' }">
                   {{ t('classify.noisy_distribution') }}
                 </span>
-                <Info
-                  v-tooltip.top="t('classify.tooltips.distribution')"
-                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
-                />
+                <Info v-tooltip.top="t('classify.tooltips.distribution')"
+                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0" />
               </div>
             </template>
             <template #content>
               <div class="flex justify-center">
-                <div
-                  class="chart-wrap chart-wrap--center"
-                  dir="ltr"
-                >
-                  <Chart
-                    type="pie"
-                    :data="noisyConfidenceChartData"
-                    :options="pieOptions"
-                    class="w-full max-w-sm h-60"
-                  />
+                <div class="chart-wrap chart-wrap--center" role="img" :aria-label="t('classify.noisy_distribution')"
+                  dir="ltr">
+                  <Chart type="pie" :data="noisyConfidenceChartData" :options="pieOptions"
+                    class="w-full max-w-sm h-60" />
                 </div>
               </div>
             </template>
@@ -1208,10 +974,8 @@ onUnmounted(() => {
       </div>
 
       <!-- Clean vs Noisy Comparison -->
-      <div
-        v-if="noisyResults && noisyTopResult && activeResultsView === 'compare'"
-        class="results-view-panel animate-fadein"
-      >
+      <div v-if="noisyResults && noisyTopResult && activeResultsView === 'compare'"
+        class="results-view-panel animate-fadein">
         <Card class="q-glass result-card">
           <template #title>
             <div class="noisy-card-header">
@@ -1219,10 +983,8 @@ onUnmounted(() => {
                 <span class="font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500">
                   {{ t('classify.clean_noisy_delta') }}
                 </span>
-                <Info
-                  v-tooltip.top="t('classify.tooltips.clean_noisy_delta')"
-                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
-                />
+                <Info v-tooltip.top="t('classify.tooltips.clean_noisy_delta')"
+                  class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0" />
               </div>
               <span class="noise-level-chip">
                 {{ t('classify.noise_severity') }} {{ appliedNoiseLevel?.toFixed(2) }}
@@ -1230,21 +992,11 @@ onUnmounted(() => {
             </div>
           </template>
           <template #content>
-            <DataTable
-              :value="cleanNoisyComparisonRows"
-              responsive-layout="scroll"
-              class="classify-results-table"
-            >
-              <Column
-                field="modelName"
-                :header="t('classify.model')"
-              >
+            <DataTable :value="cleanNoisyComparisonRows" responsive-layout="scroll" class="classify-results-table">
+              <Column field="modelName" :header="t('classify.model')">
                 <template #body="{ data }">
                   <div class="flex items-center gap-2">
-                    <span
-                      class="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                      :style="{ background: data.color }"
-                    />
+                    <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" :style="{ background: data.color }" />
                     <span class="font-medium text-slate-800 dark:text-slate-200">{{ data.modelName }}</span>
                   </div>
                 </template>
@@ -1276,20 +1028,16 @@ onUnmounted(() => {
               </Column>
               <Column :header="t('classify.prediction_match')">
                 <template #body="{ data }">
-                  <Tag
-                    :value="data.cleanPrediction === data.noisyPrediction
-                      ? t('classify.match')
-                      : t('classify.mismatch')"
-                    :severity="data.cleanPrediction === data.noisyPrediction ? 'success' : 'danger'"
-                  />
+                  <Tag :value="data.cleanPrediction === data.noisyPrediction
+                    ? t('classify.match')
+                    : t('classify.mismatch')"
+                    :severity="data.cleanPrediction === data.noisyPrediction ? 'success' : 'danger'" />
                 </template>
               </Column>
               <Column :header="t('classify.delta_confidence')">
                 <template #body="{ data }">
-                  <Tag
-                    :value="`${data.confidenceDelta >= 0 ? '+' : ''}${data.confidenceDelta.toFixed(1)}%`"
-                    :severity="data.confidenceDelta < 0 ? 'warning' : 'success'"
-                  />
+                  <Tag :value="`${data.confidenceDelta >= 0 ? '+' : ''}${data.confidenceDelta.toFixed(1)}%`"
+                    :severity="data.confidenceDelta < 0 ? 'warning' : 'success'" />
                 </template>
               </Column>
               <Column :header="t('classify.delta_latency')">
@@ -1298,10 +1046,7 @@ onUnmounted(() => {
                     <span class="text-[12px] text-slate-400 dark:text-slate-500">
                       {{ data.cleanLatency.toFixed(1) }}ms ➔ {{ data.noisyLatency.toFixed(1) }}ms
                     </span>
-                    <span
-                      :class="data.latencyDelta > 0 ? 'text-amber-500' : 'text-emerald-500'"
-                      class="font-bold"
-                    >
+                    <span :class="data.latencyDelta > 0 ? 'text-amber-500' : 'text-emerald-500'" class="font-bold">
                       {{ data.latencyDelta >= 0 ? '+' : '' }}{{ data.latencyDelta.toFixed(1) }} ms
                     </span>
                   </div>
@@ -1312,53 +1057,34 @@ onUnmounted(() => {
         </Card>
         <!-- CNN overconfidence warning -->
         <Transition name="slide-down">
-          <div
-            v-if="cnnIsHighestConfidenceUnderNoise"
-            class="classify-overconfidence-banner"
-          >
+          <div v-if="cnnIsHighestConfidenceUnderNoise" class="classify-overconfidence-banner">
             <Info class="w-4 h-4 flex-shrink-0" />
             <span>{{ t('classify.cnn_overconfidence_warning') }}</span>
           </div>
         </Transition>
         <Card class="q-glass result-card">
           <template #title>
-            <div
-              class="flex items-center gap-2"
-              :dir="locale === 'AR' ? 'rtl' : 'ltr'"
-            >
+            <div class="flex items-center gap-2" :dir="locale === 'AR' ? 'rtl' : 'ltr'">
               <span
                 class="chart-card-title font-mono text-xs tracking-widest uppercase text-slate-400 dark:text-slate-500"
-                :class="{ 'chart-card-title--ar': locale === 'AR' }"
-              >
+                :class="{ 'chart-card-title--ar': locale === 'AR' }">
                 {{ t('classify.clean_vs_noisy') }}
               </span>
-              <Info
-                v-tooltip.top="t('classify.tooltips.clean_vs_noisy')"
-                class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
-              />
+              <Info v-tooltip.top="t('classify.tooltips.clean_vs_noisy')"
+                class="classify-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0" />
             </div>
           </template>
           <template #content>
-            <div
-              class="chart-wrap"
-              dir="ltr"
-            >
-              <Chart
-                type="bar"
-                :data="confidenceComparisonChartData"
-                :options="comparisonChartOptions"
-                class="w-full h-72"
-              />
+            <div class="chart-wrap" role="img" :aria-label="t('classify.clean_vs_noisy')" dir="ltr">
+              <Chart type="bar" :data="confidenceComparisonChartData" :options="comparisonChartOptions"
+                class="w-full h-72" />
             </div>
           </template>
         </Card>
       </div>
 
       <!-- Export -->
-      <Card
-        v-if="results && topResult"
-        class="q-glass result-card results-export-card"
-      >
+      <Card v-if="results && topResult" class="q-glass result-card results-export-card">
         <template #content>
           <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
             <div>
@@ -1370,22 +1096,10 @@ onUnmounted(() => {
               </p>
             </div>
             <div class="flex flex-shrink-0 gap-2">
-              <Button
-                label="CSV"
-                icon="pi pi-file-excel"
-                severity="success"
-                outlined
-                size="small"
-                @click="exportToCSV"
-              />
-              <Button
-                label="JSON"
-                icon="pi pi-file"
-                severity="info"
-                outlined
-                size="small"
-                @click="exportToJSON"
-              />
+              <Button label="CSV" icon="pi pi-file-excel" severity="success" outlined size="small"
+                data-testid="export-csv-btn" @click="exportToCSV" />
+              <Button label="JSON" icon="pi pi-file" severity="info" outlined size="small" data-testid="export-json-btn"
+                @click="exportToJSON" />
             </div>
           </div>
         </template>
@@ -1393,12 +1107,7 @@ onUnmounted(() => {
     </div>
 
     <!-- Export success -->
-    <Message
-      v-if="exportSuccess"
-      severity="success"
-      :closable="true"
-      @close="exportSuccess = null"
-    >
+    <Message v-if="exportSuccess" severity="success" :closable="true" @close="exportSuccess = null">
       {{ exportSuccess }}
     </Message>
   </div>

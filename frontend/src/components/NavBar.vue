@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, markRaw } from 'vue'
+import { ref, computed, markRaw, onMounted, onUnmounted } from 'vue'
 import Cookies from 'js-cookie'
 import { useI18n } from 'vue-i18n'
 import { Atom, Home, Search, ChartColumn, Mail, Languages, Sun, Moon, Menu, X } from 'lucide-vue-next'
@@ -39,87 +39,46 @@ const toggleTheme = () => {
 const closeMenu = () => {
   menuOpen.value = false
 }
+function onKeydown(e) {
+  if (e.key === 'Escape' && menuOpen.value) closeMenu()
+}
+
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 </script>
 
 <template>
   <header class="qnn-bar">
     <div class="qnn-inner">
-      <router-link
-        to="/"
-        class="qnn-logo"
-        @click="closeMenu"
-      >
-        <img
-          src="/qnn_logo_final_no_text.svg"
-          alt="QNN"
-        >
-        <div
-          class="qnn-logo-copy"
-          lang="en"
-          translate="no"
-        >
-          <span
-            class="qnn-logo-title"
-            lang="en"
-            translate="no"
-          >Quantum-Hybrid</span>
-          <span
-            class="qnn-logo-subtitle"
-            lang="en"
-            translate="no"
-          >Defect Detector</span>
+      <router-link to="/" class="qnn-logo" @click="closeMenu">
+        <img src="/qnn_logo_final_no_text.svg" alt="QNN">
+        <div class="qnn-logo-copy" lang="en" translate="no">
+          <span class="qnn-logo-title" lang="en" translate="no">Quantum-Hybrid</span>
+          <span class="qnn-logo-subtitle" lang="en" translate="no">Defect Detector</span>
         </div>
       </router-link>
 
-      <nav
-        class="qnn-nav"
-        :class="{ 'qnn-nav--open': menuOpen }"
-      >
-        <router-link
-          v-for="item in items"
-          :key="item.to"
-          :to="item.to"
-          class="qnn-link"
-          :class="{ 'qnn-link--quantum': item.isQuantum }"
-          @click="closeMenu"
-        >
-          <component
-            :is="item.lucideIcon"
-            class="qnn-link-icon"
-          />
+      <nav class="qnn-nav" :class="{ 'qnn-nav--open': menuOpen }" aria-label="Main navigation">
+        <router-link v-for="item in items" :key="item.to" :to="item.to" class="qnn-link"
+          :class="{ 'qnn-link--quantum': item.isQuantum }" aria-current-value="page" @click="closeMenu">
+          <component :is="item.lucideIcon" class="qnn-link-icon" />
           <span>{{ item.label }}</span>
         </router-link>
       </nav>
 
       <div class="qnn-actions">
-        <button
-          class="qnn-lang-btn"
-          @click="toggleLanguage"
-        >
+        <button class="qnn-lang-btn" @click="toggleLanguage">
           <Languages :size="14" />
           <span>{{ currentLang === 'EN' ? 'العربية' : 'English' }}</span>
         </button>
 
-        <button
-          class="qnn-icon-btn"
-          :aria-label="isDark ? 'Light mode' : 'Dark mode'"
-          @click="toggleTheme"
-        >
-          <component
-            :is="isDark ? markRaw(Sun) : markRaw(Moon)"
-            :size="16"
-          />
+        <button class="qnn-icon-btn" :aria-label="isDark ? 'Light mode' : 'Dark mode'" @click="toggleTheme">
+          <component :is="isDark ? markRaw(Sun) : markRaw(Moon)" :size="16" />
         </button>
 
-        <button
-          class="qnn-icon-btn qnn-burger"
-          aria-label="Toggle menu"
-          @click="menuOpen = !menuOpen"
-        >
-          <component
-            :is="menuOpen ? markRaw(X) : markRaw(Menu)"
-            :size="19"
-          />
+        <button class="qnn-icon-btn qnn-burger" :aria-label="menuOpen ? 'Close menu' : 'Open menu'"
+          :aria-expanded="menuOpen" aria-controls="qnn-nav" @click="menuOpen = !menuOpen">
+          <component :is="menuOpen ? markRaw(X) : markRaw(Menu)" :size="19" />
         </button>
       </div>
     </div>

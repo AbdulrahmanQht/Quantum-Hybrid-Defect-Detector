@@ -14,13 +14,16 @@ import json
 import os
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Response, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from pydantic import BaseModel, Field, ConfigDict
 
 from backend.utils.logger import Logger
 
 logger = Logger()
 router = APIRouter(prefix="/api/v1", tags=["Quantum Advantage"])
+limiter = Limiter(key_func=get_remote_address)
 
 QA_RESULTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "QA", "quantum_advantage_results.json")
 
@@ -248,7 +251,8 @@ def _get_cached_qa_results() -> QuantumAdvantageResults:
     return _qa_cache
 
 @router.get("/quantum-advantage", response_model=QuantumAdvantageResults)
-def get_quantum_advantage(response: Response) -> QuantumAdvantageResults:
+@limiter.limit("300/minute")
+def get_quantum_advantage(request: Request, response: Response) -> QuantumAdvantageResults:
     # Instruct the browser to cache this response for 10 hour (36000 seconds)
     response.headers["Cache-Control"] = "public, max-age=36000"
     return _get_cached_qa_results()

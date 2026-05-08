@@ -9,7 +9,7 @@ Usage modes:
 1. Hook into a training run (recommended):
    Add to your training loop:
        from tests.monitor_gpu_memory import GpuMemoryMonitor
-       monitor = GpuMemoryMonitor(threshold=0.90, log_path="results/gpu_memory/gpu_memory.csv")
+       monitor = GpuMemoryMonitor(threshold=0.90, log_path="tests/results/gpu_memory/gpu_memory.csv")
        # In epoch loop:
        monitor.sample(label=f"epoch_{epoch}_start")
        # ... train ...
@@ -19,8 +19,8 @@ Usage modes:
        monitor.assert_pr52()   # raises AssertionError if any sample exceeded 90%
 
 2. Standalone sidecar process (monitors externally, no code changes needed):
-       python tests/monitor_gpu_memory.py --interval 5 --duration 14400
-   (samples every 5 s for 4 hours)
+       python tests/monitor_gpu_memory.py --sidecar --interval 5 --duration 600
+   (samples every 5 s for 10 Minutes)
 
 3. Single snapshot:
        python tests/monitor_gpu_memory.py --snapshot
@@ -224,7 +224,7 @@ def _sidecar_monitor(
     interval_s: int = 5,
     duration_s: int = 3600,
     threshold_pct: float = 90.0,
-    log_path: str = "results/gpu_memory/gpu_sidecar.csv",
+    log_path: str = "tests/results/gpu_memory/gpu_sidecar.csv",
 ) -> None:
     """
     External monitor: reads GPU stats from nvidia-smi at `interval_s` intervals
@@ -336,7 +336,7 @@ if __name__ == "__main__":
         "--threshold", type=float, default=0.90, help="Violation threshold (0.0–1.0)."
     )
     parser.add_argument(
-        "--log", default="results/gpu_memory/gpu_memory.csv", help="CSV output path."
+        "--log", default="tests/results/gpu_memory/gpu_memory.csv", help="CSV output path."
     )
 
     args = parser.parse_args()

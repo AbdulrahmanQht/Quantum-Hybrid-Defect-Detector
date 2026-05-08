@@ -370,33 +370,19 @@ onErrorCaptured((err) => {
 </script>
 
 <template>
-  <div
-    class="benchmark-page mx-auto px-4 pb-20 pt-6 md:px-8 xl:px-14"
-    :class="{ 'benchmark-page--ar': isArabic }"
-    :dir="textDir"
-  >
+  <div class="benchmark-page mx-auto px-4 pb-20 pt-6 md:px-8 xl:px-14" :class="{ 'benchmark-page--ar': isArabic }"
+    :dir="textDir">
     <!-- ── Loading ── -->
-    <div
-      v-if="isLoading"
-      class="benchmark-state"
-    >
+    <div v-if="isLoading" class="benchmark-state">
       <Card class="glass-card">
         <template #content>
           <div class="state-stack">
-            <ProgressSpinner
-              stroke-width="4"
-              class="benchmark-spinner"
-            />
+            <ProgressSpinner stroke-width="4" class="benchmark-spinner" />
             <p class="section-text">
               {{ t('benchmark.states.loading') }}
             </p>
             <div class="skeleton-grid">
-              <Skeleton
-                v-for="item in 3"
-                :key="item"
-                height="11rem"
-                border-radius="24px"
-              />
+              <Skeleton v-for="item in 3" :key="item" height="11rem" border-radius="24px" />
             </div>
           </div>
         </template>
@@ -404,10 +390,7 @@ onErrorCaptured((err) => {
     </div>
 
     <!-- Error  -->
-    <div
-      v-else-if="error"
-      class="px-4 mx-auto max-w-screen-2xl sm:px-6 lg:px-8"
-    >
+    <div v-else-if="error" class="px-4 mx-auto max-w-screen-2xl sm:px-6 lg:px-8">
       <div class="glass-card flex flex-col items-center p-6 text-center">
         <AlertCircle class="w-12 h-12 mb-3 text-red-500" />
         <!-- t() gracefully returns the key if it's not a translation key -->
@@ -424,16 +407,10 @@ onErrorCaptured((err) => {
       <section class="hero-shell">
         <!-- Left copy -->
         <div class="hero-copy">
-          <h1
-            class="hero-title"
-            :dir="textDir"
-          >
+          <h1 class="hero-title" :dir="textDir">
             {{ t('benchmark.hero.title') }}
           </h1>
-          <h2
-            class="hero-subtitle"
-            :dir="textDir"
-          >
+          <h2 class="hero-subtitle" :dir="textDir">
             {{ t('benchmark.hero.subtitle') }}
           </h2>
           <p class="hero-description">
@@ -460,34 +437,19 @@ onErrorCaptured((err) => {
           <template #content>
             <div class="panel-topline">
               <span class="eyebrow">{{ t('benchmark.hero.accuracy_overview') }}</span>
-              <Tag
-                :value="t('benchmark.hero.loaded')"
-                severity="success"
-                rounded
-              />
+              <Tag :value="t('benchmark.hero.loaded')" severity="success" rounded />
             </div>
 
             <div class="hero-metric-list">
-              <div
-                v-for="model in models"
-                :key="model.key"
-                class="hero-metric-row"
-              >
+              <div v-for="model in models" :key="model.key" class="hero-metric-row">
                 <div class="hero-metric-head">
                   <div class="hero-metric-title">
-                    <span
-                      class="model-dot"
-                      :class="model.accent"
-                    />
+                    <span class="model-dot" :class="model.accent" />
                     <span>{{ model.name }}</span>
                   </div>
                   <strong>{{ formatPercent(model.accuracy, 2) }}</strong>
                 </div>
-                <ProgressBar
-                  :value="model.accuracy"
-                  :show-value="false"
-                  :class="['metric-progress', model.accent]"
-                />
+                <ProgressBar :value="model.accuracy" :show-value="false" :class="['metric-progress', model.accent]" />
               </div>
             </div>
           </template>
@@ -500,32 +462,16 @@ onErrorCaptured((err) => {
       <section class="dataset-shell">
         <Card class="glass-card dataset-card">
           <template #content>
-            <div
-              class="section-heading dataset-heading"
-              :class="{ 'section-heading--rtl': isArabic }"
-            >
-              <div
-                class="section-heading__text dataset-heading-text"
-                :dir="textDir"
-              >
-                <span
-                  class="eyebrow"
-                  :class="{ 'eyebrow--ar': isArabic }"
-                >
+            <div class="section-heading dataset-heading" :class="{ 'section-heading--rtl': isArabic }">
+              <div class="section-heading__text dataset-heading-text" :dir="textDir">
+                <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">
                   {{ t('benchmark.dataset.eyebrow') }}
                 </span>
-                <h3
-                  class="section-title dataset-title"
-                  :dir="textDir"
-                >
+                <h3 class="section-title dataset-title" :dir="textDir">
                   {{ t('benchmark.dataset.title') }}
                 </h3>
               </div>
-              <Tag
-                :value="t('benchmark.dataset.carousel_badge')"
-                rounded
-                class="hero-badge"
-              />
+              <Tag :value="t('benchmark.dataset.carousel_badge')" rounded class="hero-badge" />
             </div>
 
             <!-- carousel + right metadata side by side -->
@@ -533,31 +479,13 @@ onErrorCaptured((err) => {
               <!-- Left: carousel only -->
               <div class="dataset-left">
                 <div class="dataset-carousel-wrap">
-                  <Carousel
-                    :value="datasetSamples"
-                    :num-visible="1"
-                    :num-scroll="1"
-                    circular
-                    :autoplay-interval="4500"
-                    class="dataset-carousel"
-                    dir="ltr"
-                  >
+                  <Carousel :value="datasetSamples" :num-visible="1" :num-scroll="1" circular :autoplay-interval="4500"
+                    class="dataset-carousel" dir="ltr">
                     <template #item="{ data }">
                       <div class="dataset-slide">
-                        <img
-                          :src="data.image"
-                          :alt="data.title"
-                          class="dataset-image"
-                        >
-                        <div
-                          class="dataset-overlay"
-                          :dir="textDir"
-                        >
-                          <Tag
-                            :value="data.label"
-                            rounded
-                            class="slide-tag"
-                          />
+                        <img :src="data.image" :alt="data.title" class="dataset-image" loading="lazy" decoding="async">
+                        <div class="dataset-overlay" :dir="textDir">
+                          <Tag :value="data.label" rounded class="slide-tag" />
                           <h4 class="dataset-slide-title">
                             {{ data.title }}
                           </h4>
@@ -574,11 +502,7 @@ onErrorCaptured((err) => {
               <!-- Right: facts + notes + classes -->
               <div class="dataset-copy">
                 <div class="fact-grid">
-                  <div
-                    v-for="fact in datasetFacts"
-                    :key="fact.label"
-                    class="fact-card"
-                  >
+                  <div v-for="fact in datasetFacts" :key="fact.label" class="fact-card">
                     <span class="fact-label">{{ fact.label }}</span>
                     <span class="fact-value">{{ fact.value }}</span>
                   </div>
@@ -591,12 +515,7 @@ onErrorCaptured((err) => {
                   </p>
                   <p class="section-text dataset-note">
                     <strong>{{ t('benchmark.dataset.source_label') }}</strong>
-                    <a
-                      :href="t('benchmark.dataset.source_url')"
-                      target="_blank"
-                      rel="noreferrer"
-                      class="dataset-link"
-                    >
+                    <a :href="t('benchmark.dataset.source_url')" target="_blank" rel="noreferrer" class="dataset-link">
                       {{ t('benchmark.dataset.source_name') }}
                     </a>
                   </p>
@@ -605,11 +524,7 @@ onErrorCaptured((err) => {
                 <div>
                   <span class="classes-heading">{{ t('benchmark.dataset.fault_classes', 'Fault Classes') }}</span>
                   <div class="classes-grid">
-                    <span
-                      v-for="item in localizedClassNames"
-                      :key="item"
-                      class="class-chip"
-                    >{{ item }}</span>
+                    <span v-for="item in localizedClassNames" :key="item" class="class-chip">{{ item }}</span>
                   </div>
                 </div>
               </div>
@@ -618,10 +533,7 @@ onErrorCaptured((err) => {
             <div class="dataset-steps-card">
               <span class="steps-title">{{ t('benchmark.dataset.pipeline_title') }}</span>
               <ol class="dataset-steps">
-                <li
-                  v-for="step in datasetSteps"
-                  :key="step"
-                >
+                <li v-for="step in datasetSteps" :key="step">
                   {{ step }}
                 </li>
               </ol>
@@ -636,23 +548,11 @@ onErrorCaptured((err) => {
       <section class="content-section">
         <Card class="glass-card">
           <template #content>
-            <div
-              class="section-heading"
-              :class="{ 'section-heading--rtl': isArabic }"
-            >
-              <div
-                class="section-heading__text"
-                :dir="textDir"
-              >
-                <span
-                  class="eyebrow"
-                  :class="{ 'eyebrow--ar': isArabic }"
-                >{{ t('benchmark.performance.eyebrow')
+            <div class="section-heading" :class="{ 'section-heading--rtl': isArabic }">
+              <div class="section-heading__text" :dir="textDir">
+                <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">{{ t('benchmark.performance.eyebrow')
                 }}</span>
-                <h3
-                  class="section-title"
-                  :dir="textDir"
-                >
+                <h3 class="section-title" :dir="textDir">
                   {{ t('benchmark.performance.title') }}
                 </h3>
                 <p class="section-text-nowrap">
@@ -662,23 +562,13 @@ onErrorCaptured((err) => {
             </div>
 
             <div class="performance-grid">
-              <div
-                v-for="model in models"
-                :key="model.key"
-                class="performance-inner-card"
-              >
+              <div v-for="model in models" :key="model.key" class="performance-inner-card">
                 <div class="performance-card-head">
                   <div class="hero-metric-title">
-                    <span
-                      class="model-dot"
-                      :class="model.accent"
-                    />
+                    <span class="model-dot" :class="model.accent" />
                     <span>{{ model.name }}</span>
                   </div>
-                  <Tag
-                    :value="t(modelBadgeKey(model.key))"
-                    rounded
-                  />
+                  <Tag :value="t(modelBadgeKey(model.key))" rounded />
                 </div>
 
                 <div class="kpi-value">
@@ -697,11 +587,7 @@ onErrorCaptured((err) => {
                     <span>{{ t('benchmark.performance.weighted_f1') }}</span>
                     <strong>{{ formatMetric(model.f1, 2) }}</strong>
                   </div>
-                  <ProgressBar
-                    :value="model.f1"
-                    :show-value="false"
-                    :class="['metric-progress', model.accent]"
-                  />
+                  <ProgressBar :value="model.f1" :show-value="false" :class="['metric-progress', model.accent]" />
                 </div>
               </div>
             </div>
@@ -709,38 +595,28 @@ onErrorCaptured((err) => {
               <div class="chart-card">
                 <div class="flex items-center gap-2">
                   <span class="chart-card-title">{{ t('benchmark.charts.radar_title') }}</span>
-                  <Info
-                    v-tooltip.top="t('benchmark.charts.radar_tooltip')"
-                    class="bm-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
-                  />
+                  <Info v-tooltip.top="t('benchmark.charts.radar_tooltip')"
+                    class="bm-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0" />
                 </div>
                 <p class="chart-card-sub">
                   {{ t('benchmark.charts.radar_sub') }}
                 </p>
-                <div class="chart-shell chart-shell--lg">
-                  <Radar
-                    :data="radarChartData"
-                    :options="radarOptions"
-                  />
+                <div class="chart-shell chart-shell--lg" role="img" :aria-label="t('benchmark.charts.radar_title')">
+                  <Radar :data="radarChartData" :options="radarOptions" />
                 </div>
               </div>
 
               <div class="chart-card">
                 <div class="flex items-center gap-2">
                   <span class="chart-card-title">{{ t('benchmark.charts.scatter_title') }}</span>
-                  <Info
-                    v-tooltip.top="t('benchmark.charts.scatter_tooltip')"
-                    class="bm-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
-                  />
+                  <Info v-tooltip.top="t('benchmark.charts.scatter_tooltip')"
+                    class="bm-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0" />
                 </div>
                 <p class="chart-card-sub">
                   {{ t('benchmark.charts.scatter_sub') }}
                 </p>
-                <div class="chart-shell chart-shell--lg">
-                  <Scatter
-                    :data="scatterChartData"
-                    :options="scatterOptions"
-                  />
+                <div class="chart-shell chart-shell--lg" role="img" :aria-label="t('benchmark.charts.scatter_title')">
+                  <Scatter :data="scatterChartData" :options="scatterOptions" />
                 </div>
               </div>
             </div>
@@ -754,23 +630,11 @@ onErrorCaptured((err) => {
       <section class="content-section">
         <Card class="glass-card">
           <template #content>
-            <div
-              class="section-heading"
-              :class="{ 'section-heading--rtl': isArabic }"
-            >
-              <div
-                class="section-heading__text"
-                :dir="textDir"
-              >
-                <span
-                  class="eyebrow"
-                  :class="{ 'eyebrow--ar': isArabic }"
-                >{{ t('benchmark.robustness.eyebrow')
+            <div class="section-heading" :class="{ 'section-heading--rtl': isArabic }">
+              <div class="section-heading__text" :dir="textDir">
+                <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">{{ t('benchmark.robustness.eyebrow')
                 }}</span>
-                <h3
-                  class="section-title"
-                  :dir="textDir"
-                >
+                <h3 class="section-title" :dir="textDir">
                   {{ t('benchmark.robustness.title') }}
                 </h3>
                 <p class="section-text-nowrap">
@@ -779,87 +643,48 @@ onErrorCaptured((err) => {
               </div>
             </div>
 
-            <div
-              class="flex flex-wrap gap-2 mb-4"
-              dir="ltr"
-            >
-              <button
-                v-for="opt in noiseOptions"
-                :key="opt.value"
-                class="px-3 py-1.5 rounded-lg text-sm transition-colors"
-                :class="selectedNoiseType === opt.value ? 'bm-tab-active' : 'bm-tab-inactive'"
-                @click="selectedNoiseType = opt.value"
-              >
+            <div class="flex flex-wrap gap-2 mb-4" role="tablist">
+              <button v-for="opt in modelOptions" :key="opt.value" role="tab"
+                :aria-selected="selectedModelKey === opt.value" class="px-3 py-1.5 rounded-lg text-sm transition-colors"
+                :class="selectedModelKey === opt.value ? 'bm-tab-active' : 'bm-tab-inactive'"
+                @click="selectedModelKey = opt.value">
                 {{ opt.label }}
               </button>
             </div>
             <Card class="q-glass bm-inner-card">
               <template #content>
-                <DataTable
-                  :value="robustnessRows"
-                  responsive-layout="scroll"
-                  class="bm-datatable-robustness"
-                  :class="isArabic ? 'bm-table-rtl' : ''"
-                >
-                  <Column
-                    field="level"
-                    :header="t('benchmark.robustness.level')"
-                  />
-                  <Column
-                    field="CNN"
-                    :header="t('benchmark.models.CNN')"
-                  >
+                <DataTable :value="robustnessRows" responsive-layout="scroll" class="bm-datatable-robustness"
+                  :class="isArabic ? 'bm-table-rtl' : ''">
+                  <Column field="level" :header="t('benchmark.robustness.level')" />
+                  <Column field="CNN" :header="t('benchmark.models.CNN')">
                     <template #body="{ data }">
-                      <span
-                        class="font-mono"
-                        style="color: #2563eb"
-                      >{{ formatPercent(data.CNN, 2) }}</span>
+                      <span class="font-mono" style="color: #2563eb">{{ formatPercent(data.CNN, 2) }}</span>
                     </template>
                   </Column>
-                  <Column
-                    field="QNN_CPU"
-                    :header="t('benchmark.models.QNN_CPU')"
-                  >
+                  <Column field="QNN_CPU" :header="t('benchmark.models.QNN_CPU')">
                     <template #body="{ data }">
-                      <span
-                        class="font-mono"
-                        style="color: #0d9488"
-                      >{{ formatPercent(data.QNN_CPU, 2) }}</span>
+                      <span class="font-mono" style="color: #0d9488">{{ formatPercent(data.QNN_CPU, 2) }}</span>
                     </template>
                   </Column>
-                  <Column
-                    field="QNN_GPU"
-                    :header="t('benchmark.models.QNN_GPU')"
-                  >
+                  <Column field="QNN_GPU" :header="t('benchmark.models.QNN_GPU')">
                     <template #body="{ data }">
-                      <span
-                        class="font-mono"
-                        style="color: #7c3aed"
-                      >{{ formatPercent(data.QNN_GPU, 2) }}</span>
+                      <span class="font-mono" style="color: #7c3aed">{{ formatPercent(data.QNN_GPU, 2) }}</span>
                     </template>
                   </Column>
                 </DataTable>
               </template>
             </Card>
-            <div
-              class="chart-card"
-              style="margin-top: 1rem;"
-            >
+            <div class="chart-card" style="margin-top: 1rem;">
               <div class="flex items-center gap-2">
                 <span class="chart-card-title">{{ t('benchmark.charts.robustness_title') }}</span>
-                <Info
-                  v-tooltip.top="t('benchmark.charts.robustness_tooltip')"
-                  class="bm-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
-                />
+                <Info v-tooltip.top="t('benchmark.charts.robustness_tooltip')"
+                  class="bm-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0" />
               </div>
               <p class="chart-card-sub">
                 {{ t('benchmark.charts.robustness_sub') }}
               </p>
-              <div class="chart-shell chart-shell--md">
-                <Line
-                  :data="robustnessChartData"
-                  :options="robustnessChartOptions"
-                />
+              <div class="chart-shell chart-shell--md" :aria-label="t('benchmark.charts.robustness_title')">
+                <Line :data="robustnessChartData" :options="robustnessChartOptions" />
               </div>
             </div>
           </template>
@@ -872,23 +697,11 @@ onErrorCaptured((err) => {
       <section class="content-section">
         <Card class="glass-card">
           <template #content>
-            <div
-              class="section-heading"
-              :class="{ 'section-heading--rtl': isArabic }"
-            >
-              <div
-                class="section-heading__text"
-                :dir="textDir"
-              >
-                <span
-                  class="eyebrow"
-                  :class="{ 'eyebrow--ar': isArabic }"
-                >{{ t('benchmark.diagnostics.eyebrow')
+            <div class="section-heading" :class="{ 'section-heading--rtl': isArabic }">
+              <div class="section-heading__text" :dir="textDir">
+                <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">{{ t('benchmark.diagnostics.eyebrow')
                 }}</span>
-                <h3
-                  class="section-title"
-                  :dir="textDir"
-                >
+                <h3 class="section-title" :dir="textDir">
                   {{ t('benchmark.diagnostics.title') }}
                 </h3>
                 <p class="section-text">
@@ -898,13 +711,10 @@ onErrorCaptured((err) => {
             </div>
 
             <div class="flex flex-wrap gap-2 mb-4">
-              <button
-                v-for="opt in modelOptions"
-                :key="opt.value"
-                class="px-3 py-1.5 rounded-lg text-sm transition-colors"
+              <button v-for="opt in modelOptions" :key="opt.value" role="tab"
+                :aria-selected="selectedModelKey === opt.value" class="px-3 py-1.5 rounded-lg text-sm transition-colors"
                 :class="selectedModelKey === opt.value ? 'bm-tab-active' : 'bm-tab-inactive'"
-                @click="selectedModelKey = opt.value"
-              >
+                @click="selectedModelKey = opt.value">
                 {{ opt.label }}
               </button>
             </div>
@@ -917,28 +727,19 @@ onErrorCaptured((err) => {
                   <table class="matrix-table">
                     <thead>
                       <tr>
-                        <th>{{ t('benchmark.diagnostics.actual') }}</th>
-                        <th
-                          v-for="name in localizedClassNames"
-                          :key="`head-${name}`"
-                        >
+                        <th scope="col">{{ t('benchmark.diagnostics.actual') }}</th>
+                        <th v-for="name in localizedClassNames" :key="`head-${name}`" scope="col">
                           {{ name }}
                         </th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr
-                        v-for="(row, rowIndex) in confusionMatrix"
-                        :key="`row-${rowIndex}`"
-                      >
+                      <tr v-for="(row, rowIndex) in confusionMatrix" :key="`row-${rowIndex}`">
                         <td class="matrix-axis">
                           {{ localizedClassNames[rowIndex] || rowIndex }}
                         </td>
-                        <td
-                          v-for="(value, colIndex) in row"
-                          :key="`cell-${rowIndex}-${colIndex}`"
-                          :class="{ 'matrix-cell--diag': rowIndex === colIndex }"
-                        >
+                        <td v-for="(value, colIndex) in row" :key="`cell-${rowIndex}-${colIndex}`" scope="row"
+                          :class="{ 'matrix-cell--diag': rowIndex === colIndex }">
                           {{ value }}
                         </td>
                       </tr>
@@ -951,77 +752,44 @@ onErrorCaptured((err) => {
                 <span class="diag-title">{{ t('benchmark.diagnostics.per_class_metrics') }}</span>
                 <Card class="q-glass bm-inner-card bm-fill-card">
                   <template #content>
-                    <DataTable
-                      :value="perClassRows"
-                      responsive-layout="scroll"
-                      class="bm-datatable-diag"
-                      :class="isArabic ? 'bm-table-rtl' : ''"
-                    >
-                      <Column
-                        field="className"
-                        :header="t('benchmark.diagnostics.class')"
-                      />
-                      <Column
-                        field="precision"
-                        :header="t('benchmark.diagnostics.precision')"
-                      >
+                    <DataTable :value="perClassRows" responsive-layout="scroll" class="bm-datatable-diag"
+                      :class="isArabic ? 'bm-table-rtl' : ''">
+                      <Column field="className" :header="t('benchmark.diagnostics.class')" />
+                      <Column field="precision" :header="t('benchmark.diagnostics.precision')">
                         <template #body="{ data }">
                           <span class="font-mono">{{ formatMetric(data.precision, 2)
                           }}</span>
                         </template>
                       </Column>
-                      <Column
-                        field="recall"
-                        :header="t('benchmark.diagnostics.recall')"
-                      >
+                      <Column field="recall" :header="t('benchmark.diagnostics.recall')">
                         <template #body="{ data }">
                           <span class="font-mono">{{ formatMetric(data.recall, 2)
                           }}</span>
                         </template>
                       </Column>
-                      <Column
-                        field="f1"
-                        :header="t('benchmark.diagnostics.f1')"
-                      >
+                      <Column field="f1" :header="t('benchmark.diagnostics.f1')">
                         <template #body="{ data }">
-                          <span
-                            class="font-mono"
-                            style="color: var(--q-teal)"
-                          >{{
+                          <span class="font-mono" style="color: var(--q-teal)">{{
                             formatMetric(data.f1, 2) }}</span>
                         </template>
                       </Column>
-                      <Column
-                        field="support"
-                        :header="t('benchmark.diagnostics.support')"
-                      />
+                      <Column field="support" :header="t('benchmark.diagnostics.support')" />
                     </DataTable>
                   </template>
                 </Card>
               </div>
             </div>
-            <div
-              class="diag-inner-card diag-inner-card--full"
-              style="margin-top: 1rem;"
-            >
+            <div class="diag-inner-card diag-inner-card--full" style="margin-top: 1rem;">
               <div class="flex items-center gap-2">
                 <span class="diag-title">{{ t('benchmark.charts.reliability_title') }}</span>
-                <Info
-                  v-tooltip.top="t('benchmark.charts.reliability_tooltip')"
-                  class="bm-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0"
-                />
+                <Info v-tooltip.top="t('benchmark.charts.reliability_tooltip')"
+                  class="bm-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0" />
               </div>
-              <p
-                class="chart-card-sub"
-                style="margin: -0.5rem 0 1rem;"
-              >
+              <p class="chart-card-sub" style="margin: -0.5rem 0 1rem;">
                 {{ t('benchmark.charts.reliability_sub') }}
               </p>
-              <div class="chart-shell chart-shell--md">
-                <Line
-                  :data="reliabilityChartData"
-                  :options="chartOptions"
-                />
+              <div class="chart-shell chart-shell--md" role="img" :aria-label="t('benchmark.charts.reliability_title')">
+                <Line :data="reliabilityChartData" :options="chartOptions" />
               </div>
             </div>
           </template>
@@ -1034,33 +802,17 @@ onErrorCaptured((err) => {
       <section class="content-section">
         <Card class="glass-card">
           <template #content>
-            <div
-              class="section-heading"
-              :class="{ 'section-heading--rtl': isArabic }"
-            >
-              <div
-                class="section-heading__text"
-                :dir="textDir"
-              >
-                <span
-                  class="eyebrow"
-                  :class="{ 'eyebrow--ar': isArabic }"
-                >{{ t('benchmark.config.eyebrow') }}</span>
-                <h3
-                  class="section-title"
-                  :dir="textDir"
-                >
+            <div class="section-heading" :class="{ 'section-heading--rtl': isArabic }">
+              <div class="section-heading__text" :dir="textDir">
+                <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">{{ t('benchmark.config.eyebrow') }}</span>
+                <h3 class="section-title" :dir="textDir">
                   {{ t('benchmark.config.title') }}
                 </h3>
               </div>
             </div>
 
             <div class="config-grid">
-              <div
-                v-for="item in configCards"
-                :key="item.label"
-                class="config-card-item"
-              >
+              <div v-for="item in configCards" :key="item.label" class="config-card-item">
                 <span class="config-label">{{ item.label }}</span>
                 <strong class="config-value">{{ item.value }}</strong>
               </div>
@@ -1070,14 +822,8 @@ onErrorCaptured((err) => {
       </section>
     </template>
 
-    <div
-      v-else
-      class="benchmark-state"
-    >
-      <Message
-        severity="warn"
-        :closable="false"
-      >
+    <div v-else class="benchmark-state">
+      <Message severity="warn" :closable="false">
         {{ t('benchmark.states.empty') }}
       </Message>
     </div>
@@ -1160,7 +906,11 @@ onErrorCaptured((err) => {
   white-space: nowrap;
 
 }
-
+@media (max-width: 1080px) {
+  .section-text-nowrap {
+    white-space: normal;
+  }
+}
 .hero-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

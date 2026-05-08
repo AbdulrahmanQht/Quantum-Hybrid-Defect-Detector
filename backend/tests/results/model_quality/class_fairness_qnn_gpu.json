@@ -1,0 +1,99 @@
+{
+  "generated_at": "2026-05-08T19:01:19Z",
+  "model": "QNN_GPU",
+  "per_class": {
+    "Deformation": {
+      "precision": 0.9574,
+      "recall": 0.9686,
+      "f1": 0.963,
+      "support": 510,
+      "tp": 494,
+      "fp": 22,
+      "fn": 16,
+      "misclassified_as": {
+        "Deposition": 0.0059,
+        "Disconnect": 0.0039,
+        "Misalignment": 0.0039,
+        "Obstacle": 0.002,
+        "Rupture": 0.0157
+      }
+    },
+    "Deposition": {
+      "precision": 0.9492,
+      "recall": 0.9639,
+      "f1": 0.9565,
+      "support": 582,
+      "tp": 561,
+      "fp": 30,
+      "fn": 21,
+      "misclassified_as": {
+        "Deformation": 0.0034,
+        "Disconnect": 0.0017,
+        "Obstacle": 0.0275,
+        "Rupture": 0.0034
+      }
+    },
+    "Disconnect": {
+      "precision": 0.9676,
+      "recall": 0.9762,
+      "f1": 0.9719,
+      "support": 336,
+      "tp": 328,
+      "fp": 11,
+      "fn": 8,
+      "misclassified_as": {
+        "Deformation": 0.003,
+        "Misalignment": 0.0119,
+        "Obstacle": 0.003,
+        "Rupture": 0.006
+      }
+    },
+    "Misalignment": {
+      "precision": 0.9522,
+      "recall": 0.9438,
+      "f1": 0.948,
+      "support": 338,
+      "tp": 319,
+      "fp": 16,
+      "fn": 19,
+      "misclassified_as": {
+        "Deformation": 0.0178,
+        "Deposition": 0.0089,
+        "Disconnect": 0.0089,
+        "Obstacle": 0.0089,
+        "Rupture": 0.0118
+      }
+    },
+    "Obstacle": {
+      "precision": 0.9639,
+      "recall": 0.926,
+      "f1": 0.9446,
+      "support": 635,
+      "tp": 588,
+      "fp": 22,
+      "fn": 47,
+      "misclassified_as": {
+        "Deformation": 0.0079,
+        "Deposition": 0.0378,
+        "Disconnect": 0.0047,
+        "Misalignment": 0.011,
+        "Rupture": 0.0126
+      }
+    },
+    "Rupture": {
+      "precision": 0.9457,
+      "recall": 0.9676,
+      "f1": 0.9565,
+      "support": 432,
+      "tp": 418,
+      "fp": 24,
+      "fn": 14,
+      "misclassified_as": {
+        "Deformation": 0.0185,
+        "Disconnect": 0.0046,
+        "Misalignment": 0.0069,
+        "Obstacle": 0.0023
+      }
+    }
+  }
+}

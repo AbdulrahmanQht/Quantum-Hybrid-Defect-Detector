@@ -10,9 +10,9 @@ The fit() methods in all three models log:
 This script reads those log files and produces a summary table.
 
 Usage:
-    python tests/extract_training_time.py \\
-        --cnn    data/cnn_training.log \\
-        --cpu    data/qnn_cpu_training.log \\
+    python tests/extract_training_time.py \
+        --cnn    data/cnn_training.log \
+        --cpu    data/qnn_cpu_training.log \
         --gpu    data/qnn_gpu_training.log
 
 Output:
@@ -139,7 +139,7 @@ if __name__ == "__main__":
     parser.add_argument("--gpu", default=None, help="Path to QNN-GPU training log file.")
     parser.add_argument(
         "--out",
-        default="results/training_time/training_times.json",
+        default="tests/results/training_time/training_times.json",
         help="Path to save JSON results.",
     )
     args = parser.parse_args()
