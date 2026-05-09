@@ -1,9 +1,7 @@
 FROM node:20-bookworm-slim AS frontend-builder
 WORKDIR /app/frontend
-
 COPY frontend/package*.json ./
 RUN npm ci
-
 COPY frontend/ ./
 RUN npm run build
 
@@ -12,14 +10,20 @@ FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV CONDA_DIR=/opt/conda
-ENV PATH=/opt/conda/bin:$PATH
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# hadolint ignore=DL3008
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    software-properties-common \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 \
+    python3.11-dev \
+    python3.11-distutils \
     curl \
-    bash \
     build-essential \
     libglib2.0-0 \
     libgl1 \
@@ -29,25 +33,21 @@ RUN apt-get update && apt-get install -y \
     libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-RUN curl -fsSL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o /tmp/miniconda.sh && \
-    bash /tmp/miniconda.sh -b -p $CONDA_DIR && \
-    rm /tmp/miniconda.sh
-
-RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
-    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
-
-RUN conda create -y -n app python=3.11 && conda clean -afy
-ENV PATH=/opt/conda/envs/app/bin:/opt/conda/bin:$PATH
+RUN curl -fsSL https://bootstrap.pypa.io/get-pip.py | python3.11 && \
+    update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 && \
+    update-alternatives --install /usr/bin/pip pip /usr/local/bin/pip3 1
 
 COPY backend/requirements_linux.txt /app/backend/requirements_linux.txt
-RUN pip install --upgrade pip setuptools wheel && \
-    pip install --extra-index-url https://download.pytorch.org/whl/cu121 -r /app/backend/requirements_linux.txt
+
+RUN pip install --no-cache-dir "pip==24.2" "setuptools==72.1.0" "wheel==0.44.0" && \
+    pip install --no-cache-dir \
+    --extra-index-url https://download.pytorch.org/whl/cu121 \
+    -r /app/backend/requirements_linux.txt
 
 COPY backend /app/backend
 COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
 
 WORKDIR /app/backend
-
 EXPOSE 8000
-
-CMD ["granian", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--interface", "asgi", "--workers", "1"]
+CMD ["granian", "app.main:app", "--host", "0.0.0.0", "--port", "8000", \
+     "--interface", "asgi", "--workers", "1"]

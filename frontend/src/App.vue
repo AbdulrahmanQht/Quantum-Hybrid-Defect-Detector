@@ -1,10 +1,14 @@
 <script setup>
-import { onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import NavBar from './components/NavBar.vue'
 import Footer from './components/Footer.vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
+const route = useRoute()
+
+const isNotFound = computed(() => route.name === 'not-found')
+
 let saveTimer
 
 const handleScroll = () => {
@@ -35,7 +39,7 @@ onUnmounted(() => {
     <main id="main-content" class="relative z-[1]">
       <RouterView />
     </main>
-    <Footer />
+    <Footer v-if="!isNotFound" />
   </div>
 </template>
 

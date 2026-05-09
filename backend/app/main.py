@@ -3,8 +3,8 @@ import json
 import time
 import torch
 import asyncio
-import sentry_sdk
 from PIL import Image
+from pathlib import Path
 from contextlib import asynccontextmanager
 from torchvision.io import decode_image, ImageReadMode
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -147,13 +147,6 @@ async def lifespan(app: FastAPI):
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
-SENTRY_DSN = os.getenv("SENTRY_DSN")
-if SENTRY_DSN:
-    sentry_sdk.init(
-        dsn=SENTRY_DSN,
-        traces_sample_rate=0.1,
-        environment=os.getenv("APP_ENV", "development"),
-    )
 
 IS_PROD = os.getenv("APP_ENV", "development") == "production"
 
@@ -198,7 +191,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             csp = (
                 "default-src 'self'; "
                 # Add 'unsafe-inline' right here:
-                "script-src 'self' 'unsafe-eval' 'unsafe-inline'; " 
+                "script-src 'self' 'unsafe-eval'; " 
                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
                 "font-src 'self' https://fonts.gstatic.com; "
                 "img-src 'self' data: blob:; "
@@ -241,8 +234,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173", 
         "http://127.0.0.1:5173",
-        "https://cnnvsqnn.me",            # Your production domain
-        "https://www.cnnvsqnn.me",        # Production with www
+        "https://cnnvsqnn.tech",            # Your production domain
+        "https://www.cnnvsqnn.tech",        # Production with www
         "https://*.trycloudflare.com"     # Temporary quick tunnels
     ],
     allow_credentials=True,
@@ -254,8 +247,8 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=[
         "localhost", 
         "127.0.0.1", 
         "0.0.0.0", 
-        "cnnvsqnn.me",            # Your new domain
-        "*.cnnvsqnn.me",          # Any subdomains
+        "cnnvsqnn.tech",            # Your new domain
+        "*.cnnvsqnn.tech",          # Any subdomains
         "*.trycloudflare.com",    # Allows temporary Cloudflare URLs
         "AbdulrahmanPC.local", 
         "testserver"
@@ -309,9 +302,22 @@ def health_check(request: Request):
     )
     
     
+
 # Frontend static files
 current_dir = os.path.dirname(os.path.abspath(__file__))
 frontend_path = os.path.abspath(os.path.join(current_dir, "..", "..", "frontend", "dist"))
+
+# Non-dotfile paths to block (dotfiles are caught generically below)
+BLOCKED_PATHS = {
+    "wp-admin", "wp-login.php", "phpinfo.php", "web.config"
+}
+
+def get_client_ip(request: Request) -> str:
+    return (
+        request.headers.get("cf-connecting-ip") or
+        request.headers.get("x-forwarded-for", "").split(",")[0].strip() or
+        (request.client.host if request.client else "unknown")
+    )
 
 if os.path.exists(frontend_path):
     logger.info(f"Frontend dist found. Serving from: {frontend_path}")
@@ -321,10 +327,44 @@ if os.path.exists(frontend_path):
 
     @app.get("/{full_path:path}")
     async def serve_frontend(full_path: str, request: Request):
+        client_ip = get_client_ip(request)
+        
+        # Block any path segment starting with a dot (.env, .git, .htaccess, etc.)
+        requested_path = Path(full_path)
+        if any(part.startswith(".") for part in requested_path.parts):
+            logger.warning(
+                f"[SECURITY] Dotfile probe blocked | "
+                f"ip={client_ip} path=/{full_path}"
+            )
+            raise HTTPException(status_code=404)
+
+        # Block known malicious paths
+        path_lower = full_path.strip("/").lower()
+        matched_block = next(
+            (b for b in BLOCKED_PATHS if path_lower == b or path_lower.startswith(b)),
+            None
+        )
+        if matched_block:
+            logger.warning(
+                f"[SECURITY] Blocked path probe | "
+                f"ip={client_ip} path=/{full_path} matched_rule={matched_block}"
+            )
+            raise HTTPException(status_code=404)
+
+        # Block API routes that don't exist
         if full_path.startswith("api/v1/"):
             return JSONResponse(status_code=404, content={"message": "API route not found"})
-        file_path = os.path.join(frontend_path, full_path)
-        if os.path.isfile(file_path):
+
+        # Guard against path traversal (e.g. ../../etc/passwd)
+        file_path = Path(os.path.join(frontend_path, full_path)).resolve()
+        if not file_path.is_relative_to(frontend_path):
+            logger.warning(
+                f"[SECURITY] Path traversal attempt blocked | "
+                f"ip={client_ip} path=/{full_path} resolved={file_path}"
+            )
+            raise HTTPException(status_code=404)
+
+        if file_path.is_file():
             return FileResponse(file_path)
         return FileResponse(os.path.join(frontend_path, "index.html"))
 

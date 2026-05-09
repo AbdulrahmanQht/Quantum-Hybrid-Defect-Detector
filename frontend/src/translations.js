@@ -4,6 +4,15 @@ import Cookies from "js-cookie";
 
 const messages = {
   EN: {
+    notFound: {
+      title: "Page Not Found",
+      subtitle:
+        "The route you're looking for collapsed into superposition — it exists neither here nor anywhere else.",
+      whereLabel: "Where would you like to go?",
+      cta: "Back to Home",
+      footerNote: "Think something is broken?",
+      footerLink: "Let us know",
+    },
     navbar: {
       home: "Home",
       classify: "Classify",
@@ -655,6 +664,15 @@ const messages = {
     },
   },
   AR: {
+    notFound: {
+      title: "الصفحة غير موجودة",
+      subtitle:
+        "المسار الذي تبحث عنه انهار في تراكب كمومي — لا وجود له هنا ولا في أي مكان آخر.",
+      whereLabel: "إلى أين تريد الذهاب؟",
+      cta: "العودة إلى الرئيسية",
+      footerNote: "هل تعتقد أن هناك خطأ ما؟",
+      footerLink: "أخبرنا",
+    },
     navbar: {
       home: "الرئيسية",
       classify: "تصنيف",
