@@ -5,7 +5,7 @@ import { Github, Linkedin, Mail } from 'lucide-vue-next'
 
 const { t, tm, locale } = useI18n({ useScope: 'global' })
 
-const teamLinks = tm('footer.teamLinks')
+const teamLinks = computed(() => tm('footer.teamLinks'))
 const isArabic = computed(() => locale.value === 'AR')
 </script>
 
@@ -131,18 +131,15 @@ const isArabic = computed(() => locale.value === 'AR')
   width: fit-content;
   text-decoration: none;
   color: var(--q-muted);
-  transition: all 0.18s ease;
+  transition:
+    color 0.18s ease,
+    transform 0.18s ease;
 }
 
 /* Logical hover effect: works for both EN and AR */
 .site-footer__link:hover {
   color: var(--q-text);
-  margin-inline-start: 4px;
 }
-
-/* 4. REMOVE all the .site-footer--ar blocks at the bottom of your file */
-/* They are no longer needed because :dir on the parent handles it all! */
-
 
 .site-footer__bottom {
   border-top: 1px solid var(--q-bar-border);

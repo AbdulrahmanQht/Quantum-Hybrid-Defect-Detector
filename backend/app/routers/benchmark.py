@@ -188,7 +188,15 @@ def _load_benchmark() -> BenchmarkResults:
 
         result = BenchmarkResults.model_validate(full_data)
         
-        logger.info(f"Benchmark results loaded and cached {result}.")
+        logger.info(
+            "Benchmark results loaded and cached "
+            f"(generated_at={result.generated_at}, "
+            f"device={result.device}, "
+            f"models={list(result.clean_evaluation.keys())}, "
+            f"latency_entries={len(result.latency_data)}, "
+            f"robustness_rows={len(result.extended_robustness)}, "
+            f"per_class_rows={len(result.per_class_analysis)})"
+        )
         return result
  
     except json.JSONDecodeError as exc:

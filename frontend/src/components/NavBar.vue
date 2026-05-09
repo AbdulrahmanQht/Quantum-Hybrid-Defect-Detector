@@ -58,7 +58,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
         </div>
       </router-link>
 
-      <nav class="qnn-nav" :class="{ 'qnn-nav--open': menuOpen }" aria-label="Main navigation">
+      <nav class="qnn-nav" :class="{ 'qnn-nav--open': menuOpen }" id="qnn-nav" aria-label="Main navigation">
         <router-link v-for="item in items" :key="item.to" :to="item.to" class="qnn-link"
           :class="{ 'qnn-link--quantum': item.isQuantum }" aria-current-value="page" @click="closeMenu">
           <component :is="item.lucideIcon" class="qnn-link-icon" />

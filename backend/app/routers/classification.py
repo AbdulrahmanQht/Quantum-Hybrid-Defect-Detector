@@ -1,8 +1,11 @@
 import time
+import io
+import base64
 import asyncio
 from PIL import Image
 import torch
 from torchvision.io import decode_image, ImageReadMode
+from torchvision.transforms.functional import to_pil_image
 from pydantic import BaseModel
 from typing import Dict, Union, List, Optional
 
@@ -36,10 +39,12 @@ class PredictionSet(BaseModel):
 # Extension for noisy data
 class NoisyPredictionSet(PredictionSet):
     noise_level: float
+    noisy_image_base64: str
 
 # The full response for /api/v1/classify endpoint
 class ClassificationResponse(BaseModel):
     filename: str
+    clean_image_base64: str
     clean: PredictionSet
     noisy: Optional[NoisyPredictionSet] = None
     
@@ -201,10 +206,31 @@ async def classify_image(
         # Reuse CNN's transform — all models share the same preprocessing
         transform_pipeline = cnn_setup["model"].inference_transform
         clean_input_tensor = transform_pipeline(img_tensor).unsqueeze(0)  # [1, 3, 384, 384]
+        
+        # Squeeze to 3D for image conversion and noise application
+        
+        # Convert clean tensor to Base64
+        clean_tensor_3d = clean_input_tensor.squeeze(0)
+        clean_pil = to_pil_image(clean_tensor_3d.cpu())
+        clean_buf = io.BytesIO()
+        clean_pil.save(clean_buf, format="JPEG", quality=85)
+        clean_b64_str = base64.b64encode(clean_buf.getvalue()).decode('utf-8')
+        clean_base64 = f"data:image/jpeg;base64,{clean_b64_str}"
+        
         # Generate Noisy Tensor (Logic from models/benchmark.py)
         noisy_input_tensor = None
+        noisy_base64 = None
         if compare_with_noise:
-            noisy_input_tensor = apply_inference_noise(clean_input_tensor.squeeze(0), noise_level).unsqueeze(0)
+            # Squeeze to [3, H, W] for the transformation
+            noisy_tensor_3d = apply_inference_noise(clean_input_tensor.squeeze(0), noise_level)
+            noisy_input_tensor = noisy_tensor_3d.unsqueeze(0)
+            
+            # Convert Tensor to Base64
+            pil_img = to_pil_image(noisy_tensor_3d.cpu())
+            buffered = io.BytesIO()
+            pil_img.save(buffered, format="JPEG", quality=85)
+            encoded_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
+            noisy_base64 = f"data:image/jpeg;base64,{encoded_str}"
             
         futures = {}
         
@@ -237,6 +263,7 @@ async def classify_image(
 
         results_data = {
             "filename": file.filename,
+            "clean_image_base64": clean_base64,
             "clean": {
                 "CNN": results["clean_CNN"],
                 "QNN_CPU": results["clean_QNN_CPU"],
@@ -248,6 +275,7 @@ async def classify_image(
         if compare_with_noise:
             results_data["noisy"] = {
                 "noise_level": noise_level,
+                "noisy_image_base64": noisy_base64,
                 "CNN": results["noisy_CNN"],
                 "QNN_CPU": results["noisy_QNN_CPU"],
                 "QNN_GPU": results.get("noisy_QNN_GPU")

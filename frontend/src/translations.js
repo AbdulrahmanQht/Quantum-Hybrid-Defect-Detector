@@ -216,6 +216,7 @@ const messages = {
       delta_confidence: "Confidence Δ",
       delta_latency: "Latency Δ",
       eyebrow: "Classical · Quantum Hybrid (CPU) · Quantum Hybrid (GPU)",
+      noisy_pending: "Run the model to see the noisy preview",
       models: {
         cnn: "CNN",
         qnn_cpu: "QNN CPU",
@@ -245,6 +246,10 @@ const messages = {
           "Side-by-side confidence bars before and after noise injection. A drop in quantum model confidence shows better calibration; CNN often holds high confidence even when its prediction is incorrect.",
         clean_noisy_delta:
           "Δ (delta) is the change in each metric after noise injection. A positive CNN confidence delta under severe noise may reflect overconfidence rather than a genuine performance improvement.",
+        clean_image:
+          "The 384x384 preprocessed tensor fed directly into the models.",
+        noisy_image:
+          "Simulates industrial camera degradation using combined Gaussian, Motion Blur, Contrast reduction, and Lens Occlusion algorithms.",
       },
       cnn_overconfidence_warning:
         "Under severe noise, CNN may show the highest confidence here — but our benchmark results confirm it can still predict incorrectly at high confidence levels. Do not interpret high CNN confidence as superior reliability under noise.",
@@ -860,6 +865,7 @@ const messages = {
       delta_confidence: "فرق الثقة",
       delta_latency: "فرق زمن الاستدلال",
       eyebrow: "كلاسيكي · كمّي هجين (CPU) · كمّي هجين (GPU)",
+      noisy_pending: "شغّل النموذج لمعاينة الصورة المشوَّشة",
       models: {
         cnn: "CNN",
         qnn_cpu: "QNN CPU",
@@ -889,6 +895,10 @@ const messages = {
           "أعمدة الثقة قبل وبعد إضافة التشويش. انخفاض ثقة النماذج الكمّية يعكس معايرة أفضل، بينما CNN يحتفظ بثقة عالية حتى حين يكون توقعه خاطئاً.",
         clean_noisy_delta:
           "Δ (دلتا) هو الفرق في كل مقياس بعد إضافة التشويش. ارتفاع ثقة CNN تحت تشويش شديد قد يعكس ثقة زائدة وليس تحسناً حقيقياً في الأداء.",
+        clean_image:
+          "الموتر المُعالج مسبقًا بحجم 384×384 والمُمرَّر مباشرة إلى النماذج",
+        noisy_image:
+          "يحاكي تدهور جودة الكاميرات الصناعية باستخدام مزيج من خوارزميات التشويش الغاوسي (Gaussian)، وضبابية الحركة، وتقليل التباين، وانسداد العدسة.",
       },
       cnn_overconfidence_warning:
         "تحت التشويش الشديد، قد يُظهر CNN أعلى ثقة هنا — لكن نتائج المقارنة تؤكد أنه قد لا يزال يُخطئ في توقعاته رغم الثقة العالية. لا تعتبر ثقة CNN العالية دليلاً على تفوق أدائه تحت التشويش.",

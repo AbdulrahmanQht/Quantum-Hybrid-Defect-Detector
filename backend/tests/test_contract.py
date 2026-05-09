@@ -43,9 +43,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
-RESULTS_DIR = Path("tests/results/test_contract")
+BACKEND_DIR = Path(__file__).parent.parent.resolve()
+sys.path.insert(0, str(BACKEND_DIR))
+
+RESULTS_DIR = BACKEND_DIR / "tests" / "results" / "test_contract"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 CLASS_NAMES = [

@@ -551,7 +551,7 @@ onErrorCaptured((err) => {
             <div class="section-heading" :class="{ 'section-heading--rtl': isArabic }">
               <div class="section-heading__text" :dir="textDir">
                 <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">{{ t('benchmark.performance.eyebrow')
-                }}</span>
+                  }}</span>
                 <h3 class="section-title" :dir="textDir">
                   {{ t('benchmark.performance.title') }}
                 </h3>
@@ -633,7 +633,7 @@ onErrorCaptured((err) => {
             <div class="section-heading" :class="{ 'section-heading--rtl': isArabic }">
               <div class="section-heading__text" :dir="textDir">
                 <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">{{ t('benchmark.robustness.eyebrow')
-                }}</span>
+                  }}</span>
                 <h3 class="section-title" :dir="textDir">
                   {{ t('benchmark.robustness.title') }}
                 </h3>
@@ -644,10 +644,11 @@ onErrorCaptured((err) => {
             </div>
 
             <div class="flex flex-wrap gap-2 mb-4" role="tablist">
-              <button v-for="opt in modelOptions" :key="opt.value" role="tab"
-                :aria-selected="selectedModelKey === opt.value" class="px-3 py-1.5 rounded-lg text-sm transition-colors"
-                :class="selectedModelKey === opt.value ? 'bm-tab-active' : 'bm-tab-inactive'"
-                @click="selectedModelKey = opt.value">
+              <button v-for="opt in noiseOptions" :key="opt.value" role="tab"
+                :aria-selected="selectedNoiseType === opt.value"
+                class="px-3 py-1.5 rounded-lg text-sm transition-colors"
+                :class="selectedNoiseType === opt.value ? 'bm-tab-active' : 'bm-tab-inactive'"
+                @click="selectedNoiseType = opt.value">
                 {{ opt.label }}
               </button>
             </div>
@@ -700,7 +701,7 @@ onErrorCaptured((err) => {
             <div class="section-heading" :class="{ 'section-heading--rtl': isArabic }">
               <div class="section-heading__text" :dir="textDir">
                 <span class="eyebrow" :class="{ 'eyebrow--ar': isArabic }">{{ t('benchmark.diagnostics.eyebrow')
-                }}</span>
+                  }}</span>
                 <h3 class="section-title" :dir="textDir">
                   {{ t('benchmark.diagnostics.title') }}
                 </h3>
@@ -758,13 +759,13 @@ onErrorCaptured((err) => {
                       <Column field="precision" :header="t('benchmark.diagnostics.precision')">
                         <template #body="{ data }">
                           <span class="font-mono">{{ formatMetric(data.precision, 2)
-                          }}</span>
+                            }}</span>
                         </template>
                       </Column>
                       <Column field="recall" :header="t('benchmark.diagnostics.recall')">
                         <template #body="{ data }">
                           <span class="font-mono">{{ formatMetric(data.recall, 2)
-                          }}</span>
+                            }}</span>
                         </template>
                       </Column>
                       <Column field="f1" :header="t('benchmark.diagnostics.f1')">
@@ -906,11 +907,13 @@ onErrorCaptured((err) => {
   white-space: nowrap;
 
 }
+
 @media (max-width: 1080px) {
   .section-text-nowrap {
     white-space: normal;
   }
 }
+
 .hero-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

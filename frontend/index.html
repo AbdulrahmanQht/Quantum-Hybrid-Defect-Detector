@@ -52,19 +52,19 @@
       }
     </script>
     <script>
-      if (document.cookie.includes('theme=dark')) {
-        document.documentElement.classList.add('p-dark');
+      if (document.cookie.includes("theme=dark")) {
+        document.documentElement.classList.add("p-dark");
       }
     </script>
   </head>
   <body>
-    <a href="#main-content" class="skip-link"></a>
+    <noscript>
+      <div style="padding: 2rem; text-align: center; font-family: sans-serif">
+        This application requires JavaScript to run.
+      </div>
+    </noscript>
+    <a href="#main-content" class="skip-link">Skip to main content.</a>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
   </body>
-  <noscript>
-  <div style="padding:2rem;text-align:center;font-family:sans-serif">
-    This application requires JavaScript to run.
-  </div>
-</noscript>
 </html>

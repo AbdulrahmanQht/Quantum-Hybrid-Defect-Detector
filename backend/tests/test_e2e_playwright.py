@@ -98,6 +98,7 @@ def mock_api(page: Page) -> None:
 
     classify_payload = {
         "filename": "defect.jpg",
+        "clean_image_base64": "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
         "clean": {
             "CNN": {
                 "predicted_index": 5,
@@ -144,6 +145,7 @@ def mock_api(page: Page) -> None:
         },
         "noisy": {
             "noise_level": 0.65,
+            "noisy_image_base64": "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
             "CNN": {
                 "predicted_index": 2,
                 "predicted_class": "Disconnect",
@@ -447,9 +449,9 @@ class TestBenchmarkPage:
 
     def test_benchmark_tabs_switch(self, page: Page) -> None:
         page.goto(f"{BASE_URL}/benchmark")
-        page.get_by_role("button", name="QNN GPU").click()
+        page.get_by_role("tab", name="QNN GPU").first.click()
         expect(page.get_by_text("Confusion Matrix", exact=True)).to_be_visible()
-        page.get_by_role("button", name="Gaussian").click()
+        page.get_by_role("tab", name="Gaussian").first.click()
         expect(page.get_by_text("Accuracy Under Increasing Noise", exact=True)).to_be_visible()
 
 
@@ -457,12 +459,12 @@ class TestQuantumAdvantagePage:
     def test_quantum_advantage_page_renders(self, page: Page) -> None:
         page.goto(f"{BASE_URL}/quantum-advantage")
         expect(page.get_by_role("heading", name="Quantum Advantage Report")).to_be_visible()
-        expect(page.get_by_role("button", name="Gaussian")).to_be_visible()
+        expect(page.get_by_role("tab", name="Gaussian")).to_be_visible()
         expect(page.get_by_text("Geometric Difference", exact=True)).to_be_visible()
 
     def test_quantum_advantage_noise_tabs_switch(self, page: Page) -> None:
         page.goto(f"{BASE_URL}/quantum-advantage")
-        page.get_by_role("button", name="Gaussian").click()
+        page.get_by_role("tab", name="Gaussian").click()
         expect(page.get_by_role("heading", name="Quantum Advantage Report")).to_be_visible()
 
 

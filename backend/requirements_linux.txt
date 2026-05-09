@@ -10,10 +10,10 @@ python-multipart==0.0.21
 email-validator==2.3.0
 fastapi-mail==1.6.2
 
-numpy==2.4.1
+numpy==2.4.4
 pandas==3.0.2
-pillow==12.0.0
-scipy==1.17.0
+pillow==12.2.0
+scipy==1.17.1
 scikit-learn==1.8.0
 tqdm==4.67.3
 
@@ -21,8 +21,8 @@ torch==2.5.1+cu121
 torchvision==0.20.1+cu121
 
 pennylane==0.44.1
-pennylane_lightning==0.44.0
-pennylane_lightning_gpu==0.44.0
+pennylane-lightning==0.44.0
+pennylane-lightning-gpu==0.44.0
 
 sentry-sdk==2.49.0
-typing_extensions==4.15.0
+typing-extensions==4.15.0

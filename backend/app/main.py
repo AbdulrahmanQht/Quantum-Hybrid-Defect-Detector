@@ -210,18 +210,19 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 class RequestLogMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         started = time.perf_counter()
+        client_host = (request.client.host if request.client else request.headers.get("x-forwarded-for", "-"))
         try:
             response = await call_next(request)
             duration_ms = (time.perf_counter() - started) * 1000
             logger.info(
-                f'{request.client.host} "{request.method} {request.url.path}" '
+                f'{client_host} "{request.method} {request.url.path}" '
                 f'status={response.status_code} duration_ms={duration_ms:.2f}'
             )
             return response
         except Exception:
             duration_ms = (time.perf_counter() - started) * 1000
             logger.error(
-                f'{request.client.host} "{request.method} {request.url.path}" '
+                f'{client_host} "{request.method} {request.url.path}" '
                 f'unhandled_exception duration_ms={duration_ms:.2f}'
             )
             raise
@@ -270,7 +271,7 @@ def health_check(request: Request):
             "models": {
                 "CNN": {
                     "status": "ok" if cnn_ok else "unavailable",
-                    "device":   str(ml_models["CNN"]["device"]) if qnn_cpu_ok else None,
+                    "device":   str(ml_models["CNN"]["device"]) if cnn_ok else None,
                 },
                 "QNN_CPU": {
                     "status":   "ok" if qnn_cpu_ok else "unavailable",
@@ -324,7 +325,8 @@ if __name__ == "__main__":
         workers=1,    # GPU app — multiple workers = duplicate VRAM per worker
         log_access=True,    # show request logs
         log_level="info",   # debug/info/warning/error
-        reload_paths=["app"] # Only reload when changes happens under app/
+        reload_paths=["app"], # Only reload when changes happens under app/
+        reload=True
     )
 
     server.serve()

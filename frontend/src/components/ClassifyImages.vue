@@ -22,6 +22,7 @@ const compareWithNoise = ref(false)
 const noiseLevel = ref(0.3)
 const noisyResults = ref(null)
 const activeResultsView = ref('clean')
+const noisyPreviewUrl = ref(null)
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 const MAX_SIZE_MB = 5
@@ -150,6 +151,7 @@ function persistState() {
       compareWithNoise: compareWithNoise.value,
       noiseLevel: noiseLevel.value,
       appliedNoiseLevel: appliedNoiseLevel.value,
+      noisyPreviewUrl: noisyPreviewUrl.value
     }))
   } catch {
     // Quota exceeded (large image) — fail silently
@@ -242,6 +244,12 @@ async function uploadImage() {
 
 
     results.value = parseSet(data.clean)
+    previewUrl.value = data.clean_image_base64
+    storedDataUrl.value = data.clean_image_base64
+    if (data.noisy) {
+      noisyResults.value = parseSet(data.noisy)
+      noisyPreviewUrl.value = data.noisy.noisy_image_base64 || null
+    }
     appliedNoiseLevel.value = snapshotNoiseLevel
     if (data.noisy) noisyResults.value = parseSet(data.noisy)
     activeResultsView.value = 'clean'
@@ -265,7 +273,7 @@ const confidenceChartData = computed(() => {
     labels: results.value.map(r => r.modelName),
     datasets: [{
       label: t('classify.confidence_percent'),
-      data: results.value.map(r => parseFloat(r.confidence.toFixed(1))),
+      data: results.value.map(r => parseFloat(r.confidence.toFixed(2))),
       backgroundColor: results.value.map(r => r.color),
       borderRadius: 5,
       borderSkipped: false
@@ -279,7 +287,7 @@ const noisyConfidenceChartData = computed(() => {
     labels: noisyResults.value.map(r => r.modelName),
     datasets: [{
       label: t('classify.confidence_percent'),
-      data: noisyResults.value.map(r => parseFloat(r.confidence.toFixed(1))),
+      data: noisyResults.value.map(r => parseFloat(r.confidence.toFixed(2))),
       backgroundColor: noisyResults.value.map(r => r.color),
       borderRadius: 5,
       borderSkipped: false
@@ -293,7 +301,7 @@ const latencyChartData = computed(() => {
     labels: results.value.map(r => r.modelName),
     datasets: [{
       label: t('classify.latency_ms'),
-      data: results.value.map(r => parseFloat(r.latency.toFixed(1))),
+      data: results.value.map(r => parseFloat(r.latency.toFixed(2))),
       backgroundColor: results.value.map(r => r.color),
       borderRadius: 5,
       borderSkipped: false
@@ -307,7 +315,7 @@ const noisyLatencyChartData = computed(() => {
     labels: noisyResults.value.map(r => r.modelName),
     datasets: [{
       label: t('classify.latency_ms'),
-      data: noisyResults.value.map(r => parseFloat(r.latency.toFixed(1))),
+      data: noisyResults.value.map(r => parseFloat(r.latency.toFixed(2))),
       backgroundColor: noisyResults.value.map(r => r.color),
       borderRadius: 5,
       borderSkipped: false
@@ -371,14 +379,14 @@ const confidenceComparisonChartData = computed(() => {
     datasets: [
       {
         label: t('classify.clean_label'),
-        data: cleanNoisyComparisonRows.value.map(r => parseFloat(r.cleanConfidence.toFixed(1))),
+        data: cleanNoisyComparisonRows.value.map(r => parseFloat(r.cleanConfidence.toFixed(2))),
         backgroundColor: 'rgba(42, 184, 184, 0.78)',
         borderRadius: 5,
         borderSkipped: false
       },
       {
         label: t('classify.noisy_label'),
-        data: cleanNoisyComparisonRows.value.map(r => parseFloat(r.noisyConfidence.toFixed(1))),
+        data: cleanNoisyComparisonRows.value.map(r => parseFloat(r.noisyConfidence.toFixed(2))),
         backgroundColor: 'rgba(245, 158, 11, 0.78)',
         borderRadius: 5,
         borderSkipped: false
@@ -412,6 +420,7 @@ function reset() {
   isRestored.value = false
   storedDataUrl.value = null
   appliedNoiseLevel.value = null
+  noisyPreviewUrl.value = null
 }
 
 // --- Export ---
@@ -432,7 +441,7 @@ function exportToCSV() {
 
   // 2. Add Clean Rows (Baseline)
   results.value.forEach(r => {
-    rows.push(`"Clean","${r.modelName}","${r.prediction}",${r.confidence.toFixed(1)},${r.latency.toFixed(1)},"-","-","-"`)
+    rows.push(`"Clean","${r.modelName}","${r.prediction}",${r.confidence.toFixed(2)},${r.latency.toFixed(2)},"-","-","-"`)
   })
 
   // 3. Add Noisy Rows with Comparison Data
@@ -440,10 +449,10 @@ function exportToCSV() {
     cleanNoisyComparisonRows.value.forEach(c => {
       const condition = `"Noisy (level ${appliedNoiseLevel.value?.toFixed(2)})"`
       const matchStatus = c.cleanPrediction === c.noisyPrediction ? 'Match' : 'Mismatch'
-      const confDelta = `${c.confidenceDelta >= 0 ? '+' : ''}${c.confidenceDelta.toFixed(1)}`
-      const latDelta = `${c.latencyDelta >= 0 ? '+' : ''}${c.latencyDelta.toFixed(1)}`
+      const confDelta = `${c.confidenceDelta >= 0 ? '+' : ''}${c.confidenceDelta.toFixed(2)}`
+      const latDelta = `${c.latencyDelta >= 0 ? '+' : ''}${c.latencyDelta.toFixed(2)}`
 
-      rows.push(`${condition},"${c.modelName}","${c.noisyPrediction}",${c.noisyConfidence.toFixed(1)},${c.noisyLatency.toFixed(1)},"${matchStatus}","${confDelta}","${latDelta}"`)
+      rows.push(`${condition},"${c.modelName}","${c.noisyPrediction}",${c.noisyConfidence.toFixed(2)},${c.noisyLatency.toFixed(2)},"${matchStatus}","${confDelta}","${latDelta}"`)
     })
   }
 
@@ -472,8 +481,8 @@ function exportToJSON() {
 
   const formatResults = (dataArr) => dataArr.map(r => ({
     ...stripColor([r])[0],
-    confidence: `${r.confidence.toFixed(1)}%`,
-    latency: `${r.latency.toFixed(1)}ms`
+    confidence: `${r.confidence.toFixed(2)}%`,
+    latency: `${r.latency.toFixed(2)}ms`
   }))
 
   const jsonData = {
@@ -501,8 +510,8 @@ function exportToJSON() {
         isMatch: c.cleanPrediction === c.noisyPrediction,
         cleanLabel: c.cleanPrediction,
         noisyLabel: c.noisyPrediction,
-        confidence: `${c.noisyConfidence.toFixed(1)}%`,
-        latency: `${c.noisyLatency.toFixed(1)}ms`,
+        confidence: `${c.noisyConfidence.toFixed(2)}%`,
+        latency: `${c.noisyLatency.toFixed(2)}ms`,
         confidenceDelta: `${c.confidenceDelta >= 0 ? '+' : ''}${c.confidenceDelta.toFixed(2)}%`,
         latencyDelta: `${c.latencyDelta >= 0 ? '+' : ''}${c.latencyDelta.toFixed(2)}ms`
       }))
@@ -544,6 +553,7 @@ onMounted(() => {
       selectedFile.value = { name: saved.fileName ?? 'image', restored: true }
       isRestored.value = true
     }
+    if (saved.noisyPreviewUrl) noisyPreviewUrl.value = saved.noisyPreviewUrl
   } catch {
     // Ignore corrupted storage
   }
@@ -602,13 +612,30 @@ onUnmounted(() => {
               {{ t('classify.restored_hint') }}
             </div>
           </Transition>
-          <div class="preview-frame">
-            <Image :src="previewUrl" :alt="selectedFile.name" image-class="max-h-72 object-contain" preview />
-            <div class="preview-overlay">
-              <p class="preview-filename">
-                {{ selectedFile.name }}
-              </p>
+          <div class="preview-frame" :class="{ 'preview-frame--split': noisyPreviewUrl }">
+            <div class="preview-pane">
+              <Image :src="previewUrl" :alt="selectedFile.name" image-class="preview-img" preview />
+              <span v-if="noisyPreviewUrl" class="preview-pane__label flex items-center gap-1.5">
+                {{ t('classify.clean') }}
+                <Info v-tooltip.top="t('classify.tooltips.clean_image')"
+                  class="classify-info-icon-img w-3.5 h-3.5 cursor-help flex-shrink-0" />
+              </span>
             </div>
+
+            <Transition name="slide-in">
+              <div v-if="noisyPreviewUrl" class="preview-pane preview-pane--noisy">
+                <Image :src="noisyPreviewUrl" :alt="t('classify.noisy')" image-class="preview-img" preview />
+                <span class="preview-pane__label flex items-center gap-1.5" :class="{
+                  'preview-pane__label--mild': appliedNoiseLevel <= 0.3,
+                  'preview-pane__label--degraded': appliedNoiseLevel > 0.3 && appliedNoiseLevel <= 0.6,
+                  'preview-pane__label--severe': appliedNoiseLevel > 0.6
+                }">
+                  {{ t('classify.noisy') }} · {{ appliedNoiseLevel?.toFixed(2) }}
+                  <Info v-tooltip.top="t('classify.tooltips.noisy_image')"
+                    class="classify-info-icon-img w-3.5 h-3.5 cursor-help flex-shrink-0" />
+                </span>
+              </div>
+            </Transition>
           </div>
 
           <div class="noise-panel" :dir="locale === 'AR' ? 'rtl' : 'ltr'">
@@ -687,8 +714,8 @@ onUnmounted(() => {
                 </p>
                 <p class="font-mono text-xs text-[var(--q-muted)]">
                   {{ topResult.modelName }} &nbsp;·&nbsp;
-                  {{ topResult.confidence.toFixed(1) }}% {{ t('classify.confidence').toLowerCase() }} &nbsp;·&nbsp;
-                  {{ topResult.latency.toFixed(1) }}ms
+                  {{ topResult.confidence.toFixed(2) }}% {{ t('classify.confidence').toLowerCase() }} &nbsp;·&nbsp;
+                  {{ topResult.latency.toFixed(2) }}ms
                 </p>
               </div>
             </div>
@@ -709,9 +736,9 @@ onUnmounted(() => {
                 </p>
                 <p class="font-mono text-xs text-[var(--q-muted)]">
                   {{ noisyTopResult.modelName }} &nbsp;·&nbsp;
-                  {{ noisyTopResult.confidence.toFixed(1) }}% {{ t('classify.confidence').toLowerCase() }} &nbsp;
+                  {{ noisyTopResult.confidence.toFixed(2) }}% {{ t('classify.confidence').toLowerCase() }} &nbsp;
                   ·&nbsp;
-                  {{ noisyTopResult.latency.toFixed(1) }}ms
+                  {{ noisyTopResult.latency.toFixed(2) }}ms
                 </p>
               </div>
             </div>
@@ -756,12 +783,12 @@ onUnmounted(() => {
               <Column field="confidence" :header="t('classify.confidence')">
                 <template #body="{ data }">
                   <div class="flex items-center gap-3 min-w-40">
-                    <ProgressBar :value="parseFloat(data.confidence.toFixed(1))" :show-value="false" class="flex-1" :pt="{
+                    <ProgressBar :value="parseFloat(data.confidence.toFixed(2))" :show-value="false" class="flex-1" :pt="{
                       root: { style: 'height: 6px;' },
                       value: { style: `background: ${data.color};` }
                     }" />
                     <span class="w-12 font-mono text-xs text-right text-slate-500 dark:text-slate-400 shrink-0">
-                      {{ data.confidence.toFixed(1) }}%
+                      {{ data.confidence.toFixed(2) }}%
                     </span>
                   </div>
                 </template>
@@ -770,7 +797,7 @@ onUnmounted(() => {
               <Column field="latency" :header="t('classify.latency')">
                 <template #body="{ data }">
                   <span class="font-mono text-xs text-slate-500 dark:text-slate-400">
-                    {{ data.latency.toFixed(1) }} ms
+                    {{ data.latency.toFixed(2) }} ms
                   </span>
                 </template>
               </Column>
@@ -879,12 +906,12 @@ onUnmounted(() => {
               <Column field="confidence" :header="t('classify.confidence')">
                 <template #body="{ data }">
                   <div class="flex items-center gap-3 min-w-40">
-                    <ProgressBar :value="parseFloat(data.confidence.toFixed(1))" :show-value="false" class="flex-1" :pt="{
+                    <ProgressBar :value="parseFloat(data.confidence.toFixed(2))" :show-value="false" class="flex-1" :pt="{
                       root: { style: 'height: 6px;' },
                       value: { style: `background: ${data.color};` }
                     }" />
                     <span class="w-12 font-mono text-xs text-right text-slate-500 dark:text-slate-400 shrink-0">
-                      {{ data.confidence.toFixed(1) }}%
+                      {{ data.confidence.toFixed(2) }}%
                     </span>
                   </div>
                 </template>
@@ -892,7 +919,7 @@ onUnmounted(() => {
               <Column field="latency" :header="t('classify.latency')">
                 <template #body="{ data }">
                   <span class="font-mono text-xs text-slate-500 dark:text-slate-400">
-                    {{ data.latency.toFixed(1) }} ms
+                    {{ data.latency.toFixed(2) }} ms
                   </span>
                 </template>
               </Column>
@@ -1008,7 +1035,7 @@ onUnmounted(() => {
                       {{ t('classify.' + data.cleanPrediction) }}
                     </span>
                     <span class="font-mono text-[11px] text-slate-500 dark:text-slate-400">
-                      {{ data.cleanConfidence.toFixed(1) }}% {{ t('classify.confidence').toLowerCase() }}
+                      {{ data.cleanConfidence.toFixed(2) }}% {{ t('classify.confidence').toLowerCase() }}
                     </span>
                   </div>
                 </template>
@@ -1021,7 +1048,7 @@ onUnmounted(() => {
                       {{ t('classify.' + data.noisyPrediction) }}
                     </span>
                     <span class="font-mono text-[11px] text-slate-500 dark:text-slate-400">
-                      {{ data.noisyConfidence.toFixed(1) }}% {{ t('classify.confidence').toLowerCase() }}
+                      {{ data.noisyConfidence.toFixed(2) }}% {{ t('classify.confidence').toLowerCase() }}
                     </span>
                   </div>
                 </template>
@@ -1036,7 +1063,7 @@ onUnmounted(() => {
               </Column>
               <Column :header="t('classify.delta_confidence')">
                 <template #body="{ data }">
-                  <Tag :value="`${data.confidenceDelta >= 0 ? '+' : ''}${data.confidenceDelta.toFixed(1)}%`"
+                  <Tag :value="`${data.confidenceDelta >= 0 ? '+' : ''}${data.confidenceDelta.toFixed(2)}%`"
                     :severity="data.confidenceDelta < 0 ? 'warning' : 'success'" />
                 </template>
               </Column>
@@ -1044,10 +1071,10 @@ onUnmounted(() => {
                 <template #body="{ data }">
                   <div class="flex flex-col font-mono text-m leading-tight">
                     <span class="text-[12px] text-slate-400 dark:text-slate-500">
-                      {{ data.cleanLatency.toFixed(1) }}ms ➔ {{ data.noisyLatency.toFixed(1) }}ms
+                      {{ data.cleanLatency.toFixed(2) }}ms ➔ {{ data.noisyLatency.toFixed(2) }}ms
                     </span>
                     <span :class="data.latencyDelta > 0 ? 'text-amber-500' : 'text-emerald-500'" class="font-bold">
-                      {{ data.latencyDelta >= 0 ? '+' : '' }}{{ data.latencyDelta.toFixed(1) }} ms
+                      {{ data.latencyDelta >= 0 ? '+' : '' }}{{ data.latencyDelta.toFixed(2) }} ms
                     </span>
                   </div>
                 </template>
@@ -1224,6 +1251,7 @@ onUnmounted(() => {
   gap: 1rem;
 }
 
+/* ── Single-pane (default) — original style, untouched ── */
 .preview-frame {
   position: relative;
   display: flex;
@@ -1232,6 +1260,129 @@ onUnmounted(() => {
   border: 1px solid var(--q-bar-border);
   border-radius: 24px;
   background: var(--q-bar-bg);
+}
+
+/* Single pane fills the frame transparently */
+.preview-frame:not(.preview-frame--split) .preview-pane {
+  width: 100%;
+  min-height: 26rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+/* ── Split mode ── */
+.preview-frame--split {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+  gap: 0.75rem;
+  align-items: stretch;
+}
+
+.preview-frame--split .preview-pane {
+  flex: 1 1 0%;
+  /* zero basis = equal 50/50, ignores image dimensions */
+  min-width: 0;
+  height: 26rem;
+  /* fixed — both panes are identical */
+  border: 1px solid var(--q-bar-border);
+  border-radius: 20px;
+  background: var(--q-bar-bg);
+  overflow: hidden;
+}
+
+/* ── PrimeVue Image wrapper — must fill pane in both modes ── */
+.preview-pane :deep(.p-image) {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Single-pane */
+.preview-frame:not(.preview-frame--split) .preview-pane :deep(.preview-img) {
+  width: 100%;
+  height: auto;
+  max-height: 26rem;
+  object-fit: contain;
+  display: block;
+}
+
+/* Split — both images are 384×384, fill the pane equally */
+.preview-frame--split .preview-pane :deep(.preview-img) {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: contain;
+  display: block;
+}
+
+/* ── Shared pane base ── */
+.preview-pane {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.preview-pane__label {
+  position: absolute;
+  bottom: 0.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.22rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+}
+
+.preview-pane__label--mild {
+  background: rgba(234, 179, 8, 0.85);
+}
+
+.preview-pane__label--degraded {
+  background: rgba(249, 115, 22, 0.85);
+}
+
+.preview-pane__label--severe {
+  background: rgba(239, 68, 68, 0.85);
+}
+
+/* ── Slide-in transition ── */
+.slide-in-enter-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.slide-in-enter-from {
+  opacity: 0;
+  transform: translateX(12px);
+}
+
+.slide-in-enter-to {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ── Mobile ── */
+@media (max-width: 640px) {
+  .preview-frame--split {
+    flex-direction: column;
+  }
+
+  .preview-frame--split .preview-pane {
+    height: auto;
+    min-height: 200px;
+  }
 }
 
 .preview-overlay {
@@ -1741,6 +1892,16 @@ html[lang="ar"] .restored-banner {
   color: #fbbf24;
   border-color: rgba(245, 158, 11, 0.25);
   background: rgba(245, 158, 11, 0.08);
+}
+
+.classify-info-icon-img {
+  color: white;
+  opacity: 0.65;
+  transition: opacity 0.15s ease;
+}
+
+.classify-info-icon-img:hover {
+  opacity: 1;
 }
 
 .classify-info-icon {
