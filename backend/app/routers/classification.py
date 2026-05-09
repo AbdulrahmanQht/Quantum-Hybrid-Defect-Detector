@@ -10,9 +10,8 @@ from pydantic import BaseModel
 from typing import Dict, Union, List, Optional
 
 from fastapi import APIRouter, Request, UploadFile, File, Form, HTTPException
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
+from backend.app.limiter import limiter
 from backend.utils.validate import (
     check_content_type,
     check_file_size,
@@ -39,19 +38,18 @@ class PredictionSet(BaseModel):
 # Extension for noisy data
 class NoisyPredictionSet(PredictionSet):
     noise_level: float
-    noisy_image_base64: str
+    noisy_image_base64: Optional[str] = None
 
 # The full response for /api/v1/classify endpoint
 class ClassificationResponse(BaseModel):
     filename: str
-    clean_image_base64: str
+    clean_image_base64: Optional[str] = None
     clean: PredictionSet
     noisy: Optional[NoisyPredictionSet] = None
     
 
 logger = Logger()
 router = APIRouter(prefix="/api/v1", tags=["Classification"])
-limiter = Limiter(key_func=get_remote_address)
 
 def apply_inference_noise(tensor: torch.Tensor, noise_level: float) -> torch.Tensor:
     """

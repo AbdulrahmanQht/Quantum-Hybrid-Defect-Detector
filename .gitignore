@@ -319,3 +319,5 @@ PLAN.md
 pyproject.toml
 quantum_defect_detector.egg-info/
 quantum_defect_detector.egg-info
+cloudflared.deb
+*.deb

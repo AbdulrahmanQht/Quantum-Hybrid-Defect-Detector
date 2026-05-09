@@ -622,7 +622,7 @@ class HybridQnnGPU(nn.Module):
         learning_rate: float = 5e-4,
         quantum_lr_mult: float = 3.5,
         label_smoothing: float = 0.05,
-        checkpoint_path: str = "models/qnn_gpu_.pth",
+        checkpoint_path: str = "models/qnn_gpu.pth",
         resume_checkpoint_path: str = "models/qnn_gpu_resume.pth",
         use_class_weights: bool = True,
         skip_prompt: bool = True,

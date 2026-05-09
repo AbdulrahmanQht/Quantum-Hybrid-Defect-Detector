@@ -22,6 +22,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
+from backend.app.limiter import limiter
 from .routers.contact import router as contact_router
 from .routers.benchmark import router as benchmark_router
 from .routers.quantum_advantage import router as quantum_advantage
@@ -162,7 +163,7 @@ app = FastAPI(
     redoc_url=None if IS_PROD else "/redoc",
     openapi_url=None if IS_PROD else "/openapi.json",
 )
-limiter = Limiter(key_func=get_remote_address, enabled=True)
+
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -210,7 +211,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 class RequestLogMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         started = time.perf_counter()
-        client_host = (request.client.host if request.client else request.headers.get("x-forwarded-for", "-"))
+        client_host = (
+            request.headers.get("cf-connecting-ip") or 
+            request.headers.get("x-forwarded-for", "").split(",")[0] or
+            (request.client.host if request.client else "-")
+        )
         try:
             response = await call_next(request)
             duration_ms = (time.perf_counter() - started) * 1000
@@ -233,13 +238,28 @@ app.add_middleware(SecurityHeadersMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=[
+        "http://localhost:5173", 
+        "http://127.0.0.1:5173",
+        "https://cnnvsqnn.me",            # Your production domain
+        "https://www.cnnvsqnn.me",        # Production with www
+        "https://*.trycloudflare.com"     # Temporary quick tunnels
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
 
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "0.0.0.0", "AbdulrahmanPC.local", "testserver"])
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=[
+        "localhost", 
+        "127.0.0.1", 
+        "0.0.0.0", 
+        "cnnvsqnn.me",            # Your new domain
+        "*.cnnvsqnn.me",          # Any subdomains
+        "*.trycloudflare.com",    # Allows temporary Cloudflare URLs
+        "AbdulrahmanPC.local", 
+        "testserver"
+    ])
 
 app.include_router(contact_router)
 app.include_router(benchmark_router)

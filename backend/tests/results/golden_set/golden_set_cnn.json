@@ -1,8 +1,8 @@
 {
   "generated_at": "2026-05-08T18:14:08Z",
   "model_key": "CNN",
-  "model_checkpoint": "/home/abood/Quantum-Hybrid-Defect-Detector/backend/models/cnn.pth",
-  "backend_dir": "/home/abood/Quantum-Hybrid-Defect-Detector/backend",
+  "model_checkpoint": "Quantum-Hybrid-Defect-Detector/backend/models/cnn.pth",
+  "backend_dir": "Quantum-Hybrid-Defect-Detector/backend",
   "source": "real_yolo",
   "n_images": 5,
   "images_per_class": 5,

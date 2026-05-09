@@ -13,8 +13,7 @@ from pydantic import BaseModel, Field, field_validator
 from fastapi import APIRouter, HTTPException, Request
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+from backend.app.limiter import limiter
 
 from backend.utils.logger import Logger
 
@@ -24,7 +23,6 @@ load_dotenv()
 logger = Logger()
 
 router = APIRouter(prefix="/api/v1", tags=["Contact"])
-limiter = Limiter(key_func=get_remote_address)
 
 # Configuration (Gmail SMTP)
 _REQUIRED_ENV = ("MAIL_USERNAME", "MAIL_PASSWORD", "MAIL_FROM", "TEAM_LEADER")

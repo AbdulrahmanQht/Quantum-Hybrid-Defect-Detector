@@ -15,16 +15,15 @@ import os
 from typing import List, Dict, Any, Optional
 
 from fastapi import APIRouter, HTTPException, Response, Request
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 from pydantic import BaseModel, Field
 import pandas as pd
+
+from backend.app.limiter import limiter
 
 from backend.utils.logger import Logger
 
 logger = Logger()
 router = APIRouter(prefix="/api/v1", tags=["Benchmark"])
-limiter = Limiter(key_func=get_remote_address)
 
 BASE_BENCHMARK_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "benchmark")
 BENCHMARK_FILE = os.path.join(BASE_BENCHMARK_DIR, "benchmark_results.json")

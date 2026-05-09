@@ -15,15 +15,14 @@ import os
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Response, Request
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 from pydantic import BaseModel, Field, ConfigDict
+
+from backend.app.limiter import limiter
 
 from backend.utils.logger import Logger
 
 logger = Logger()
 router = APIRouter(prefix="/api/v1", tags=["Quantum Advantage"])
-limiter = Limiter(key_func=get_remote_address)
 
 QA_RESULTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "QA", "quantum_advantage_results.json")
 
