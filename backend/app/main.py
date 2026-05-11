@@ -4,6 +4,7 @@ import time
 import torch
 import asyncio
 from PIL import Image
+from pathlib import Path
 from contextlib import asynccontextmanager
 from torchvision.io import decode_image, ImageReadMode
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -21,6 +22,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
+from backend.app.limiter import limiter
 from .routers.contact import router as contact_router
 from .routers.benchmark import router as benchmark_router
 from .routers.quantum_advantage import router as quantum_advantage
@@ -92,7 +94,7 @@ async def lifespan(app: FastAPI):
     try:
         qnn_cpu_model = HybridQnnCPU(num_classes=num_classes)
         qnn_cpu_model.load_model(qnn_cpu_path, device)
-        ml_models["QNN_CPU"] = {"model": qnn_cpu_model, "device": device, "q_device": "default.qubit"}
+        ml_models["QNN_CPU"] = {"model": qnn_cpu_model, "device": device, "q_device_name": "default.qubit"}
         logger.info("QNN-CPU loaded successfully.")
     except Exception as e:
         raise RuntimeError(f"Failed to load QNN-CPU: {e}")
@@ -105,14 +107,14 @@ async def lifespan(app: FastAPI):
         try:
             qnn_gpu_model = HybridQnnGPU(num_classes=num_classes, q_device_name="lightning.gpu")
             qnn_gpu_model.load_model(qnn_gpu_path, device)
-            ml_models["QNN_GPU"] = {"model": qnn_gpu_model, "device": device, "q_device": "lightning.gpu"}
+            ml_models["QNN_GPU"] = {"model": qnn_gpu_model, "device": device, "q_device_name": "lightning.gpu"}
             logger.info("QNN-GPU loaded successfully with lightning.gpu.")
         except Exception as e:
             logger.warn(f"lightning.gpu failed: {e}. Falling back to lightning.qubit.")
             try:
                 qnn_gpu_model = HybridQnnGPU(num_classes=num_classes, q_device_name="lightning.qubit")
                 qnn_gpu_model.load_model(qnn_gpu_path, device)
-                ml_models["QNN_GPU"] = {"model": qnn_gpu_model, "device": device, "q_device": "lightning.qubit"}
+                ml_models["QNN_GPU"] = {"model": qnn_gpu_model, "device": device, "q_device_name": "lightning.qubit"}
                 logger.info("QNN-GPU loaded successfully with lightning.qubit.")
             except Exception as e2:
                 raise RuntimeError(f"Failed to load QNN-GPU with both lightning.gpu and lightning.qubit: {e2}")
@@ -146,10 +148,22 @@ async def lifespan(app: FastAPI):
         torch.cuda.empty_cache()
 
 
-app = FastAPI(lifespan=lifespan)
-limiter = Limiter(key_func=get_remote_address, enabled=True)
+IS_PROD = os.getenv("APP_ENV", "development") == "production"
+
+app = FastAPI(
+    lifespan=lifespan,
+    docs_url=None if IS_PROD else "/docs",
+    redoc_url=None if IS_PROD else "/redoc",
+    openapi_url=None if IS_PROD else "/openapi.json",
+)
+
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.error(f'unhandled_exception path={request.url.path} error={str(exc)}')
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         response: Response = await call_next(request)
@@ -176,7 +190,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             # CSP for all API endpoints and general traffic
             csp = (
                 "default-src 'self'; "
-                "script-src 'self' 'unsafe-eval'; "
+                # Add 'unsafe-inline' right here:
+                "script-src 'self' 'unsafe-eval'; " 
                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
                 "font-src 'self' https://fonts.gstatic.com; "
                 "img-src 'self' data: blob:; "
@@ -186,17 +201,58 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Content-Security-Policy"] = csp
         return response
 
+class RequestLogMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        started = time.perf_counter()
+        client_host = (
+            request.headers.get("cf-connecting-ip") or 
+            request.headers.get("x-forwarded-for", "").split(",")[0] or
+            (request.client.host if request.client else "-")
+        )
+        try:
+            response = await call_next(request)
+            duration_ms = (time.perf_counter() - started) * 1000
+            logger.info(
+                f'{client_host} "{request.method} {request.url.path}" '
+                f'status={response.status_code} duration_ms={duration_ms:.2f}'
+            )
+            return response
+        except Exception:
+            duration_ms = (time.perf_counter() - started) * 1000
+            logger.error(
+                f'{client_host} "{request.method} {request.url.path}" '
+                f'unhandled_exception duration_ms={duration_ms:.2f}'
+            )
+            raise
+
+app.add_middleware(RequestLogMiddleware)
+
 app.add_middleware(SecurityHeadersMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=[
+        "http://localhost:5173", 
+        "http://127.0.0.1:5173",
+        "https://cnnvsqnn.tech",            # Your production domain
+        "https://www.cnnvsqnn.tech",        # Production with www
+        "https://*.trycloudflare.com"     # Temporary quick tunnels
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
 
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "0.0.0.0", "AbdulrahmanPC.local", "testserver"])
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=[
+        "localhost", 
+        "127.0.0.1", 
+        "0.0.0.0", 
+        "cnnvsqnn.tech",            # Your new domain
+        "*.cnnvsqnn.tech",          # Any subdomains
+        "*.trycloudflare.com",    # Allows temporary Cloudflare URLs
+        "AbdulrahmanPC.local", 
+        "testserver"
+    ])
 
 app.include_router(contact_router)
 app.include_router(benchmark_router)
@@ -205,7 +261,7 @@ app.include_router(classification_router)
 
 
 @app.get("/api/v1/health")
-@limiter.limit("10/minute")
+@limiter.limit("100/minute")
 def health_check(request: Request):
     try:
         import pennylane
@@ -228,17 +284,17 @@ def health_check(request: Request):
             "models": {
                 "CNN": {
                     "status": "ok" if cnn_ok else "unavailable",
-                    "device":   str(ml_models["CNN"]["device"]) if qnn_cpu_ok else None,
+                    "device":   str(ml_models["CNN"]["device"]) if cnn_ok else None,
                 },
                 "QNN_CPU": {
                     "status":   "ok" if qnn_cpu_ok else "unavailable",
                     "device":   str(ml_models["QNN_CPU"]["device"]) if qnn_cpu_ok else None,
-                    "q_device": ml_models["QNN_CPU"]["q_device"] if qnn_cpu_ok else None,
+                    "q_device_name": ml_models["QNN_CPU"]["q_device_name"] if qnn_cpu_ok else None,
                 },
                 "QNN_GPU": {
                     "status":   "ok" if qnn_gpu_ok else "unavailable",
                     "device":   str(ml_models["QNN_GPU"]["device"]) if qnn_gpu_ok else None,
-                    "q_device": ml_models["QNN_GPU"]["q_device"] if qnn_gpu_ok else None,
+                    "q_device_name": ml_models["QNN_GPU"]["q_device_name"] if qnn_gpu_ok else None,
                 },
             },
             "pennylane": "ok" if pennylane_ok else "unavailable",
@@ -246,9 +302,22 @@ def health_check(request: Request):
     )
     
     
+
 # Frontend static files
 current_dir = os.path.dirname(os.path.abspath(__file__))
 frontend_path = os.path.abspath(os.path.join(current_dir, "..", "..", "frontend", "dist"))
+
+# Non-dotfile paths to block (dotfiles are caught generically below)
+BLOCKED_PATHS = {
+    "wp-admin", "wp-login.php", "phpinfo.php", "web.config"
+}
+
+def get_client_ip(request: Request) -> str:
+    return (
+        request.headers.get("cf-connecting-ip") or
+        request.headers.get("x-forwarded-for", "").split(",")[0].strip() or
+        (request.client.host if request.client else "unknown")
+    )
 
 if os.path.exists(frontend_path):
     logger.info(f"Frontend dist found. Serving from: {frontend_path}")
@@ -258,10 +327,44 @@ if os.path.exists(frontend_path):
 
     @app.get("/{full_path:path}")
     async def serve_frontend(full_path: str, request: Request):
+        client_ip = get_client_ip(request)
+        
+        # Block any path segment starting with a dot (.env, .git, .htaccess, etc.)
+        requested_path = Path(full_path)
+        if any(part.startswith(".") for part in requested_path.parts):
+            logger.warn(
+                f"[SECURITY] Dotfile probe blocked | "
+                f"ip={client_ip} path=/{full_path}"
+            )
+            raise HTTPException(status_code=404)
+
+        # Block known malicious paths
+        path_lower = full_path.strip("/").lower()
+        matched_block = next(
+            (b for b in BLOCKED_PATHS if path_lower == b or path_lower.startswith(b)),
+            None
+        )
+        if matched_block:
+            logger.warn(
+                f"[SECURITY] Blocked path probe | "
+                f"ip={client_ip} path=/{full_path} matched_rule={matched_block}"
+            )
+            raise HTTPException(status_code=404)
+
+        # Block API routes that don't exist
         if full_path.startswith("api/v1/"):
             return JSONResponse(status_code=404, content={"message": "API route not found"})
-        file_path = os.path.join(frontend_path, full_path)
-        if os.path.isfile(file_path):
+
+        # Guard against path traversal (e.g. ../../etc/passwd)
+        file_path = Path(os.path.join(frontend_path, full_path)).resolve()
+        if not file_path.is_relative_to(frontend_path):
+            logger.warn(
+                f"[SECURITY] Path traversal attempt blocked | "
+                f"ip={client_ip} path=/{full_path} resolved={file_path}"
+            )
+            raise HTTPException(status_code=404)
+
+        if file_path.is_file():
             return FileResponse(file_path)
         return FileResponse(os.path.join(frontend_path, "index.html"))
 
@@ -273,17 +376,17 @@ if __name__ == "__main__":
     from granian.constants import Interfaces
 
     logger.info("Starting Granian server on http://127.0.0.1:8000")
-    
+    # To start from terminal: granian --interface asgi --host 127.0.0.1 --port 8000 --workers 1 --access-log --log-level info --reload app.main:app
     server = Granian(
-        "backend.app.main:app",  # run from project root: python -m backend.app.main
+        "app.main:app",
         address="127.0.0.1",
         port=8000,
         interface=Interfaces.ASGI,
-        workers=1,       # GPU app — multiple workers = duplicate VRAM per worker
-        threads=2,       # Rust I/O threads; your bottleneck is inference not I/O
-        preload=True,    # Load models once before worker forks
-        request_timeout=30,
-        keep_alive_time=5,
+        workers=1,    # GPU app — multiple workers = duplicate VRAM per worker
+        log_access=True,    # show request logs
+        log_level="info",   # debug/info//error
+        reload_paths=["app"], # Only reload when changes happens under app/
+        reload=True
     )
 
     server.serve()

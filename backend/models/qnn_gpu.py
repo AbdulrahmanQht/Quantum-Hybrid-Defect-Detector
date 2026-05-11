@@ -47,10 +47,6 @@ from backend.data.preprocessing import PreProcessing
 from backend.models.cnn import ResidualBlock
 from backend.utils.logger import Logger
 
-import resource
-soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
-resource.setrlimit(resource.RLIMIT_NOFILE, (65535, hard))
-
 # Quantum Feature Selector
 class QuantumFeatureSelector(nn.Module):
     """
@@ -221,10 +217,7 @@ class HybridQnnGPU(nn.Module):
         self.angle_scales = nn.Parameter(torch.ones(n_qubits))
 
         # Quantum circuit
-        try:
-            self.q_device = qml.device("lightning.gpu", wires=n_qubits)
-        except Exception as e:
-            self.logger.error(f"lightning.gpu failed. Error: {e}")
+        self.q_device = qml.device(self.q_device_name, wires=n_qubits)
         self.q_layer = vqc(self.q_device, n_qubits, q_depth)
 
         # Post-quantum: 18 inputs (6 × 3 bases), residual on Z channel applied
@@ -629,8 +622,8 @@ class HybridQnnGPU(nn.Module):
         learning_rate: float = 5e-4,
         quantum_lr_mult: float = 3.5,
         label_smoothing: float = 0.05,
-        checkpoint_path: str = "models/qnn_GPU.pth",
-        resume_checkpoint_path: str = "models/qnn_GPU_resume.pth",
+        checkpoint_path: str = "models/qnn_gpu.pth",
+        resume_checkpoint_path: str = "models/qnn_gpu_resume.pth",
         use_class_weights: bool = True,
         skip_prompt: bool = True,
     ) -> None:

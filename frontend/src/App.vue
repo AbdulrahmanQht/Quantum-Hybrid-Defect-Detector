@@ -1,16 +1,45 @@
 <script setup>
+import { computed, onMounted, onUnmounted } from 'vue'
 import NavBar from './components/NavBar.vue'
 import Footer from './components/Footer.vue'
+import { useRouter, useRoute } from 'vue-router'
+
+const router = useRouter()
+const route = useRoute()
+
+const isNotFound = computed(() => route.name === 'not-found')
+
+let saveTimer
+
+const handleScroll = () => {
+  clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => {
+    localStorage.setItem('scrollRestore', JSON.stringify({
+      path: router.currentRoute.value.fullPath,
+      top: window.scrollY,
+      left: window.scrollX
+    }))
+  }, 100)
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll, { passive: true })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+  clearTimeout(saveTimer)
+})
 </script>
 
 <template>
   <div class="app-shell min-h-screen">
     <div class="app-shell__bg" />
     <NavBar />
-    <main class="relative z-[1]">
+    <main id="main-content" class="relative z-[1]">
       <RouterView />
     </main>
-    <Footer/>
+    <Footer v-if="!isNotFound" />
   </div>
 </template>
 

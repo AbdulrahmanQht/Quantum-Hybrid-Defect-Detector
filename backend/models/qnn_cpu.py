@@ -1,4 +1,4 @@
-﻿"""
+"""
 HybridQnnCPU — Noise-robust hybrid quantum-classical model for industrial defect detection.
 
 Architecture (6 qubits, depth 2):
@@ -184,6 +184,7 @@ class HybridQnnCPU(nn.Module):
         self.n_qubits = n_qubits
         self.q_depth = q_depth
         self.quantum_embed_dim = quantum_embed_dim
+        self.q_device_name = q_device_name
         self.ema_decay = ema_decay
         self._curriculum_noise: float = 0.0
         self._quantum_shadow: dict[str, torch.Tensor] = {}
@@ -217,7 +218,7 @@ class HybridQnnCPU(nn.Module):
         self.angle_scales = nn.Parameter(torch.ones(n_qubits))
 
         # Quantum circuit
-        self.q_device = qml.device(q_device_name, wires=n_qubits)
+        self.q_device = qml.device(self.q_device_name, wires=n_qubits)
         self.q_layer = vqc(self.q_device, n_qubits, q_depth)
 
         # Post-quantum: 18 inputs (6 × 3 bases), residual on Z channel applied

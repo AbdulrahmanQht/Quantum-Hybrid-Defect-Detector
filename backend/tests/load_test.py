@@ -18,15 +18,15 @@ Run (standard 3-minute soak, 20 users):
            --host=http://localhost:8000 \
            --users 20 --spawn-rate 2 --run-time 3m \
            --headless \
-           --csv=data/results_tests/locust \
-           --html=data/results_tests/locust_report.html
+           --csv=tests/results/load_test/locust \
+           --html=tests/results/load_test/locust_report.html
 
 Run (interactive web UI — pick user class in browser):
     locust -f tests/load_test.py --host=http://localhost:8000
 
 Run PR-4.2 burst test in isolation (100 images, single user):
-    locust -f tests/load_test.py \\
-           --host=http://localhost:8000 \\
+    locust -f tests/load_test.py \
+           --host=http://localhost:8000 \
            --class-picker          <- select PR42BurstUser only in the UI
            --users 1 --spawn-rate 1 --run-time 2m --headless
 
@@ -159,20 +159,20 @@ class DefectDetectorUser(HttpUser):
 
     @task(1)
     def classify_invalid_format(self) -> None:
-        """PDF disguised as .jpg — must return 422, never 500."""
+        """PDF disguised as .jpg — must return 415, never 500."""
         pdf = b"%PDF-1.4 fake" + b"\x00" * 64
         with self.client.post(
             "/api/v1/classify",
             files={"file": ("trick.jpg", pdf, "image/jpeg")},
             catch_response=True,
-            name="/api/v1/classify [invalid — 422 expected]",
+            name="/api/v1/classify [invalid — 415 expected]",
         ) as resp:
-            if resp.status_code == 422:
+            if resp.status_code == 415:
                 resp.success()
             elif resp.status_code == 500:
                 resp.failure("Got 500 for invalid input — error handling is broken")
             else:
-                resp.failure(f"Expected 422, got {resp.status_code}")
+                resp.failure(f"Expected 415, got {resp.status_code}")
 
     @task(1)
     def classify_oversized(self) -> None:
@@ -394,7 +394,7 @@ class ThreePhaseShape(LoadTestShape):
     Use:
         locust -f tests/load_test.py --host=... --headless \\
                --shape-class ThreePhaseShape \\
-               --csv=backend/data/results_tests/locust
+               --csv=backend/results/locust
     """
 
     stages = [
@@ -430,7 +430,7 @@ def _on_quit(environment, **kwargs) -> None:
     endpoint_keys = [
         "/api/v1/classify [JPEG]",
         "/api/v1/classify [PNG]",
-        "/api/v1/classify [invalid — 422 expected]",
+        "/api/v1/classify [invalid — 415 expected]",
         "/api/v1/classify [oversized — 413 expected]",
         "/api/v1/health",
         "/api/v1/benchmark",

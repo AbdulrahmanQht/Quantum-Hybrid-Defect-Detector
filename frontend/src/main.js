@@ -1,118 +1,125 @@
-import './style.css';
-import App from './App.vue';
-import router from './router';
-import { createApp } from 'vue';
-import Cookies from 'js-cookie';
-import { i18n } from './translations';
-import 'primeicons/primeicons.css';
-import Tooltip from 'primevue/tooltip';
+import "./style.css";
+import App from "./App.vue";
+import router from "./router";
+import { createApp } from "vue";
+import Cookies from "js-cookie";
+import { i18n } from "./translations";
+import "primeicons/primeicons.css";
+import Tooltip from "primevue/tooltip";
 
 // --- PrimeVue Core & Themes ---
-import PrimeVue from 'primevue/config';
-import Aura from '@primevue/themes/aura';
+import PrimeVue from "primevue/config";
+import Aura from "@primevue/themes/aura";
 
 // --- PrimeVue Components ---
-import Button from 'primevue/button';
-import Message from 'primevue/message';
-import MenuBar from 'primevue/menubar';
-import FileUpload from 'primevue/fileupload';
-import Card from 'primevue/card';
-import DataTable from 'primevue/datatable';
-import Column from 'primevue/column';
-import Tag from 'primevue/tag';
-import Chart from 'primevue/chart';
-import ProgressBar from 'primevue/progressbar';
-import Divider from 'primevue/divider';
-import Badge from 'primevue/badge';
-import Panel from 'primevue/panel';
-import Image from 'primevue/image';
-import Chip from 'primevue/chip';
-import Toast from 'primevue/toast';
-import ToastService from 'primevue/toastservice';
-import Skeleton from 'primevue/skeleton';
-import InlineMessage from 'primevue/inlinemessage';
-import InputText from 'primevue/inputtext';
-import Textarea from 'primevue/textarea';
-import Accordion from 'primevue/accordion';
-import AccordionTab from 'primevue/accordiontab';
-import ProgressSpinner from 'primevue/progressspinner';
-import ToggleSwitch from 'primevue/toggleswitch';
-import Slider from 'primevue/slider';
+import Button from "primevue/button";
+import Message from "primevue/message";
+import MenuBar from "primevue/menubar";
+import FileUpload from "primevue/fileupload";
+import Card from "primevue/card";
+import DataTable from "primevue/datatable";
+import Column from "primevue/column";
+import Tag from "primevue/tag";
+import Chart from "primevue/chart";
+import ProgressBar from "primevue/progressbar";
+import Divider from "primevue/divider";
+import Badge from "primevue/badge";
+import Panel from "primevue/panel";
+import Image from "primevue/image";
+import Chip from "primevue/chip";
+import Toast from "primevue/toast";
+import ToastService from "primevue/toastservice";
+import Skeleton from "primevue/skeleton";
+import InlineMessage from "primevue/inlinemessage";
+import InputText from "primevue/inputtext";
+import Textarea from "primevue/textarea";
+import Accordion from "primevue/accordion";
+import AccordionTab from "primevue/accordiontab";
+import AccordionPanel from "primevue/accordionpanel";
+import AccordionHeader from "primevue/accordionheader";
+import AccordionContent from "primevue/accordioncontent";
+import ProgressSpinner from "primevue/progressspinner";
+import ToggleSwitch from "primevue/toggleswitch";
+import Slider from "primevue/slider";
+import Carousel from "primevue/carousel";
+import SelectButton from "primevue/selectbutton";
 
-const app = createApp(App)
+const app = createApp(App);
 
 // --- Theme Initialization ---
-const savedTheme = Cookies.get('theme')
-if (savedTheme === 'dark') {
-    document.documentElement.classList.add('p-dark')
+const savedTheme = Cookies.get("theme");
+if (savedTheme === "dark") {
+  document.documentElement.classList.add("p-dark");
 }
 
-app.config.globalProperties.$cookies = Cookies
+app.config.globalProperties.$cookies = Cookies;
 
-const currentLang = Cookies.get('app_lang') || 'EN'
+const currentLang = Cookies.get("app_lang") || "EN";
 
-
-if (currentLang === 'AR') {
-    document.documentElement.classList.add('lang-ar')
-    document.documentElement.lang = 'ar'
+if (currentLang === "AR") {
+  document.documentElement.classList.add("lang-ar");
+  document.documentElement.lang = "ar";
 } else {
-    document.documentElement.classList.remove('lang-ar')
-    document.documentElement.lang = 'en'
+  document.documentElement.classList.remove("lang-ar");
+  document.documentElement.lang = "en";
 }
 
 // --- Initialize PrimeVue ---
 app.use(PrimeVue, {
-    theme: {
-        preset: Aura,
-        options: {
-            darkModeSelector: '.p-dark',
-        }
-    }
-})
-app.use(ToastService)
-app.directive('tooltip', Tooltip);
+  theme: {
+    preset: Aura,
+    options: {
+      darkModeSelector: ".p-dark",
+    },
+  },
+});
+app.use(ToastService);
+app.directive("tooltip", Tooltip);
 
 // --- Register Components Globally ---
-app.component('Button', Button)
-app.component('Message', Message)
-app.component('MenuBar', MenuBar)
-app.component('FileUpload', FileUpload)
-app.component('Card', Card)
-app.component('DataTable', DataTable)
-app.component('Column', Column)
-app.component('Tag', Tag)
-app.component('Chart', Chart)
-app.component('ProgressBar', ProgressBar)
-app.component('Divider', Divider)
-app.component('Badge', Badge)
-app.component('Panel', Panel)
-app.component('Image', Image)
-app.component('Chip', Chip)
-app.component('Toast', Toast)
-app.component('Skeleton', Skeleton)
-app.component('InlineMessage', InlineMessage)
-app.component('InputText', InputText)
-app.component('Textarea', Textarea)
-app.component('Accordion', Accordion);
-app.component('AccordionTab', AccordionTab);
-app.component('ProgressSpinner', ProgressSpinner);
-app.component('ToggleSwitch', ToggleSwitch)
-app.component('Slider', Slider)
+app.component("Button", Button);
+app.component("Message", Message);
+app.component("MenuBar", MenuBar);
+app.component("FileUpload", FileUpload);
+app.component("Card", Card);
+app.component("DataTable", DataTable);
+app.component("Column", Column);
+app.component("Tag", Tag);
+app.component("Chart", Chart);
+app.component("ProgressBar", ProgressBar);
+app.component("Divider", Divider);
+app.component("Badge", Badge);
+app.component("Panel", Panel);
+app.component("Image", Image);
+app.component("Chip", Chip);
+app.component("Toast", Toast);
+app.component("Skeleton", Skeleton);
+app.component("InlineMessage", InlineMessage);
+app.component("InputText", InputText);
+app.component("Textarea", Textarea);
+app.component("Accordion", Accordion);
+app.component("AccordionTab", AccordionTab);
+app.component("AccordionPanel", AccordionPanel);
+app.component("AccordionHeader", AccordionHeader);
+app.component("AccordionContent", AccordionContent);
+app.component("ProgressSpinner", ProgressSpinner);
+app.component("ToggleSwitch", ToggleSwitch);
+app.component("Slider", Slider);
+app.component("Carousel", Carousel);
+app.component("SelectButton", SelectButton);
 
-window.addEventListener('beforeunload', () => {
-    localStorage.setItem('scrollRestore', JSON.stringify({
-        path: router.currentRoute.value.fullPath,
-        top: window.scrollY,
-        left: window.scrollX,
-    }))
-})
+window.addEventListener("beforeunload", () => {
+  localStorage.setItem(
+    "scrollRestore",
+    JSON.stringify({
+      path: router.currentRoute.value.fullPath,
+      top: window.scrollY,
+      left: window.scrollX,
+    }),
+  );
+});
 
-router.afterEach((to, from) => {
-    if (from !== START_LOCATION) {
-        localStorage.removeItem('scrollRestore')
-    }
-})
 
-app.use(router)
+app.use(router);
 app.use(i18n);
-app.mount('#app')
+app.mount("#app");

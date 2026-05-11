@@ -19,10 +19,10 @@ Email sending is mocked throughout — no real SMTP calls are made.
 QA file loading is mocked when the file does not exist on disk.
 
 Results saved to:
-    data/results_tests/contract_classify_schema.json
-    data/results_tests/contract_benchmark_schema.json
-    data/results_tests/contract_qa_schema.json
-    data/results_tests/contract_contact_schema.json
+    tests/results/test_contract/contract/contract_classify_schema.json
+    tests/results/test_contract/contract/contract_benchmark_schema.json
+    tests/results/test_contract/contract/contract_qa_schema.json
+    tests/results/test_contract/contract/contract_contact_schema.json
 
 Run:
     pytest tests/test_contract.py -v
@@ -43,9 +43,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
-RESULTS_DIR = Path("data/results_tests")
+BACKEND_DIR = Path(__file__).parent.parent.resolve()
+sys.path.insert(0, str(BACKEND_DIR))
+
+RESULTS_DIR = BACKEND_DIR / "tests" / "results" / "test_contract"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 CLASS_NAMES = [
@@ -763,8 +765,7 @@ class TestContactContract:
     def test_no_internal_fields_in_response(self, client):
         """SMTP config, recipients, and passwords must never appear in the response."""
         resp = self._post(client, self._valid_payload())
-        if resp.status_code != 200:
-            return
+        assert resp.status_code == 200, resp.text
         body = resp.json()
         for leaked in ("email", "recipients", "smtp", "password", "token", "cc"):
             assert leaked not in body, (
@@ -934,9 +935,17 @@ class TestContactContract:
     # ── Schema snapshot ───────────────────────────────────────────────────────
 
     def test_save_contact_schema_snapshot(self, client):
+        from backend.app.routers.contact import limiter as contact_limiter
+        try:
+            contact_limiter._storage.reset()
+        except Exception:
+            pass
         resp = self._post(client, self._valid_payload())
-        if resp.status_code != 200:
-            return
+        assert resp.status_code == 200, resp.text
+
+        path = RESULTS_DIR / "contract_contact_schema.json"
+        print(f"SAVING CONTACT SNAPSHOT TO: {path.resolve()}")
+
         _save({
             "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "endpoint": "POST /api/v1/contact",
@@ -946,9 +955,12 @@ class TestContactContract:
                 "message": "str (10–3000 chars)",
             },
             "response_schema_on_success": {"status": "str"},
-            "rate_limit": "5/minute per IP",
+            "rate_limit": "10/minute per IP",
             "smtp_mock_used_in_tests": True,
         }, "contract_contact_schema.json")
+
+        assert path.exists(), f"File was not created: {path.resolve()}"
+
 
 
 # ══════════════════════════════════════════════════════════════════════════════

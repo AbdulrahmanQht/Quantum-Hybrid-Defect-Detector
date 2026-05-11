@@ -30,7 +30,7 @@ CSV exports:
 
 Changes vs. original:
     - Replaced 4-type Gaussian-only noise sweep with the full 7-type suite from
-      noise_robustness_test.py (shared via backend.utils.noise).
+      noise_robustness_test.py (shared via .utils.noise).
     - Fixed silent bug: _accuracy_with_noise previously ignored noise_type and
       only applied Gaussian; run_noise_sweep was passing noise_type but the
       function signature did not accept it.

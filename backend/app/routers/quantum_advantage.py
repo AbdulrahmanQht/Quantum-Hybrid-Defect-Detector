@@ -14,8 +14,10 @@ import json
 import os
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Response, Request
 from pydantic import BaseModel, Field, ConfigDict
+
+from backend.app.limiter import limiter
 
 from backend.utils.logger import Logger
 
@@ -248,7 +250,8 @@ def _get_cached_qa_results() -> QuantumAdvantageResults:
     return _qa_cache
 
 @router.get("/quantum-advantage", response_model=QuantumAdvantageResults)
-def get_quantum_advantage(response: Response) -> QuantumAdvantageResults:
+@limiter.limit("300/minute")
+def get_quantum_advantage(request: Request, response: Response) -> QuantumAdvantageResults:
     # Instruct the browser to cache this response for 10 hour (36000 seconds)
     response.headers["Cache-Control"] = "public, max-age=36000"
     return _get_cached_qa_results()

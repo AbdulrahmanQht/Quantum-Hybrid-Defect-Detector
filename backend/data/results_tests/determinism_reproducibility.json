@@ -1,7 +1,0 @@
-{
-  "generated_at": "2026-04-22T19:27:58Z",
-  "test": "reproducibility_across_3_runs",
-  "n_images": 5,
-  "n_runs": 3,
-  "all_outputs_identical": true
-}

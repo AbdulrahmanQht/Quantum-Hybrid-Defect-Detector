@@ -29,18 +29,18 @@ PART B — Soak and memory leak detection
 Both parts share the same model and device fixtures (loaded once per module).
 
 Results saved to:
-    data/results_tests/determinism_cnn.json
-    data/results_tests/determinism_reproducibility.json
-    data/results_tests/soak_cnn.json
-    data/results_tests/soak_qnn_cpu.json
-    data/results_tests/soak_combined.json
-    data/results_tests/model_stability_combined.json
+    results/model_stability/determinism_cnn.json
+    results/model_stability/determinism_reproducibility.json
+    results/model_stability/soak_cnn.json
+    results/model_stability/soak_qnn_cpu.json
+    results/model_stability/soak_combined.json
+    results/model_stability/model_stability_combined.json
 
 Run:
     pytest tests/test_model_stability.py -v
     pytest tests/test_model_stability.py -v -k "Determinism"
     pytest tests/test_model_stability.py -v -k "Soak"
-    pytest tests/test_model_stability.py -v -s          # prints per-100 memory readings
+    pytest tests/test_model_stability.py -v -s # prints per-100 memory readings
 """
 
 from __future__ import annotations
@@ -61,7 +61,7 @@ import torch.nn.functional as F
 BACKEND_DIR = Path(__file__).parent.parent.resolve()
 sys.path.insert(0, str(BACKEND_DIR))
 
-RESULTS_DIR = BACKEND_DIR / "data" / "results_tests"
+RESULTS_DIR = BACKEND_DIR / "tests" / "results" / "model_stability"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 CLASS_NAMES = [

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, markRaw } from 'vue'
+import { ref, computed, markRaw, onMounted, onUnmounted } from 'vue'
 import Cookies from 'js-cookie'
 import { useI18n } from 'vue-i18n'
 import { Atom, Home, Search, ChartColumn, Mail, Languages, Sun, Moon, Menu, X } from 'lucide-vue-next'
@@ -25,6 +25,7 @@ const toggleLanguage = () => {
   const next = locale.value === 'EN' ? 'AR' : 'EN'
   locale.value = next
   Cookies.set(LANG_KEY, next, { expires: 365, path: '/' })
+
   
   document.documentElement.classList.toggle('lang-ar', next === 'AR')
   document.documentElement.lang = next === 'AR' ? 'ar' : 'en'
@@ -39,28 +40,28 @@ const toggleTheme = () => {
 const closeMenu = () => {
   menuOpen.value = false
 }
+function onKeydown(e) {
+  if (e.key === 'Escape' && menuOpen.value) closeMenu()
+}
+
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 </script>
 
 <template>
   <header class="qnn-bar">
     <div class="qnn-inner">
       <router-link to="/" class="qnn-logo" @click="closeMenu">
-        <img src="/qnn_logo_final_no_text.svg" alt="QNN" />
+        <img src="/qnn_logo_final_no_text.svg" alt="QNN">
         <div class="qnn-logo-copy" lang="en" translate="no">
           <span class="qnn-logo-title" lang="en" translate="no">Quantum-Hybrid</span>
           <span class="qnn-logo-subtitle" lang="en" translate="no">Defect Detector</span>
         </div>
       </router-link>
 
-      <nav class="qnn-nav" :class="{ 'qnn-nav--open': menuOpen }">
-        <router-link
-          v-for="item in items"
-          :key="item.to"
-          :to="item.to"
-          class="qnn-link"
-          :class="{ 'qnn-link--quantum': item.isQuantum }"
-          @click="closeMenu"
-        >
+      <nav class="qnn-nav" :class="{ 'qnn-nav--open': menuOpen, 'qnn-nav--rtl': currentLang === 'AR' }" id="qnn-nav" aria-label="Main navigation">
+        <router-link v-for="item in items" :key="item.to" :to="item.to" class="qnn-link"
+          :class="{ 'qnn-link--quantum': item.isQuantum }" @click="closeMenu">
           <component :is="item.lucideIcon" class="qnn-link-icon" />
           <span>{{ item.label }}</span>
         </router-link>
@@ -72,15 +73,12 @@ const closeMenu = () => {
           <span>{{ currentLang === 'EN' ? 'العربية' : 'English' }}</span>
         </button>
 
-        <button
-          class="qnn-icon-btn"
-          @click="toggleTheme"
-          :aria-label="isDark ? 'Light mode' : 'Dark mode'"
-        >
+        <button class="qnn-icon-btn" :aria-label="isDark ? 'Light mode' : 'Dark mode'" @click="toggleTheme">
           <component :is="isDark ? markRaw(Sun) : markRaw(Moon)" :size="16" />
         </button>
 
-        <button class="qnn-icon-btn qnn-burger" @click="menuOpen = !menuOpen" aria-label="Toggle menu">
+        <button class="qnn-icon-btn qnn-burger" :aria-label="menuOpen ? 'Close menu' : 'Open menu'"
+          :aria-expanded="menuOpen" aria-controls="qnn-nav" @click="menuOpen = !menuOpen">
           <component :is="menuOpen ? markRaw(X) : markRaw(Menu)" :size="19" />
         </button>
       </div>
@@ -187,6 +185,20 @@ const closeMenu = () => {
   text-align: left !important;
 }
 
+@media (max-width: 640px) {
+ 
+
+  .qnn-logo-title {
+    font-size: 0.85rem;
+    /* Shrink title slightly */
+  }
+
+  .qnn-logo img {
+    height: 36px;
+    /* Shrink logo slightly */
+  }
+}
+
 .qnn-nav {
   position: absolute;
   left: 50%;
@@ -203,6 +215,7 @@ const closeMenu = () => {
 .p-dark .qnn-nav {
   background: rgba(255, 255, 255, 0.03);
 }
+
 
 .qnn-link {
   display: flex;
@@ -290,9 +303,6 @@ const closeMenu = () => {
 }
 
 @media (max-width: 1100px) {
-  .qnn-logo-copy {
-    display: none;
-  }
 
   .qnn-nav {
     position: fixed;
@@ -338,4 +348,22 @@ const closeMenu = () => {
     display: none;
   }
 }
+@media (max-width: 1100px) {
+  .qnn-nav {
+    background-color: #fff !important;
+    background: #fff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+
+    box-shadow:
+      0 8px 24px rgba(13, 31, 45, 0.10),
+      0 1px 4px rgba(13, 31, 45, 0.06);
+  }
+
+  .p-dark .qnn-nav {
+    background-color: #09121c !important;
+    background: #09121c !important;
+  }
+}
+
 </style>

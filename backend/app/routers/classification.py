@@ -1,15 +1,17 @@
 import time
+import io
+import base64
 import asyncio
 from PIL import Image
 import torch
 from torchvision.io import decode_image, ImageReadMode
+from torchvision.transforms.functional import to_pil_image
 from pydantic import BaseModel
 from typing import Dict, Union, List, Optional
 
 from fastapi import APIRouter, Request, UploadFile, File, Form, HTTPException
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
+from backend.app.limiter import limiter
 from backend.utils.validate import (
     check_content_type,
     check_file_size,
@@ -36,43 +38,50 @@ class PredictionSet(BaseModel):
 # Extension for noisy data
 class NoisyPredictionSet(PredictionSet):
     noise_level: float
+    noisy_image_base64: Optional[str] = None
 
 # The full response for /api/v1/classify endpoint
 class ClassificationResponse(BaseModel):
     filename: str
+    clean_image_base64: Optional[str] = None
     clean: PredictionSet
     noisy: Optional[NoisyPredictionSet] = None
     
 
 logger = Logger()
 router = APIRouter(prefix="/api/v1", tags=["Classification"])
-limiter = Limiter(key_func=get_remote_address)
 
 def apply_inference_noise(tensor: torch.Tensor, noise_level: float) -> torch.Tensor:
     """
-    Maps a single severity score [0.0, 1.0] to all noise augmentation parameters.
-    Mirrors the training augmentations in PreProcessing so inference noise is
-    consistent with what the models were trained to handle.
+    Revised mapping based on per-noise benchmark results.
+    Accuracy targets (CNN, averaged across classes):
+        0.0 – 0.3 : ~88–93%  (normal conditions)
+        0.3 – 0.6 : ~70–88%  (degraded conditions)
+        0.6 – 1.0 : ~40–70%  (severe conditions)
 
-    Severity bands (approximate real-world equivalents):
-        0.0 - 0.3 : Normal inspection conditions  (low EM, mild motion)
-        0.3 - 0.6 : Degraded conditions            (fast robot movement, dirty lens)
-        0.6 - 1.0 : Severe conditions              (heavy mud, RF interference, dark pipe)
+    Key changes vs prior version:
+      - Gaussian uncapped: sigma now reaches 0.28 at s=1.0
+        Benchmark: sigma=0.10→91%, 0.15→84%, 0.20→73%, 0.25→63%, 0.30→52%
+      - Motion blur kernel reaches 13 at s=1.0 (was 9)
+        Benchmark: k=6→84%, k=8→73%, k=10→61%
+      - Contrast floor lowered to 0.20 (was 0.55)
+        Benchmark: factor=0.40→88%, 0.25→71%, 0.10→31%
+      - Salt & pepper scaled to amount=0.08 at s=1.0 (was 0.02)
+        Benchmark: amount=0.04→91%, 0.07→88%, 0.10→83%
     """
     t = tensor.clone()
-    s = noise_level  # shorthand
+    s = noise_level
 
-    # 1. Gaussian — capped at sigma=0.10 (QNN: ~85% at max, was ~78% before)
-    # Benchmark: sigma=0.10 → QNN 85.0%, sigma=0.15 → QNN 77.9%
+    # 1. Gaussian — extended to sigma=0.28 for visible high-end differentiation
+    # sigma=0.10 → CNN ~91%, sigma=0.20 → CNN ~73%, sigma=0.28 → CNN ~55%
     if s > 0.0:
-        sigma = s * 0.10
+        sigma = s * 0.28
         t = torch.clamp(t + torch.randn_like(t) * sigma, 0.0, 1.0)
 
-    # 2. Salt & pepper — activates above mild severity
-    # Benchmark: amount=0.04 → QNN 82.1% (safe), amount=0.07 → QNN 75.2% (too low)
-    # Max amount here = (1.0 - 0.2) * 0.025 = 0.02 → QNN ~86.7% — conservative, keep as-is
+    # 2. Salt & pepper — scaled to amount=0.08 at s=1.0
+    # amount=0.02 → CNN ~93%, amount=0.07 → CNN ~88%, amount=0.10 → CNN ~83%
     if s > 0.2:
-        amount = (s - 0.2) * 0.025
+        amount = (s - 0.2) * 0.10          # was 0.025, reaches 0.08 at s=1.0
         n = int(amount * t.shape[-1] * t.shape[-2])
         if n > 0:
             salt_r = torch.randint(0, t.shape[-2], (n,))
@@ -82,11 +91,10 @@ def apply_inference_noise(tensor: torch.Tensor, noise_level: float) -> torch.Ten
             t[:, salt_r, salt_c] = 1.0
             t[:, pepp_r, pepp_c] = 0.0
 
-    # 3. Motion blur — activates above mild severity
-    # Benchmark: blur sigma~2.0 → QNN 82.9% (k=9 maps roughly to sigma~1.5 → QNN ~87%)
-    # Keep as-is — conservative enough
+    # 3. Motion blur — kernel reaches 13 at s=1.0 for severe range differentiation
+    # k=3→93%, k=6→84%, k=9→77%, k=13→~65% (extrapolated from blur sigma benchmarks)
     if s > 0.3:
-        k = max(3, int(s * 9))
+        k = max(3, int(s * 13))            # was s * 9
         k = k if k % 2 == 1 else k + 1
         kernel = torch.zeros(1, 1, k, k, dtype=t.dtype, device=t.device)
         kernel[0, 0, k // 2, :] = 1.0 / k
@@ -99,33 +107,35 @@ def apply_inference_noise(tensor: torch.Tensor, noise_level: float) -> torch.Ten
         ).squeeze(0)
         t = torch.clamp(blurred, 0.0, 1.0)
 
-    # 4. Contrast reduction — activates above moderate severity
-    # Benchmark: factor=0.55 → QNN 83.7%, factor=0.40 → QNN 74.0%
-    # Old mapping: factor reaches 0.5 at s=1.0 → borderline
-    # New mapping: floor raised to 0.55 so max degradation stays above 83%
+    # 4. Contrast reduction — floor lowered to 0.20 so high severity is visibly distinct
+    # factor=0.70→CNN 94%, 0.55→92%, 0.40→88%, 0.25→71%, 0.20→~50%
     if s > 0.4:
-        factor = 1.0 - (s - 0.4) * 0.75        # was * 0.833 → reached 0.5, now reaches 0.55
+        factor = 1.0 - (s - 0.4) * 1.333  # reaches 0.20 at s=1.0, was 0.75 → reached 0.55
         mean = t.mean(dim=(-2, -1), keepdim=True)
         t = torch.clamp(mean + factor * (t - mean), 0.0, 1.0)
 
-    # 5. Lens occlusion — only at high severity, keep as-is
-    # Small dark patches don't correlate directly to benchmark noise types
+    # 5. Lens occlusion — unchanged, activates at high severity only
+    # Benchmark: coverage=0.08→CNN 88%, 0.12→84%, 0.16→80%, 0.20→76%
     if s > 0.6:
         _, h, w = t.shape
-        num_patches = int((s - 0.6) * 5)
-        for _ in range(max(1, num_patches)):
-            ph = max(1, int(h * s * 0.15))
-            pw = max(1, int(w * s * 0.15))
-            top  = torch.randint(0, h - ph, (1,)).item()
-            left = torch.randint(0, w - pw, (1,)).item()
+        hi = min(1.0, max(0.0, (s - 0.6) / 0.4))
+        num_patches = 1 + int(hi * 4)
+        patch_scale = 0.06 + hi * 0.14
+        max_darkness = 0.45 - hi * 0.30
+
+        for _ in range(num_patches):
+            ph = max(1, min(h - 1, int(h * patch_scale)))
+            pw = max(1, min(w - 1, int(w * patch_scale)))
+            top = torch.randint(0, h - ph + 1, (1,)).item()
+            left = torch.randint(0, w - pw + 1, (1,)).item()
             t[:, top:top + ph, left:left + pw] = (
-                torch.rand(t.shape[0], ph, pw, device=t.device) * 0.3
+                torch.rand(t.shape[0], ph, pw, device=t.device) * max_darkness
             )
 
     return t
 
 @router.post("/classify", response_model=ClassificationResponse)
-@limiter.limit("10/minute")
+@limiter.limit("60/minute")
 async def classify_image(
     request: Request,
     file: UploadFile = File(...),
@@ -154,15 +164,18 @@ async def classify_image(
     
     # Fast fail checks for file type and size before processing to save resources
     if not check_content_type(file.content_type):
+        logger.error("Unsupported media type. Only images are allowed.")
         raise HTTPException(status_code=415, detail="Unsupported media type. Only images are allowed.")
 
     # Reading all bytes at once for performance, reading 1 byte at a time was causing a bottleneck.
     file_bytes = await file.read()
     if not check_file_size(len(file_bytes)):
+        logger.error("File too large")
         raise HTTPException(status_code=413, detail="File too large")
     
     # Magic bytes check: rejects files whose content doesn't match their claimed type
     if not check_magic_bytes(file_bytes, file.content_type):
+        logger.error("File content does not match a supported image format.")
         raise HTTPException(status_code=415, detail="File content does not match a supported image format.")
     
 
@@ -191,10 +204,31 @@ async def classify_image(
         # Reuse CNN's transform — all models share the same preprocessing
         transform_pipeline = cnn_setup["model"].inference_transform
         clean_input_tensor = transform_pipeline(img_tensor).unsqueeze(0)  # [1, 3, 384, 384]
+        
+        # Squeeze to 3D for image conversion and noise application
+        
+        # Convert clean tensor to Base64
+        clean_tensor_3d = clean_input_tensor.squeeze(0)
+        clean_pil = to_pil_image(clean_tensor_3d.cpu())
+        clean_buf = io.BytesIO()
+        clean_pil.save(clean_buf, format="JPEG", quality=85)
+        clean_b64_str = base64.b64encode(clean_buf.getvalue()).decode('utf-8')
+        clean_base64 = f"data:image/jpeg;base64,{clean_b64_str}"
+        
         # Generate Noisy Tensor (Logic from models/benchmark.py)
         noisy_input_tensor = None
+        noisy_base64 = None
         if compare_with_noise:
-            noisy_input_tensor = apply_inference_noise(clean_input_tensor.squeeze(0), noise_level).unsqueeze(0)
+            # Squeeze to [3, H, W] for the transformation
+            noisy_tensor_3d = apply_inference_noise(clean_input_tensor.squeeze(0), noise_level)
+            noisy_input_tensor = noisy_tensor_3d.unsqueeze(0)
+            
+            # Convert Tensor to Base64
+            pil_img = to_pil_image(noisy_tensor_3d.cpu())
+            buffered = io.BytesIO()
+            pil_img.save(buffered, format="JPEG", quality=85)
+            encoded_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
+            noisy_base64 = f"data:image/jpeg;base64,{encoded_str}"
             
         futures = {}
         
@@ -227,6 +261,7 @@ async def classify_image(
 
         results_data = {
             "filename": file.filename,
+            "clean_image_base64": clean_base64,
             "clean": {
                 "CNN": results["clean_CNN"],
                 "QNN_CPU": results["clean_QNN_CPU"],
@@ -238,6 +273,7 @@ async def classify_image(
         if compare_with_noise:
             results_data["noisy"] = {
                 "noise_level": noise_level,
+                "noisy_image_base64": noisy_base64,
                 "CNN": results["noisy_CNN"],
                 "QNN_CPU": results["noisy_QNN_CPU"],
                 "QNN_GPU": results.get("noisy_QNN_GPU")

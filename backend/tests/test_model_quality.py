@@ -33,15 +33,15 @@ Fixtures are scope="module" so each model is loaded once for both Part A and Par
 QNN_GPU tests are skipped automatically when no CUDA device is present.
 
 Results saved to:
-    data/results_tests/calibration_cnn.json
-    data/results_tests/calibration_qnn_cpu.json
-    data/results_tests/calibration_qnn_gpu.json
-    data/results_tests/calibration_combined.json
-    data/results_tests/class_fairness_cnn.json
-    data/results_tests/class_fairness_qnn_cpu.json
-    data/results_tests/class_fairness_qnn_gpu.json
-    data/results_tests/class_fairness_combined.json
-    data/results_tests/model_quality_combined.json
+    results/model_quality/calibration_cnn.json
+    results/model_quality/calibration_qnn_cpu.json
+    results/model_quality/calibration_qnn_gpu.json
+    results/model_quality/calibration_combined.json
+    results/model_quality/class_fairness_cnn.json
+    results/model_quality/class_fairness_qnn_cpu.json
+    results/model_quality/class_fairness_qnn_gpu.json
+    results/model_quality/class_fairness_combined.json
+    results/model_quality/model_quality_combined.json
 
 Run:
     pytest tests/test_model_quality.py -v
@@ -68,7 +68,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # Anchor: resolves to the `backend/` directory (two levels up from tests/)
 BACKEND_DIR = Path(__file__).parent.parent.resolve()
 
-RESULTS_DIR = BACKEND_DIR / "data" / "results_tests"
+RESULTS_DIR = BACKEND_DIR / "tests" / "results" / "model_quality"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 CLASS_NAMES = [
