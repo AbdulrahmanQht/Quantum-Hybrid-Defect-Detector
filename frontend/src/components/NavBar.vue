@@ -26,6 +26,7 @@ const toggleLanguage = () => {
   locale.value = next
   Cookies.set(LANG_KEY, next, { expires: 365, path: '/' })
 
+  
   document.documentElement.classList.toggle('lang-ar', next === 'AR')
   document.documentElement.lang = next === 'AR' ? 'ar' : 'en'
 }
@@ -58,7 +59,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
         </div>
       </router-link>
 
-      <nav class="qnn-nav" :class="{ 'qnn-nav--open': menuOpen }" id="qnn-nav" aria-label="Main navigation">
+      <nav class="qnn-nav" :class="{ 'qnn-nav--open': menuOpen, 'qnn-nav--rtl': currentLang === 'AR' }" id="qnn-nav" aria-label="Main navigation">
         <router-link v-for="item in items" :key="item.to" :to="item.to" class="qnn-link"
           :class="{ 'qnn-link--quantum': item.isQuantum }" @click="closeMenu">
           <component :is="item.lucideIcon" class="qnn-link-icon" />
@@ -184,6 +185,20 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   text-align: left !important;
 }
 
+@media (max-width: 640px) {
+ 
+
+  .qnn-logo-title {
+    font-size: 0.85rem;
+    /* Shrink title slightly */
+  }
+
+  .qnn-logo img {
+    height: 36px;
+    /* Shrink logo slightly */
+  }
+}
+
 .qnn-nav {
   position: absolute;
   left: 50%;
@@ -200,6 +215,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 .p-dark .qnn-nav {
   background: rgba(255, 255, 255, 0.03);
 }
+
 
 .qnn-link {
   display: flex;
@@ -287,9 +303,6 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 }
 
 @media (max-width: 1100px) {
-  .qnn-logo-copy {
-    display: none;
-  }
 
   .qnn-nav {
     position: fixed;
@@ -335,4 +348,22 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
     display: none;
   }
 }
+@media (max-width: 1100px) {
+  .qnn-nav {
+    background-color: #fff !important;
+    background: #fff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+
+    box-shadow:
+      0 8px 24px rgba(13, 31, 45, 0.10),
+      0 1px 4px rgba(13, 31, 45, 0.06);
+  }
+
+  .p-dark .qnn-nav {
+    background-color: #09121c !important;
+    background: #09121c !important;
+  }
+}
+
 </style>

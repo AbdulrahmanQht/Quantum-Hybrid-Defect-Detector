@@ -7,6 +7,7 @@ import heroDark from '../assets/homepageimage.png'
 const { t, tm, locale } = useI18n({ useScope: 'global' })
 
 const currentIndex = ref(0)
+const linkedin = ref(false)
 
 const slides = computed(() => {
   const data = tm('home.slider')
@@ -235,7 +236,7 @@ onUnmounted(() => {
                   <Github class="h-4 w-4" />
                   <span>{{ t('home.team.github') }}</span>
                 </a>
-                <a :href="person.linkedin" target="_blank" rel="noreferrer" class="team-link">
+                <a v-if="linkedin" :href="person.linkedin" target="_blank" rel="noreferrer" class="team-link">
                   <Linkedin class="h-4 w-4" />
                   <span>{{ t('home.team.linkedin') }}</span>
                 </a>
@@ -262,8 +263,10 @@ onUnmounted(() => {
   padding: 2rem 0 3rem;
 }
 
-.home-page--ar .hero-visual {
-  order: -1;
+@media (min-width: 961px) {
+  .home-page--ar .hero-visual {
+    order: -1;
+  }
 }
 
 .hero-copy {

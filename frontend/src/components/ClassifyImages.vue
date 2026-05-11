@@ -1134,7 +1134,7 @@ onUnmounted(() => {
     </div>
 
     <!-- Export success -->
-    <Message v-if="exportSuccess" severity="success" :closable="true" @close="exportSuccess = null">
+    <Message v-if="exportSuccess" style="margin-top: 0.75rem;" severity="success" :closable="true" @close="exportSuccess = null">
       {{ exportSuccess }}
     </Message>
   </div>

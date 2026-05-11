@@ -361,6 +361,7 @@ const reliabilityChartData = computed(() => {
   }
 })
 
+
 onErrorCaptured((err) => {
   console.error('[BenchmarkView] caught error:', err)
   error.value = 'benchmark.states.error' // ← always an i18n key, never a raw message
@@ -595,7 +596,7 @@ onErrorCaptured((err) => {
               <div class="chart-card">
                 <div class="flex items-center gap-2">
                   <span class="chart-card-title">{{ t('benchmark.charts.radar_title') }}</span>
-                  <Info v-tooltip.top="t('benchmark.charts.radar_tooltip')"
+                  <Info v-tooltip.top="t('benchmark.charts.radar_tooltip')" tabindex="0"
                     class="bm-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0" />
                 </div>
                 <p class="chart-card-sub">
@@ -609,7 +610,7 @@ onErrorCaptured((err) => {
               <div class="chart-card">
                 <div class="flex items-center gap-2">
                   <span class="chart-card-title">{{ t('benchmark.charts.scatter_title') }}</span>
-                  <Info v-tooltip.top="t('benchmark.charts.scatter_tooltip')"
+                  <Info v-tooltip.top="t('benchmark.charts.scatter_tooltip')" tabindex="0"
                     class="bm-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0" />
                 </div>
                 <p class="chart-card-sub">
@@ -678,7 +679,7 @@ onErrorCaptured((err) => {
             <div class="chart-card" style="margin-top: 1rem;">
               <div class="flex items-center gap-2">
                 <span class="chart-card-title">{{ t('benchmark.charts.robustness_title') }}</span>
-                <Info v-tooltip.top="t('benchmark.charts.robustness_tooltip')"
+                <Info v-tooltip.top="t('benchmark.charts.robustness_tooltip')" tabindex="0"
                   class="bm-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0" />
               </div>
               <p class="chart-card-sub">
@@ -783,7 +784,7 @@ onErrorCaptured((err) => {
             <div class="diag-inner-card diag-inner-card--full" style="margin-top: 1rem;">
               <div class="flex items-center gap-2">
                 <span class="diag-title">{{ t('benchmark.charts.reliability_title') }}</span>
-                <Info v-tooltip.top="t('benchmark.charts.reliability_tooltip')"
+                <Info v-tooltip.top="t('benchmark.charts.reliability_tooltip')" tabindex="0"
                   class="bm-info-icon w-3.5 h-3.5 cursor-help flex-shrink-0" />
               </div>
               <p class="chart-card-sub" style="margin: -0.5rem 0 1rem;">
@@ -1711,4 +1712,49 @@ onErrorCaptured((err) => {
 .bm-info-icon:hover {
   opacity: 1;
 }
+
+@media (max-width: 960px) {
+  .diagnostics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .diag-inner-card {
+    overflow: hidden;
+  }
+
+  .matrix-wrap {
+    overflow-x: auto;
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .matrix-table {
+    position: relative;
+    width: max-content;
+    min-width: 100%;
+    height: auto;
+  }
+
+  .bm-fill-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 640px) {
+
+  .matrix-table th,
+  .matrix-table td {
+    padding: 0.5rem 0.4rem;
+    font-size: 0.75rem;
+    border-radius: 8px;
+  }
+
+  .bm-datatable-diag :deep(.p-datatable-thead > tr > th),
+  .bm-datatable-diag :deep(.p-datatable-tbody > tr > td) {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.85rem;
+  }
+}
+
 </style>

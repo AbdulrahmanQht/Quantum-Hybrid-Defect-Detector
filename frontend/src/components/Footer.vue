@@ -38,9 +38,9 @@ const isArabic = computed(() => locale.value === 'AR')
           <h4 class="site-footer__heading">
             {{ t('footer.teamTitle') }}
           </h4>
-          <a v-for="person in teamLinks" :key="person.name" :href="person.linkedin" target="_blank" rel="noreferrer"
+          <a v-for="person in teamLinks" :key="person.name" :href="person.github" target="_blank" rel="noreferrer"
             class="site-footer__link">
-            <Linkedin :size="14" />
+            <Github :size="14" />
             <span>{{ person.name }}</span>
           </a>
         </div>

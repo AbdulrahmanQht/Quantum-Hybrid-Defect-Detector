@@ -332,7 +332,7 @@ if os.path.exists(frontend_path):
         # Block any path segment starting with a dot (.env, .git, .htaccess, etc.)
         requested_path = Path(full_path)
         if any(part.startswith(".") for part in requested_path.parts):
-            logger.warning(
+            logger.warn(
                 f"[SECURITY] Dotfile probe blocked | "
                 f"ip={client_ip} path=/{full_path}"
             )
@@ -345,7 +345,7 @@ if os.path.exists(frontend_path):
             None
         )
         if matched_block:
-            logger.warning(
+            logger.warn(
                 f"[SECURITY] Blocked path probe | "
                 f"ip={client_ip} path=/{full_path} matched_rule={matched_block}"
             )
@@ -358,7 +358,7 @@ if os.path.exists(frontend_path):
         # Guard against path traversal (e.g. ../../etc/passwd)
         file_path = Path(os.path.join(frontend_path, full_path)).resolve()
         if not file_path.is_relative_to(frontend_path):
-            logger.warning(
+            logger.warn(
                 f"[SECURITY] Path traversal attempt blocked | "
                 f"ip={client_ip} path=/{full_path} resolved={file_path}"
             )
@@ -376,7 +376,7 @@ if __name__ == "__main__":
     from granian.constants import Interfaces
 
     logger.info("Starting Granian server on http://127.0.0.1:8000")
-    
+    # To start from terminal: granian --interface asgi --host 127.0.0.1 --port 8000 --workers 1 --access-log --log-level info --reload app.main:app
     server = Granian(
         "app.main:app",
         address="127.0.0.1",
@@ -384,7 +384,7 @@ if __name__ == "__main__":
         interface=Interfaces.ASGI,
         workers=1,    # GPU app — multiple workers = duplicate VRAM per worker
         log_access=True,    # show request logs
-        log_level="info",   # debug/info/warning/error
+        log_level="info",   # debug/info//error
         reload_paths=["app"], # Only reload when changes happens under app/
         reload=True
     )

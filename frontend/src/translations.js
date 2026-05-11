@@ -34,25 +34,28 @@ const messages = {
       teamLinks: [
         {
           name: "Fawaz altahini",
-          linkedin: "https://linkedin.com/in/your-link",
+          github: "https://github.com/Tafawaz",
         },
         {
           name: "Abdulrahman alqahtani",
-          linkedin: "https://www.linkedin.com/in/abdulrahmanqht/",
+          github: "https://github.com/AbdulrahmanQht",
         },
         {
           name: "Ali alhushayyish",
-          linkedin: "https://linkedin.com/in/your-link",
+          github: "https://github.com/AliHamad13",
         },
         {
           name: "Azzam alzahrani",
-          linkedin: "https://www.linkedin.com/in/azzam-alzahrani-52926b36b/",
+          github: "https://github.com/xAzzamx",
         },
         {
           name: "Talal altowijri",
-          linkedin: "https://linkedin.com/in/your-link",
+          github: "https://github.com/TalalAlt",
         },
-        { name: "Omar almalki", linkedin: "https://linkedin.com/in/your-link" },
+        {
+          name: "Omar almalki",
+          github: "https://github.com/Sgingertig",
+        },
       ],
     },
     home: {
@@ -60,9 +63,9 @@ const messages = {
         badge: "Quantum-Classical Industrial AI",
         title: "Quantum-Hybrid Defect Detector",
         subtitle:
-          "A stronger landing experience for industrial inspection and quantum-enhanced analysis.",
+          "Advanced industrial inspection powered by quantum-enhanced image analysis.",
         description:
-          "Our hybrid quantum-classical system identifies corrosion, cracks, leaks, and structural defects in pipelines and industrial equipment with a design focused on clarity, credibility, and technical depth.",
+          "A comparative research platform evaluating classical CNNs against Hybrid Quantum-Classical Neural Networks (HQCNNs) for detecting structural defects in industrial pipelines.",
         button: "Start Classification",
         secondaryButton: "View Benchmark",
         tertiaryButton: "See Quantum Advantage",
@@ -93,26 +96,26 @@ const messages = {
       ],
       highlights: [
         {
-          title: "Inspection-Oriented Design",
-          text: "Built for a serious industrial use case instead of a generic ML demo, with a landing page that explains the actual value of the system.",
+          title: "Empirical Quantum Advantage",
+          text: "Evaluating feature orthogonality, kernel target alignment, and barren plateau resilience to prove the quantum branch's mathematical contribution.",
         },
         {
-          title: "Hybrid Quantum Pipeline",
-          text: "The project presents a clear quantum-classical architecture that supports experimentation, benchmarking, and comparison.",
+          title: "Noise Robustness Analysis",
+          text: "Rigorous stress-testing of models under various perturbations (Gaussian, Blur, Contrast) to validate quantum resilience in degraded environments.",
         },
         {
-          title: "Usable Product Flow",
-          text: "Visitors can move directly to classification, benchmark results, or the quantum advantage page without friction.",
+          title: "Comprehensive Benchmarking",
+          text: "Side-by-side evaluation of inference latency, confidence calibration, and class separability between standard and quantum-enhanced models.",
         },
       ],
       sections: {
-        overviewEyebrow: "Platform",
-        overviewTitle: "Built for modern defect detection",
+        overviewEyebrow: "Research Context",
+        overviewTitle: "Bridging Quantum Computing and Industrial AI",
         overviewText:
-          "This landing page positions the project as both a serious academic effort and a practical industrial system. It gives the user a clear path into the core product experience while preserving your existing visual identity.",
+          "This project addresses the critical need for reliable automated defect detection in oil and gas infrastructure. By integrating Variational Quantum Circuits (VQCs) into classical pipelines, we explore whether quantum embeddings can extract richer geometric features and maintain higher accuracy under severe industrial noise.",
         sliderEyebrow: "Highlights",
         highlightsEyebrow: "Strengths",
-        highlightsTitle: "What this homepage should communicate",
+        highlightsTitle: "Core Research Objectives",
       },
       team: {
         eyebrow: "Team",
@@ -159,7 +162,7 @@ const messages = {
           {
             name: "Omar almalki",
             role: "Team Member",
-            github: "https://github.com/your-link",
+            github: "https://github.com/Sgingertig",
             linkedin: "https://linkedin.com/in/your-link",
           },
         ],
@@ -651,16 +654,17 @@ const messages = {
       message: "Message",
       messagePlaceholder: "Write your message here...",
       send: "Send Message",
-      sending: "Opening...",
+      sending: "Sending...",
       required: "This field is required",
       successTitle: "Success",
       successMsg: "Your message has been sent successfully.",
-      errorTitle: "Failed to load quantum advantage data.",
+      errorTitle: "Failed to Send",
       errorMsg: "Failed to send message. Please try again later.",
       sideEyebrow: "Contact",
       sideTitle: "Let’s talk about the project.",
       sideText:
         "Use the form to reach the team for questions, collaboration, or feedback about the Quantum-Hybrid Defect Detector.",
+      clear: "Clear current input",
     },
   },
   AR: {
@@ -692,31 +696,39 @@ const messages = {
         "https://github.com/AbdulrahmanQht/Quantum-Hybrid-Defect-Detector",
       copy: "© 2026 كاشف العيوب الكمّي-الكلاسيكي. جميع الحقوق محفوظة.",
       teamLinks: [
-        { name: "فواز الطحيني", linkedin: "https://linkedin.com/in/your-link" },
+        {
+          name: "فواز الطحيني",
+          github: "https://github.com/Tafawaz",
+        },
         {
           name: "عبدالرحمن القحطاني",
-          linkedin: "https://linkedin.com/in/your-link",
+          github: "https://github.com/AbdulrahmanQht",
         },
-        { name: "علي الحشيّش", linkedin: "https://linkedin.com/in/your-link" },
+        {
+          name: "علي الحشيّش",
+          github: "https://github.com/AliHamad13",
+        },
         {
           name: "عزام الزهراني",
-          linkedin: "https://linkedin.com/in/your-link",
+          github: "https://github.com/xAzzamx",
         },
         {
-          name: "طلال النويجري",
-          linkedin: "https://linkedin.com/in/your-link",
+          name: "طلال التويجري",
+          github: "https://github.com/TalalAlt",
         },
-        { name: "عمر المالكي", linkedin: "https://linkedin.com/in/your-link" },
+        {
+          name: "عمر المالكي",
+          github: "https://github.com/Sgingertig",
+        },
       ],
     },
     home: {
       hero: {
         badge: "ذكاء صناعي كمّي-كلاسيكي",
         title: "كاشف العيوب الكمّي-الكلاسيكي",
-        subtitle:
-          "واجهة رئيسية أقوى للفحص الصناعي والتحليل المعزز بالحوسبة الكمّية.",
+        subtitle: "فحص صناعي متقدم مدعوم بتحليل الصور المعزز بالحوسبة الكمّية.",
         description:
-          "نظامنا الهجين الكمّي-الكلاسيكي يكتشف التآكل والتشققات والتسربات والعيوب الهيكلية في خطوط الأنابيب والمعدات الصناعية ضمن تجربة أكثر وضوحاً واحترافية.",
+          "منصة بحثية مقارنة لتقييم الشبكات العصبية الالتفافية (CNNs) مقابل الشبكات العصبية الكمّية-الكلاسيكية الهجينة (HQCNNs) في كشف العيوب الهيكلية لخطوط الأنابيب الصناعية.",
         button: "ابدأ التصنيف",
         secondaryButton: "عرض المقارنة",
         tertiaryButton: "استكشف التفوق الكمّي",
@@ -747,26 +759,26 @@ const messages = {
       ],
       highlights: [
         {
-          title: "تصميم موجه للفحص",
-          text: "الواجهة تعرض المشروع كنظام صناعي وبحثي فعلي بدلاً من كونه عرضاً عاماً لتعلم الآلة فقط.",
+          title: "ميزة كمّية تجريبية",
+          text: "تقييم تعامد الميزات، ومحاذاة النواة مع الهدف، ومقاومة الهضاب الجرداء لإثبات المساهمة الرياضية للفرع الكمّي.",
         },
         {
-          title: "مسار كمّي هجين",
-          text: "يعرض المشروع بنية واضحة تدمج بين الحوسبة التقليدية والكمّية وتدعم التجربة والمقارنة والشرح.",
+          title: "تحليل المتانة ضد التشويش",
+          text: "اختبار إجهاد دقيق للنماذج تحت تشويشات متنوعة (غاوسي، تمويه، تباين) للتحقق من صمود النماذج الكمّية في بيئات الفحص الرديئة.",
         },
         {
-          title: "تدفق استخدام واضح",
-          text: "يمكن للزائر الانتقال مباشرة إلى التصنيف أو المقارنة أو صفحة التفوق الكمّي بسهولة.",
+          title: "مقارنة معيارية شاملة",
+          text: "تقييم مباشر وشامل لزمن الاستدلال، ومعايرة الثقة، وقابلية فصل الفئات بين النماذج التقليدية والمعززة كمّياً.",
         },
       ],
       sections: {
-        overviewEyebrow: "المنصة",
-        overviewTitle: "مصمم لكشف العيوب الحديث",
+        overviewEyebrow: "السياق البحثي",
+        overviewTitle: "الربط بين الحوسبة الكمّية والذكاء الاصطناعي الصناعي",
         overviewText:
-          "تجعل هذه الواجهة الرئيسية المشروع يبدو كمجهود أكاديمي جاد ونظام صناعي عملي في الوقت نفسه، مع المحافظة على هويتكم البصرية الحالية.",
+          "يعالج هذا المشروع الحاجة الملحّة لكشف العيوب آلياً وبموثوقية في البنية التحتية لقطاع النفط والغاز. من خلال دمج الدوائر الكمّية المتغيرة (VQCs) في المسارات الكلاسيكية، نستكشف قدرة التضمين الكمّي على استخراج ميزات هندسية أغنى والحفاظ على دقة أعلى تحت ظروف التشويش الصناعي الشديد.",
         sliderEyebrow: "أبرز النقاط",
         highlightsEyebrow: "نقاط القوة",
-        highlightsTitle: "ما الذي يجب أن توضحه هذه الصفحة",
+        highlightsTitle: "أهداف البحث الرئيسية",
       },
       team: {
         eyebrow: "الفريق",
@@ -776,8 +788,8 @@ const messages = {
         github: "قيت هب",
         linkedin: "لينكد إن",
         supervisors: [
-          { name: "Dr. Mustafa Youldash", role: "المشرف الرئيسي" },
-          { name: "Dr. Naya Nagy", role: "المشرف المشارك" },
+          { name: "د. مصطفى يولداش", role: "المشرف الرئيسي" },
+          { name: "د. نايا ناجي", role: "المشرف المشارك" },
         ],
         researchers: [
           {
@@ -805,7 +817,7 @@ const messages = {
             linkedin: "https://www.linkedin.com/in/azzam-alzahrani-52926b36b/",
           },
           {
-            name: "طلال النويجري",
+            name: "طلال التويجري",
             role: "عضو فريق",
             github: "https://github.com/TalalAlt",
             linkedin: "https://linkedin.com/in/your-link",
@@ -813,15 +825,10 @@ const messages = {
           {
             name: "عمر المالكي",
             role: "عضو فريق",
-            github: "https://github.com/your-link",
+            github: "https://github.com/Sgingertig",
             linkedin: "https://linkedin.com/in/your-link",
           },
         ],
-      },
-      credits: {
-        value:
-          "قيمنا: إظهار التكامل بين النماذج الكمّية والكلاسيكية أكاديمياً، وتحسين دقة الفحص والموثوقية وتجربة الاستخدام عملياً.",
-        team: "بإشراف الدكتور مصطفى يولداش والدكتورة نايا ناجي. تم تطوير المشروع بواسطة فريق بحثي من جامعة الإمام عبدالرحمن بن فيصل.",
       },
     },
     classify: {
@@ -858,8 +865,8 @@ const messages = {
       prediction: "التوقع",
       safe: "سليم",
       defect: "خلل",
-      err_format: "صيغة غير صالحة. يرجى تحميل صورة PNG أو JPG أو WEBP.",
-      err_size: "حجم الملف يتجاوز 5 ميجابايت.",
+      err_format: "صيغة غير صالحة. يرجى تحميل صورة PNG أو JPEG أو JPG أو WEBP.",
+      err_size: "حجم الملف يتجاوز 5 ميجابايت. يرجى تحميل صورة أصغر حجماً.",
       err_spoof: "محتوى الملف لا يتطابق مع امتداده.",
       err_upload: "فشل التحميل. يرجى المحاولة مرة أخرى.",
       clean: "نظيف",
@@ -889,10 +896,10 @@ const messages = {
         qnn_cpu: "QNN CPU",
         qnn_gpu: "QNN GPU",
       },
-      export_csv_success: "تم تصدير النتائج إلى CSV بنجاح!",
-      export_json_success: "تم تصدير النتائج إلى JSON بنجاح!",
+      export_csv_success: "CSV تم تصدير النتائج بنجاح إلى!",
+      export_json_success: "JSON تم تصدير النتائج بنجاح إلى",
       restored_hint:
-        ".تم استعادة النتائج من الجلسة السابقة. أعد الاختيار أو انقر إعادة تعيين للتشغيل من جديد",
+        "تمت استعادة النتائج من الجلسة السابقة — أعد التعيين أو اختر صورة أخرى للتشغيل مجدداً.",
       prediction_match: "النتيجة",
       match: "متطابق",
       mismatch: "غير متطابق",
@@ -947,7 +954,7 @@ const messages = {
         source_name: "مجموعة بيانات عيوب الأنابيب من كاجل",
         source_url:
           "https://www.kaggle.com/datasets/simplexitypipeline/pipeline-defect-dataset/data",
-        transform_title: "تحويلها إلى تصنيف:",
+        transform_title: "التحويل إلى مهمة تصنيف:",
         transform_text:
           "كانت مجموعة البيانات الأصلية مخصصة لاكتشاف الأجسام داخل الصور، ثم تم تحويلها إلى مهمة تصنيف عبر الاحتفاظ فقط بالصور التي يحتوي ملف الوسم الخاص بها على فئة واحدة فريدة.",
         pipeline_title: "خطوات تجهيز البيانات",
@@ -1079,10 +1086,10 @@ const messages = {
       charts: {
         efficiency_title: "حد الكفاءة",
         efficiency_desc: "تحليل المقايضة بين الدقة ووقت الاستجابة.",
-        radar_title: "نظرة عامة على التوازن",
+        radar_title: "مقارنة النماذج متعددة المقاييس",
         radar_desc: "مقارنة متعددة المقاييس عبر النماذج.",
         robustness_curve: "منحنى متانة الضوضاء",
-        reliability_title: "فجوة الموثوقية",
+        reliability_title: "منحنى الموثوقية",
         reliability_desc: "مقارنة الدقة مقابل ثقة النموذج.",
         latency_axis: "وقت الاستجابة (ملي ثانية)",
         accuracy_axis: "الدقة (%)",
@@ -1092,7 +1099,7 @@ const messages = {
           "الدقة، F1، الضبط، الاسترجاع، ومتانة الضوضاء عبر النماذج الثلاثة",
         scatter_title: "الدقة مقابل زمن الاستدلال",
         scatter_sub:
-          "نقطة واحدة لكل نموذج — الدقة الأعلى والزمن الأقل هو الأفضل",
+          "نقطة واحدة لكل نموذج — الدقة الأعلى والزمن الأقل هما الأفضل",
         robustness_title: "الدقة تحت ضوضاء متصاعدة",
         robustness_sub: "كيف يتراجع أداء كل نموذج مع ازدياد شدة الضوضاء",
         reliability_sub:
@@ -1117,7 +1124,7 @@ const messages = {
         accuracy_tooltip:
           "نسبة الصور المصنّفة بشكل صحيح من جميع فئات العيوب الست على البيانات النظيفة غير المشوهة.",
         f1_tooltip:
-          "الوسط التوافقي بين الضبط والاسترجاع. يراعي كلاً من الإيجابيات الخاطئة والسلبيات الخاطئة — مقياس جودة متوازن.",
+          "المتوسط التوافقي بين الضبط والاسترجاع. يراعي كلاً من الإيجابيات الخاطئة والسلبيات الخاطئة — مقياس جودة متوازن.",
         maun_tooltip:
           "متوسط الدقة تحت الضوضاء — متوسط الدقة عبر جميع أنواع التشويش ومستويات الشدة المقيّسة في المقارنة.",
         robustness_score_tooltip:
@@ -1133,14 +1140,14 @@ const messages = {
       qubits: "كيوبت",
       depth: "العمق",
       loading: "جاري تحميل المقاييس الكمّية...",
-      errorTitle: "فشل تحميل بيانات تفوق الحوسبةالكمية",
-      errorMsg: "فشل تحميل بيانات التفوق الكمّي. تأكد من تشغيل الخادم.",
+      errorTitle: "البيانات غير متاحة",
+      errorMsg: "فشل تحميل بيانات التفوق الكمّي.",
       model: "النموذج",
       confirmed: "تفوق مؤكّد",
       notConfirmed: "غير مؤكّد",
       exp2: {
         title: "الكسب الكمّي (إزالة الفرع)",
-        desc: "كم تضيف الدقة عند استخدام الفرع الكمّي مقارنة بالفرع الكلاسيكي فقط؟",
+        desc: "ما مقدار الدقة التي يضيفها الفرع الكمّي مقارنة بالاستدلال الكلاسيكي فقط؟",
         quantumGain: "كسب كمّي",
         fullModel: "النموذج الكامل",
         classicalOnly: "كلاسيكي فقط",
@@ -1196,7 +1203,7 @@ const messages = {
           "تقيس إنتروبيا فون نيومان التشابك الكمّي لكل كيوبت. قيمة أعلى من 0 تعني أن الدائرة تولّد ارتباطات كمّية حقيقية بين الكيوبتات — وليس مجرد مزج كلاسيكي. الإنتروبيا الأعلى تشير إلى معالجة كمّية أكثر ثراءً.",
       },
       exp5: {
-        title: "تباين التدرج (فحص الهضبة)",
+        title: "تباين التدرج (فحص الهضبة الجرداء)",
         desc: "هل لا تزال الدائرة الكمّية قادرة على التعلم أم اختفت التدرجات؟",
         target: "الطبقة المستهدفة",
         meanVar: "متوسط تباين التدرج",
@@ -1208,7 +1215,7 @@ const messages = {
       exp7: {
         title: "قابلية تعبير الدائرة الكمّية",
         desc: "ما مدى تغطية الدائرة الكمّية لفضاء هيلبرت المتاح؟",
-        klDiv: "تباعد KL من هار",
+        klDiv: "تباعد KL عن توزيع هار",
         ref: "مرجع هار",
         insight:
           "انخفاض تباعد KL يعني أن الدائرة تستكشف فضاء هيلبرت بشكل أكثر انتظاماً. القيم أقل من 0.05 تشير إلى قابلية تعبير قريبة من هار.",
@@ -1217,14 +1224,14 @@ const messages = {
       },
       exp9: {
         title: "الفرق الهندسي",
-        desc: "هل تمتد نواة الكمّية لاتجاهات لا تستطيع النواة الكلاسيكية تمثيلها؟",
+        desc: "هل تمتد النواة الكمّية لاتجاهات لا تستطيع النواة الكلاسيكية تمثيلها؟",
         insight:
           "g > 1 يعني أن النواة الكمّية تمتد لاتجاهات لا تستطيع نواة RBF الكلاسيكية تمثيلها (Huang et al. 2021). هذا إثبات صارم للتفوق الكمّي.",
         tooltip:
           "يحدّد الفرق الهندسي g مقدار فضاء الميزات الإضافي الذي تغطيه النواة الكمّية مقارنة بنواة RBF الكلاسيكية. g > 1 هو إثبات رسمي قائم على البيانات للتفوق الكمّي وفق تعريف Huang et al. (2021).",
       },
       exp8: {
-        title: "محاذاة النواة المستهدفة",
+        title: "محاذاة النواة مع الهدف",
         desc: "أي نواة أفضل في التوافق مع تصنيفات البيانات؟",
         quantum: "KTA كمّي",
         classical: "KTA كلاسيكي",
@@ -1292,7 +1299,7 @@ const messages = {
           expressibility: "قابلية التعبير",
           kernel_experiments: "تجارب النواة",
           fim: "مصفوفة معلومات فيشر",
-          parameter_matched_ablation: "استئصال مطابقة المعلمات",
+          parameter_matched_ablation: "اختبار الاستئصال بمطابقة المعلمات",
         },
       },
     },
@@ -1310,7 +1317,7 @@ const messages = {
       sending: "جاري الإرسال...",
       required: "هذا الحقل مطلوب",
       successTitle: "نجاح",
-      successMsg: "تم أرسال رسالتك بنجاح.",
+      successMsg: "تم إرسال رسالتك بنجاح.",
       errorTitle: "خطأ",
       errorMsg: "فشل إرسال الرسالة. يرجى المحاولة مرة أخرى لاحقاً.",
       sideEyebrow: "تواصل",
@@ -1318,6 +1325,7 @@ const messages = {
       sideTitle: "لنتحدث عن المشروع.",
       sideText:
         "استخدم النموذج للتواصل مع الفريق بخصوص الأسئلة أو التعاون أو الملاحظات حول كاشف العيوب الكمّي-الكلاسيكي.",
+      clear: "إمسح النص المدخل الحالي",
     },
   },
 };
