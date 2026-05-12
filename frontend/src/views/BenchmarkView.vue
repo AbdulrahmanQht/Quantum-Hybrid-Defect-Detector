@@ -1630,7 +1630,23 @@ onErrorCaptured((err) => {
 }
 
 @media (max-width: 640px) {
-
+  .dataset-image,
+    .dataset-slide {
+      min-height: 320px;
+      height: 320px;
+    }
+  
+    /* ADD THESE LINES TO HIDE THE TEXT ON PHONES */
+    .dataset-slide-title,
+    .dataset-slide-text {
+      display: none;
+    }
+  
+    /* Optional: Adjust overlay padding since the text is gone, 
+       leaving just the tag chip visible */
+    .dataset-overlay {
+      padding: 0.75rem;
+    }
   .hero-stats,
   .fact-grid,
   .config-grid {
