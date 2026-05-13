@@ -23,6 +23,18 @@ const noiseLevel = ref(0.3)
 const noisyResults = ref(null)
 const activeResultsView = ref('clean')
 const noisyPreviewUrl = ref(null)
+const selectedNoiseType = ref('random')
+
+const availableNoiseTypes = computed(() => ({
+  random: t('classify.noise_types.random'),
+  gaussian: t('classify.noise_types.gaussian'),
+  blur: t('classify.noise_types.blur'),
+  contrast: t('classify.noise_types.contrast'),
+  salt_pepper: t('classify.noise_types.salt_pepper'),
+  motion_blur: t('classify.noise_types.motion_blur'),
+  jpeg_compression: t('classify.noise_types.jpeg_compression'),
+  lens_occlusion: t('classify.noise_types.lens_occlusion')
+}))
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 const MAX_SIZE_MB = 5
@@ -200,7 +212,10 @@ async function uploadImage() {
     formData.append('file', selectedFile.value)
     formData.append('compare_with_noise', compareWithNoise.value)
     if (compareWithNoise.value) {
-      formData.append('noise_level', noiseLevel.value.toFixed(2))
+      // formData.append('noise_level', noiseLevel.value.toFixed(2))
+      formData.append('compare_with_noise', 'true')
+      formData.append('noise_level', noiseLevel.value.toString())
+      formData.append('noise_type', selectedNoiseType.value)
     }
 
     const res = await fetch("/api/v1/classify", {
@@ -653,6 +668,19 @@ onUnmounted(() => {
 
             <Transition name="slide-down">
               <div v-if="compareWithNoise" class="noise-panel__body">
+
+                <div class="mb-6">
+                  <div class="noise-panel__meta mb-2">
+                    <span class="noise-panel__label">{{ t('classify.noise_type_label') }}</span>
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    <button v-for="(label, key) in availableNoiseTypes" :key="key" type="button" class="noise-btn"
+                      :class="{ active: selectedNoiseType === key }" @click="selectedNoiseType = key">
+                      {{ label }}
+                    </button>
+                  </div>
+                </div>
+
                 <div class="noise-panel__meta">
                   <span class="noise-panel__label">{{ t('classify.noise_severity') }}</span>
                   <span class="noise-panel__badge" :class="{
@@ -1134,7 +1162,8 @@ onUnmounted(() => {
     </div>
 
     <!-- Export success -->
-    <Message v-if="exportSuccess" style="margin-top: 0.75rem;" severity="success" :closable="true" @close="exportSuccess = null">
+    <Message v-if="exportSuccess" style="margin-top: 0.75rem;" severity="success" :closable="true"
+      @close="exportSuccess = null">
       {{ exportSuccess }}
     </Message>
   </div>
@@ -1935,5 +1964,28 @@ html[lang="ar"] .restored-banner {
 .classify-shell--ar .classify-overconfidence-banner {
   direction: rtl;
   text-align: right;
+}
+
+.noise-btn {
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--q-bar-border);
+  background: transparent;
+  color: var(--q-text);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.noise-btn:hover {
+  background: var(--q-surface-soft);
+}
+
+.noise-btn.active {
+  background: var(--q-teal);
+  color: white;
+  border-color: var(--q-teal);
+  font-weight: 600;
 }
 </style>

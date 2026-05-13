@@ -265,6 +265,17 @@ const messages = {
       },
       cnn_overconfidence_warning:
         "Under severe noise, CNN may show the highest confidence here — but our benchmark results confirm it can still predict incorrectly at high confidence levels. Do not interpret high CNN confidence as superior reliability under noise.",
+      noise_type_label: "Noise Type",
+      noise_types: {
+        random: "Randomize",
+        gaussian: "Gaussian",
+        blur: "Blur",
+        contrast: "Contrast",
+        salt_pepper: "Salt & Pepper",
+        motion_blur: "Motion Blur",
+        jpeg_compression: "JPEG Compression",
+        lens_occlusion: "Lens Occlusion",
+      },
     },
     benchmark: {
       hero: {
@@ -927,6 +938,17 @@ const messages = {
       },
       cnn_overconfidence_warning:
         "تحت التشويش الشديد، قد يُظهر CNN أعلى ثقة هنا — لكن نتائج المقارنة تؤكد أنه قد لا يزال يُخطئ في توقعاته رغم الثقة العالية. لا تعتبر ثقة CNN العالية دليلاً على تفوق أدائه تحت التشويش.",
+      noise_type_label: "نوع الضوضاء",
+      noise_types: {
+        random: "اختيار عشوائي",
+        gaussian: "ضوضاء غاوسية",
+        blur: "تمويه",
+        contrast: "تباين",
+        salt_pepper: "ملح وفلفل",
+        motion_blur: "تمويه حركي",
+        jpeg_compression: "ضغط JPEG",
+        lens_occlusion: "انسداد العدسة",
+      },
     },
     benchmark: {
       hero: {
