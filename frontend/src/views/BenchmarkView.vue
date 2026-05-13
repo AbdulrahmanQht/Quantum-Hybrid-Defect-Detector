@@ -1630,18 +1630,27 @@ onErrorCaptured((err) => {
 }
 
 @media (max-width: 640px) {
-
+  .dataset-image,
+    .dataset-slide {
+      min-height: 320px;
+      height: 320px;
+    }
+  
+    .dataset-slide-title,
+    .dataset-slide-text {
+      display: none;
+    }
+  
+    
+    .dataset-overlay {
+      padding: 0.75rem;
+    }
   .hero-stats,
   .fact-grid,
   .config-grid {
     grid-template-columns: 1fr;
   }
 
-  .dataset-image,
-  .dataset-slide {
-    min-height: 320px;
-    height: 320px;
-  }
 }
 
 .chart-shell {

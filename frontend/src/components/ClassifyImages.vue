@@ -1287,7 +1287,6 @@ onUnmounted(() => {
   /* zero basis = equal 50/50, ignores image dimensions */
   min-width: 0;
   height: 26rem;
-  /* fixed — both panes are identical */
   border: 1px solid var(--q-bar-border);
   border-radius: 20px;
   background: var(--q-bar-bg);

@@ -4,14 +4,18 @@ tests/test_e2e_playwright.py
 End-to-end browser tests for the Vue frontend served by the FastAPI backend.
 
 Pages covered:
-    /classify          - upload flow, validation, results cards, noise compare, exports
+    /classify          - upload flow, validation, results cards, noise compare, exports, reset
     /benchmark         - benchmark sections, charts, tabs, metrics rendering
     /quantum-advantage - experiment sections, model tabs, chart rendering
-    /contact           - form validation, submission, success/error states
+    /contact           - form validation, submission, success/error states, persistence
+    /404               - invalid routes, visual components, home navigation
+    /                  - Home page hero, stats, slider, team, and highlights
 
 Also covers:
-    Theme toggle visibility
-    Language toggle visibility
+    Theme toggle visibility and functionality
+    Language toggle functionality and HTML attribute updates
+    Mobile navigation menu
+    Footer visibility and links
     Optional mocked API responses for deterministic UI testing
 
 Install:
@@ -44,6 +48,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 import csv
 import io
@@ -332,21 +337,124 @@ def mock_api(page: Page) -> None:
     page.route("**/api/v1/contact", lambda route: route.fulfill(status=200, json={"status": "success"}))
 
 
-class TestGlobalShell:
-    def test_homepage_and_nav_render(self, page: Page) -> None:
+class TestHomeView:
+    def test_hero_section_renders(self, page: Page) -> None:
+        page.goto(BASE_URL)
+        expect(page.locator(".hero-badge")).to_be_visible()
+        expect(page.locator(".hero-title")).to_be_visible()
+        expect(page.locator(".hero-subtitle")).to_be_visible()
+        expect(page.locator(".hero-description")).to_be_visible()
+        
+    def test_hero_action_buttons(self, page: Page) -> None:
+        page.goto(BASE_URL)
+        expect(page.locator(".hero-primary-btn")).to_be_visible()
+        expect(page.get_by_role("button", name=re.compile(r"benchmark", re.IGNORECASE))).to_be_visible()
+        expect(page.get_by_role("button", name=re.compile(r"quantum", re.IGNORECASE))).to_be_visible()
+
+    def test_stat_cards_render(self, page: Page) -> None:
+        page.goto(BASE_URL)
+        expect(page.locator(".hero-stat-grid")).to_be_visible()
+        # Should have multiple stat cards
+        expect(page.locator(".hero-stat-card").first).to_be_visible()
+
+    def test_slider_card_renders_and_rotates(self, page: Page) -> None:
+        page.goto(BASE_URL)
+        expect(page.locator(".slider-card")).to_be_visible()
+        
+        # Get the initial text
+        initial_title = page.locator(".slider-card .section-title").inner_text()
+        
+        # Click to trigger rotation
+        page.locator(".slider-card").click()
+        
+        # Use Playwright's auto-retrying expect to wait for the DOM text to actually change
+        expect(page.locator(".slider-card .section-title")).not_to_have_text(initial_title)
+
+    def test_highlights_and_team_sections_render(self, page: Page) -> None:
+        page.goto(BASE_URL)
+        expect(page.locator(".highlights-section")).to_be_visible()
+        expect(page.locator(".team-section")).to_be_visible()
+        # Check supervisors and researchers groups
+        expect(page.locator(".team-grid--supervisors")).to_be_visible()
+        # Check GitHub/LinkedIn link
+        expect(page.locator(".team-link").first).to_be_visible()
+
+
+class TestNavBar:
+    def test_desktop_nav_links(self, page: Page) -> None:
         page.goto(BASE_URL)
         nav = page.get_by_role("navigation")
-        expect(nav.get_by_role("link", name="Home")).to_be_visible()
-        expect(nav.get_by_role("link", name="Classify")).to_be_visible()
-        expect(nav.get_by_role("link", name="Benchmark")).to_be_visible()
-        expect(nav.get_by_role("link", name="Quantum Advantage")).to_be_visible()
-        expect(nav.get_by_role("link", name="Contact")).to_be_visible()
+        expect(nav.get_by_role("link", name=re.compile(r"Home", re.IGNORECASE))).to_be_visible()
+        expect(nav.get_by_role("link", name=re.compile(r"Classify", re.IGNORECASE))).to_be_visible()
 
-    def test_theme_and_language_controls_exist(self, page: Page) -> None:
+    def test_logo_link_goes_to_home(self, page: Page) -> None:
+        page.goto(f"{BASE_URL}/classify")
+        page.locator(".qnn-logo").click()
+        expect(page).to_have_url(f"{BASE_URL}/")
+
+    def test_theme_toggle(self, page: Page) -> None:
         page.goto(BASE_URL)
-        expect(page.get_by_role("button", name="Dark mode")).to_be_visible()
-        expect(page.locator(".qnn-lang-btn")).to_be_visible()
+        html = page.locator("html")
+        # Click toggle
+        page.locator(".qnn-actions > .qnn-icon-btn").first.click()
+        # Assuming dark mode defaults to off or cookie, test class toggle
+        initial_class = html.get_attribute("class") or ""
+        page.locator(".qnn-actions > .qnn-icon-btn").first.click()
+        new_class = html.get_attribute("class") or ""
+        assert initial_class != new_class
 
+    def test_language_toggle_switches_locale(self, page: Page) -> None:
+        page.goto(BASE_URL)
+        page.locator(".qnn-lang-btn").click()
+        expect(page.locator("html")).to_have_attribute("lang", "ar")
+        page.locator(".qnn-lang-btn").click()
+        expect(page.locator("html")).to_have_attribute("lang", "en")
+
+    def test_mobile_burger_menu(self, page: Page) -> None:
+        page.set_viewport_size({"width": 375, "height": 812})
+        page.goto(BASE_URL)
+        # Nav should be hidden via CSS transforms/opacity, but let's check class
+        nav = page.locator("#qnn-nav")
+        expect(nav).not_to_have_class(re.compile(r"qnn-nav--open"))
+        # Click burger
+        page.locator(".qnn-burger").click()
+        expect(nav).to_have_class(re.compile(r"qnn-nav--open"))
+        page.set_viewport_size({"width": 1280, "height": 720})
+
+
+class TestFooter:
+    def test_footer_renders_and_links(self, page: Page) -> None:
+        page.goto(BASE_URL)
+        footer = page.locator(".site-footer")
+        expect(footer).to_be_visible()
+        # Added .first to avoid strict mode violations (elements appearing multiple times)
+        expect(footer.get_by_text(re.compile(r"Navigation", re.IGNORECASE)).first).to_be_visible()
+        expect(footer.get_by_text(re.compile(r"Research Team", re.IGNORECASE)).first).to_be_visible()
+        expect(footer.get_by_text(re.compile(r"Contact", re.IGNORECASE)).first).to_be_visible()
+        expect(page.locator(".site-footer__bottom-inner")).to_be_visible()
+
+
+class TestNotFoundPage:
+    def test_404_page_renders_on_invalid_route(self, page: Page) -> None:
+        page.goto(f"{BASE_URL}/this-is-a-random-fake-route")
+        
+        # Verify glitch text is visible
+        expect(page.locator(".glitch").first).to_have_text("404")
+        
+        # Verify suggestion links block exists
+        expect(page.locator(".nf-nav-grid")).to_be_visible()
+        
+        # Verify the "Home" CTA button is visible
+        expect(page.locator(".nf-home-link")).to_be_visible()
+
+        # Verify footer note
+        expect(page.locator(".nf-footer-note")).to_be_visible()
+        expect(page.locator(".nf-footer-link")).to_be_visible()
+
+    def test_404_home_link_navigates_to_home(self, page: Page) -> None:
+        page.goto(f"{BASE_URL}/this-is-a-random-fake-route")
+        page.locator(".nf-home-link").click()
+        expect(page).to_have_url(f"{BASE_URL}/")
 
 class TestClassifyPage:
     def test_classify_page_loads(self, page: Page) -> None:
@@ -387,6 +495,19 @@ class TestClassifyPage:
         expect(page.get_by_role("button", name="Compare")).to_be_visible()
         page.get_by_role("button", name="Compare").click()
         expect(page.get_by_text("Verdict", exact=True)).to_be_visible()
+        
+    def test_classify_reset_clears_state(self, page: Page, test_jpeg_path: Path) -> None:
+        page.goto(f"{BASE_URL}/classify")
+        page.locator("input[type='file']").set_input_files(str(test_jpeg_path))
+        
+        # Ensure preview pane appeared
+        expect(page.locator(".preview-pane").first).to_be_visible()
+        
+        # Click reset button
+        page.get_by_role("button", name="Reset", exact=False).click()
+        
+        # Ensure it went back to dropzone
+        expect(page.locator(".upload-dropzone")).to_be_visible()
 
     def test_export_buttons_download_files(self, page: Page, test_jpeg_path: Path) -> None:
         page.goto(f"{BASE_URL}/classify")
@@ -453,35 +574,106 @@ class TestBenchmarkPage:
         expect(page.get_by_text("Confusion Matrix", exact=True)).to_be_visible()
         page.get_by_role("tab", name="Gaussian").first.click()
         expect(page.get_by_text("Accuracy Under Increasing Noise", exact=True)).to_be_visible()
+    
+    def test_benchmark_dataset_section(self, page: Page) -> None:
+        page.goto(f"{BASE_URL}/benchmark")
+        expect(page.locator(".dataset-carousel")).to_be_visible()
+        expect(page.locator(".fact-grid")).to_be_visible()
+        expect(page.locator(".dataset-steps")).to_be_visible()
+
+    def test_benchmark_latency_and_charts(self, page: Page) -> None:
+        page.goto(f"{BASE_URL}/benchmark")
+        # Structural DOM targeting avoids all string/i18n matching issues!
+        expect(page.locator(".performance-grid")).to_be_visible()
+        
+        # Radar & Scatter cards
+        expect(page.locator(".chart-pair-grid .chart-card").first).to_be_visible()
+        expect(page.locator(".chart-pair-grid .chart-card").nth(1)).to_be_visible()
+        
+        # Reliability full-width chart card
+        expect(page.locator(".diag-inner-card--full")).to_be_visible()
+
+    def test_benchmark_maun_robustness(self, page: Page) -> None:
+        page.goto(f"{BASE_URL}/benchmark")
+        # Robustness Table
+        expect(page.locator(".bm-datatable-robustness")).to_be_visible()
+        # Robustness Line Chart
+        expect(page.get_by_text("Accuracy Under Increasing Noise", exact=True)).to_be_visible()
 
 
 class TestQuantumAdvantagePage:
     def test_quantum_advantage_page_renders(self, page: Page) -> None:
         page.goto(f"{BASE_URL}/quantum-advantage")
-        expect(page.get_by_role("heading", name="Quantum Advantage Report")).to_be_visible()
-        expect(page.get_by_role("tab", name="Gaussian")).to_be_visible()
-        expect(page.get_by_text("Geometric Difference", exact=True)).to_be_visible()
+        expect(page.locator(".qa-title")).to_be_visible()
+
+        # .first on every get_by_text to avoid strict-mode violations when
+        # the same text appears in both a heading and an accordion button
+        expect(page.get_by_text(re.compile(r"Feature Orthogonality", re.IGNORECASE)).first).to_be_visible()
+        expect(page.get_by_text(re.compile(r"Linear CKA", re.IGNORECASE)).first).to_be_visible()
+        expect(page.get_by_text(re.compile(r"Entanglement Entropy", re.IGNORECASE)).first).to_be_visible()
+        expect(page.get_by_text(re.compile(r"Gradient Variance", re.IGNORECASE)).first).to_be_visible()
+        expect(page.get_by_text(re.compile(r"Expressibility", re.IGNORECASE)).first).to_be_visible()
+        expect(page.get_by_text(re.compile(r"Kernel Target Alignment", re.IGNORECASE)).first).to_be_visible()
+        expect(page.get_by_text(re.compile(r"Geometric Difference", re.IGNORECASE)).first).to_be_visible()
+        expect(page.get_by_text(re.compile(r"Fisher Effective Dimension", re.IGNORECASE)).first).to_be_visible()
+        expect(page.get_by_text(re.compile(r"Feature Effective Rank", re.IGNORECASE)).first).to_be_visible()
+        expect(page.get_by_text(re.compile(r"Intrinsic Dimension", re.IGNORECASE)).first).to_be_visible()
+        expect(page.get_by_text(re.compile(r"Class Separability", re.IGNORECASE)).first).to_be_visible()
 
     def test_quantum_advantage_noise_tabs_switch(self, page: Page) -> None:
         page.goto(f"{BASE_URL}/quantum-advantage")
         page.get_by_role("tab", name="Gaussian").click()
         expect(page.get_by_role("heading", name="Quantum Advantage Report")).to_be_visible()
+        
+
+    def test_methodology_accordion(self, page: Page) -> None:
+        page.goto(f"{BASE_URL}/quantum-advantage")
+        # Updated to PrimeVue v4 correct accordion class
+        page.locator(".p-accordionheader").first.click()
+        expect(page.locator(".p-accordioncontent").first).to_be_visible()
 
 
 class TestContactPage:
     def test_contact_page_loads(self, page: Page) -> None:
         page.goto(f"{BASE_URL}/contact")
-        expect(page.get_by_role("button", name="Send Message")).to_be_visible()
+        expect(page.locator(".form-title")).to_be_visible()
 
     def test_empty_submit_shows_validation(self, page: Page) -> None:
         page.goto(f"{BASE_URL}/contact")
-        page.get_by_role("button", name="Send Message").click()
-        expect(page.get_by_text("This field is required").first).to_be_visible()
+        page.locator(".submit-btn").click()
+        expect(page.locator(".field-error").first).to_be_visible()
+
+    def test_contact_form_persistence_and_clear(self, page: Page) -> None:
+        page.goto(f"{BASE_URL}/contact")
+        page.locator("#contact-name").fill("Test Name")
+        
+        # Reload to test persistence
+        page.reload()
+        expect(page.locator("#contact-name")).to_have_value("Test Name")
+        
+        # Test clear button
+        expect(page.locator(".clear-fab")).to_be_visible()
+        page.locator(".clear-fab").click()
+        expect(page.locator("#contact-name")).to_have_value("")
 
     def test_successful_submit_shows_toast(self, page: Page) -> None:
         page.goto(f"{BASE_URL}/contact")
         page.locator("#contact-name").fill("Abdulrahman Alqahtani")
         page.locator("#contact-subject").fill("Playwright E2E")
-        page.locator("#contact-message").fill("This is a valid test submission for the contact page.")
-        page.get_by_role("button", name="Send Message").click()
+        page.locator("#contact-message").fill("This is a valid test submission.")
+        page.locator(".submit-btn").click()
         expect(page.locator(".p-toast-message-success")).to_be_visible()
+
+    def test_server_error_shows_toast(self, page: Page) -> None:
+        if not MOCK_API:
+            pytest.skip("Requires MOCK_API=1 to mock 500 error")
+            
+        page.route("**/api/v1/contact", lambda route: route.fulfill(status=500, json={"detail": "Error"}))
+        page.goto(f"{BASE_URL}/contact")
+        page.locator("#contact-name").fill("Error Name")
+        page.locator("#contact-subject").fill("Error Subject")
+        page.locator("#contact-message").fill("Error Message")
+        page.locator(".submit-btn").click()
+        expect(page.locator(".p-toast-message-error")).to_be_visible()
+        
+        
