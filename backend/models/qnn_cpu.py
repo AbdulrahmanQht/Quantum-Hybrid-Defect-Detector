@@ -776,7 +776,7 @@ class HybridQnnCPU(nn.Module):
 
     def load_model(self, path: str, device: torch.device) -> None:
         try:
-            state = torch.load(path, map_location=device, weights_only=True)
+            state = torch.load(path, map_location=device, weights_only=False)
         except TypeError:
             state = torch.load(path, map_location=device)
         self.load_state_dict(state)

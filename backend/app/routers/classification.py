@@ -2,6 +2,7 @@ import time
 import io
 import base64
 import asyncio
+import random
 from PIL import Image
 import torch
 from torchvision.io import decode_image, ImageReadMode
@@ -18,6 +19,7 @@ from backend.utils.validate import (
     check_dimensions,
     check_magic_bytes
 )
+from backend.utils.noise import apply_noise, BENCHMARK_NOISE_LEVELS
 from backend.utils.logger import Logger
 
 # Schema for prediction output for each model
@@ -51,96 +53,14 @@ class ClassificationResponse(BaseModel):
 logger = Logger()
 router = APIRouter(prefix="/api/v1", tags=["Classification"])
 
-def apply_inference_noise(tensor: torch.Tensor, noise_level: float) -> torch.Tensor:
-    """
-    Revised mapping based on per-noise benchmark results.
-    Accuracy targets (CNN, averaged across classes):
-        0.0 – 0.3 : ~88–93%  (normal conditions)
-        0.3 – 0.6 : ~70–88%  (degraded conditions)
-        0.6 – 1.0 : ~40–70%  (severe conditions)
-
-    Key changes vs prior version:
-      - Gaussian uncapped: sigma now reaches 0.28 at s=1.0
-        Benchmark: sigma=0.10→91%, 0.15→84%, 0.20→73%, 0.25→63%, 0.30→52%
-      - Motion blur kernel reaches 13 at s=1.0 (was 9)
-        Benchmark: k=6→84%, k=8→73%, k=10→61%
-      - Contrast floor lowered to 0.20 (was 0.55)
-        Benchmark: factor=0.40→88%, 0.25→71%, 0.10→31%
-      - Salt & pepper scaled to amount=0.08 at s=1.0 (was 0.02)
-        Benchmark: amount=0.04→91%, 0.07→88%, 0.10→83%
-    """
-    t = tensor.clone()
-    s = noise_level
-
-    # 1. Gaussian — extended to sigma=0.28 for visible high-end differentiation
-    # sigma=0.10 → CNN ~91%, sigma=0.20 → CNN ~73%, sigma=0.28 → CNN ~55%
-    if s > 0.0:
-        sigma = s * 0.28
-        t = torch.clamp(t + torch.randn_like(t) * sigma, 0.0, 1.0)
-
-    # 2. Salt & pepper — scaled to amount=0.08 at s=1.0
-    # amount=0.02 → CNN ~93%, amount=0.07 → CNN ~88%, amount=0.10 → CNN ~83%
-    if s > 0.2:
-        amount = (s - 0.2) * 0.10          # was 0.025, reaches 0.08 at s=1.0
-        n = int(amount * t.shape[-1] * t.shape[-2])
-        if n > 0:
-            salt_r = torch.randint(0, t.shape[-2], (n,))
-            salt_c = torch.randint(0, t.shape[-1], (n,))
-            pepp_r = torch.randint(0, t.shape[-2], (n,))
-            pepp_c = torch.randint(0, t.shape[-1], (n,))
-            t[:, salt_r, salt_c] = 1.0
-            t[:, pepp_r, pepp_c] = 0.0
-
-    # 3. Motion blur — kernel reaches 13 at s=1.0 for severe range differentiation
-    # k=3→93%, k=6→84%, k=9→77%, k=13→~65% (extrapolated from blur sigma benchmarks)
-    if s > 0.3:
-        k = max(3, int(s * 13))            # was s * 9
-        k = k if k % 2 == 1 else k + 1
-        kernel = torch.zeros(1, 1, k, k, dtype=t.dtype, device=t.device)
-        kernel[0, 0, k // 2, :] = 1.0 / k
-        c = t.shape[0]
-        blurred = torch.nn.functional.conv2d(
-            t.unsqueeze(0),
-            kernel.expand(c, 1, k, k),
-            padding=k // 2,
-            groups=c
-        ).squeeze(0)
-        t = torch.clamp(blurred, 0.0, 1.0)
-
-    # 4. Contrast reduction — floor lowered to 0.20 so high severity is visibly distinct
-    # factor=0.70→CNN 94%, 0.55→92%, 0.40→88%, 0.25→71%, 0.20→~50%
-    if s > 0.4:
-        factor = 1.0 - (s - 0.4) * 1.333  # reaches 0.20 at s=1.0, was 0.75 → reached 0.55
-        mean = t.mean(dim=(-2, -1), keepdim=True)
-        t = torch.clamp(mean + factor * (t - mean), 0.0, 1.0)
-
-    # 5. Lens occlusion — unchanged, activates at high severity only
-    # Benchmark: coverage=0.08→CNN 88%, 0.12→84%, 0.16→80%, 0.20→76%
-    if s > 0.6:
-        _, h, w = t.shape
-        hi = min(1.0, max(0.0, (s - 0.6) / 0.4))
-        num_patches = 1 + int(hi * 4)
-        patch_scale = 0.06 + hi * 0.14
-        max_darkness = 0.45 - hi * 0.30
-
-        for _ in range(num_patches):
-            ph = max(1, min(h - 1, int(h * patch_scale)))
-            pw = max(1, min(w - 1, int(w * patch_scale)))
-            top = torch.randint(0, h - ph + 1, (1,)).item()
-            left = torch.randint(0, w - pw + 1, (1,)).item()
-            t[:, top:top + ph, left:left + pw] = (
-                torch.rand(t.shape[0], ph, pw, device=t.device) * max_darkness
-            )
-
-    return t
-
 @router.post("/classify", response_model=ClassificationResponse)
 @limiter.limit("60/minute")
 async def classify_image(
     request: Request,
     file: UploadFile = File(...),
     compare_with_noise: bool = Form(False),
-    noise_level: Optional[float] = Form(None)
+    noise_level: Optional[float] = Form(None),
+    noise_type: Optional[str] = Form(None)
 ) -> ClassificationResponse:
     # Validate noise requirements
     if compare_with_noise and (noise_level is None or not 0.0 <= noise_level <= 1.0):
@@ -218,10 +138,37 @@ async def classify_image(
         # Generate Noisy Tensor (Logic from models/benchmark.py)
         noisy_input_tensor = None
         noisy_base64 = None
+        actual_noise_value_used = None
+        final_noise_type = noise_type
         if compare_with_noise:
-            # Squeeze to [3, H, W] for the transformation
-            noisy_tensor_3d = apply_inference_noise(clean_input_tensor.squeeze(0), noise_level)
-            noisy_input_tensor = noisy_tensor_3d.unsqueeze(0)
+            valid_noises = list(BENCHMARK_NOISE_LEVELS.keys())
+            
+            # 1. Determine which noises to apply
+            if not final_noise_type or final_noise_type == "random":
+                num_to_mix = random.randint(1, 3)
+                selected_noises = random.sample(valid_noises, num_to_mix)
+            else:
+                selected_noises = [final_noise_type]
+            
+            # Start with the clean tensor
+            noisy_input_tensor = clean_input_tensor.clone()
+            
+            # 2. Apply each noise sequentially
+            for n_type in selected_noises:
+                canonical_levels = BENCHMARK_NOISE_LEVELS.get(n_type)
+                if not canonical_levels:
+                    raise HTTPException(status_code=400, detail=f"Invalid noise type: {n_type}")
+
+                # Map the 0.0 - 1.0 slider to an array index for this specific noise
+                max_idx = len(canonical_levels) - 1
+                mapped_idx = int(round(noise_level * max_idx))
+                current_noise_value = canonical_levels[mapped_idx]
+                
+                # Pass the 4D tensor directly (B, C, H, W)
+                noisy_input_tensor = apply_noise(noisy_input_tensor, n_type, current_noise_value)
+            
+            # Squeeze it to 3D (C, H, W) ONLY for the Base64 PIL conversion
+            noisy_tensor_3d = noisy_input_tensor.squeeze(0)
             
             # Convert Tensor to Base64
             pil_img = to_pil_image(noisy_tensor_3d.cpu())

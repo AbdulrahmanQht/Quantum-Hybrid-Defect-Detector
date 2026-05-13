@@ -22,7 +22,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
-from backend.app.limiter import limiter
+from .limiter import limiter
 from .routers.contact import router as contact_router
 from .routers.benchmark import router as benchmark_router
 from .routers.quantum_advantage import router as quantum_advantage
