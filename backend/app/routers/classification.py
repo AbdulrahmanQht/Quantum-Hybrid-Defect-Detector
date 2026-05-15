@@ -138,17 +138,15 @@ async def classify_image(
         # Generate Noisy Tensor (Logic from models/benchmark.py)
         noisy_input_tensor = None
         noisy_base64 = None
-        actual_noise_value_used = None
-        final_noise_type = noise_type
         if compare_with_noise:
             valid_noises = list(BENCHMARK_NOISE_LEVELS.keys())
             
             # 1. Determine which noises to apply
-            if not final_noise_type or final_noise_type == "random":
+            if not noise_type or noise_type == "random":
                 num_to_mix = random.randint(1, 3)
                 selected_noises = random.sample(valid_noises, num_to_mix)
             else:
-                selected_noises = [final_noise_type]
+                selected_noises = [noise_type]
             
             # Start with the clean tensor
             noisy_input_tensor = clean_input_tensor.clone()

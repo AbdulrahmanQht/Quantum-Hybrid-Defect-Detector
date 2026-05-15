@@ -446,8 +446,8 @@ const pct = (val) => (val * 100).toFixed(1)
             </p>
           </div>
         </div>
-        <div class="flex flex-wrap gap-2 mb-4" role="tablist" :aria-label="t('qa.exp6.title')">
-          <button v-for="nt in noiseTypes" :key="nt" class="px-3 py-1.5 rounded-lg text-sm transition-colors" role="tab"
+        <div class="flex w-full gap-2 mb-4" role="tablist" :aria-label="t('qa.exp6.title')">
+          <button v-for="nt in noiseTypes" :key="nt" class="px-3 py-1.5 rounded-lg text-sm transition-colors flex-1" role="tab"
             :aria-selected="selectedNoiseType === nt"
             :class="selectedNoiseType === nt ? 'qa-tab-active' : 'qa-tab-inactive'" @click="selectedNoiseType = nt">
             {{ t('qa.exp6.' + nt) }}
