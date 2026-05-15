@@ -391,7 +391,7 @@ class HybridQnnCPU(nn.Module):
         Returns (start_epoch, best_acc, best_state, best_shadow).
         """
         try:
-            ckpt = torch.load(path, map_location=device, weights_only=False)
+            ckpt = torch.load(path, map_location=device, weights_only=True)
         except TypeError:
             ckpt = torch.load(path, map_location=device)
 
@@ -776,7 +776,7 @@ class HybridQnnCPU(nn.Module):
 
     def load_model(self, path: str, device: torch.device) -> None:
         try:
-            state = torch.load(path, map_location=device, weights_only=False)
+            state = torch.load(path, map_location=device, weights_only=True)
         except TypeError:
             state = torch.load(path, map_location=device)
         self.load_state_dict(state)
