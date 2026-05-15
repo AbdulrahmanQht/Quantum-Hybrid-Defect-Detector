@@ -644,10 +644,10 @@ onErrorCaptured((err) => {
               </div>
             </div>
 
-            <div class="flex flex-wrap gap-2 mb-4" role="tablist">
+            <div class="flex w-full gap-2 mb-4" role="tablist">
               <button v-for="opt in noiseOptions" :key="opt.value" role="tab"
                 :aria-selected="selectedNoiseType === opt.value"
-                class="px-3 py-1.5 rounded-lg text-sm transition-colors"
+                class="px-3 py-1.5 rounded-lg text-sm transition-colors flex-1 md:whitespace-nowrap"
                 :class="selectedNoiseType === opt.value ? 'bm-tab-active' : 'bm-tab-inactive'"
                 @click="selectedNoiseType = opt.value">
                 {{ opt.label }}
@@ -712,9 +712,9 @@ onErrorCaptured((err) => {
               </div>
             </div>
 
-            <div class="flex flex-wrap gap-2 mb-4">
-              <button v-for="opt in modelOptions" :key="opt.value" role="tab"
-                :aria-selected="selectedModelKey === opt.value" class="px-3 py-1.5 rounded-lg text-sm transition-colors"
+            <div class="flex w-auto gap-2 mb-4">
+              <button v-for="opt in modelOptions" :key="opt.value" role="tab" 
+                :aria-selected="selectedModelKey === opt.value"                 class="px-3 py-1.5 rounded-lg text-sm transition-colors flex-1 md:whitespace-nowrap"
                 :class="selectedModelKey === opt.value ? 'bm-tab-active' : 'bm-tab-inactive'"
                 @click="selectedModelKey = opt.value">
                 {{ opt.label }}

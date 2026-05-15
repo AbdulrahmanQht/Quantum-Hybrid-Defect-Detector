@@ -210,10 +210,8 @@ async function uploadImage() {
     const snapshotNoiseLevel = compareWithNoise.value ? noiseLevel.value : null
     const formData = new FormData()
     formData.append('file', selectedFile.value)
-    formData.append('compare_with_noise', compareWithNoise.value)
     if (compareWithNoise.value) {
-      // formData.append('noise_level', noiseLevel.value.toFixed(2))
-      formData.append('compare_with_noise', 'true')
+      formData.append('compare_with_noise', compareWithNoise.value)
       formData.append('noise_level', noiseLevel.value.toString())
       formData.append('noise_type', selectedNoiseType.value)
     }
@@ -420,15 +418,15 @@ const cnnIsHighestConfidenceUnderNoise = computed(() => {
 // --- Reset ---
 function reset() {
   selectedFile.value = null
-  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)  // was revokeObjectObject — typo
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
   previewUrl.value = null
   results.value = null
-  noisyResults.value = null        // ← charts/table won't clear without this
+  noisyResults.value = null
   error.value = null
   exportSuccess.value = null
   validating.value = false
-  compareWithNoise.value = false   // ← reset toggle back to off
-  noiseLevel.value = 0.3           // ← reset slider to default
+  compareWithNoise.value = false
+  noiseLevel.value = 0.3
   activeResultsView.value = 'clean'
   if (fileInput.value) fileInput.value.value = ''
   localStorage.removeItem(STORAGE_KEY)
@@ -673,8 +671,8 @@ onUnmounted(() => {
                   <div class="noise-panel__meta mb-2">
                     <span class="noise-panel__label">{{ t('classify.noise_type_label') }}</span>
                   </div>
-                  <div class="flex flex-wrap gap-2">
-                    <button v-for="(label, key) in availableNoiseTypes" :key="key" type="button" class="noise-btn"
+                  <div class="flex w-full gap-2 md-4">
+                    <button v-for="(label, key) in availableNoiseTypes" :key="key" type="button" class="noise-btn flex-1 md:whitespace-nowrap"
                       :class="{ active: selectedNoiseType === key }" @click="selectedNoiseType = key">
                       {{ label }}
                     </button>
