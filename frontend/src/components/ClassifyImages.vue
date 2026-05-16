@@ -672,8 +672,10 @@ onUnmounted(() => {
                     <span class="noise-panel__label">{{ t('classify.noise_type_label') }}</span>
                   </div>
                   <div class="flex w-full gap-2 md-4">
-                    <button v-for="(label, key) in availableNoiseTypes" :key="key" type="button" class="noise-btn flex-1 md:whitespace-nowrap"
-                      :class="{ active: selectedNoiseType === key }" @click="selectedNoiseType = key">
+                    <button v-for="(label, key) in availableNoiseTypes" :key="key" type="button"
+                      class="noise-btn flex-1 md:whitespace-nowrap" :class="{ active: selectedNoiseType === key }"
+                      v-tooltip.top="key === 'random' ? t('classify.tooltips.random_noise') : undefined"
+                      @click="selectedNoiseType = key">
                       {{ label }}
                     </button>
                   </div>

@@ -262,6 +262,8 @@ const messages = {
           "The 384x384 preprocessed tensor fed directly into the models.",
         noisy_image:
           "Simulates industrial camera degradation using combined Gaussian, Motion Blur, Contrast reduction, and Lens Occlusion algorithms.",
+        random_noise:
+          "Randomly selects 1 to 3 noise types from all available types and applies them sequentially to the image.",
       },
       cnn_overconfidence_warning:
         "Under severe noise, CNN may show the highest confidence here — but our benchmark results confirm it can still predict incorrectly at high confidence levels. Do not interpret high CNN confidence as superior reliability under noise.",
@@ -935,6 +937,8 @@ const messages = {
           "الموتر المُعالج مسبقًا بحجم 384×384 والمُمرَّر مباشرة إلى النماذج",
         noisy_image:
           "يحاكي تدهور جودة الكاميرات الصناعية باستخدام مزيج من خوارزميات التشويش الغاوسي (Gaussian)، وضبابية الحركة، وتقليل التباين، وانسداد العدسة.",
+        random_noise:
+          "يختار عشوائيًا من 1 إلى 3 أنواع من الضوضاء من جميع الأنواع المتاحة ويطبقها على الصورة بالتسلسل.",
       },
       cnn_overconfidence_warning:
         "تحت التشويش الشديد، قد يُظهر CNN أعلى ثقة هنا — لكن نتائج المقارنة تؤكد أنه قد لا يزال يُخطئ في توقعاته رغم الثقة العالية. لا تعتبر ثقة CNN العالية دليلاً على تفوق أدائه تحت التشويش.",
