@@ -1,3 +1,20 @@
+"""
+Quantum-Hybrid Defect Detector — Core Application Entrypoint
+========================================================================
+Orchestrates the full-stack system application lifecycle, coordinating 
+the FastAPI routing engine, model memory loading, security components, 
+and static file delivery mechanisms.
+
+Key Infrastructure Configurations:
+    1. Lifespan Manager     : Sequentially loads checking assets, checkpoints,
+                              and handles early hardware model warm-up routines.
+    2. Parallel Compute     : Instantiates a shared ThreadPoolExecutor with 6 
+                              workers to process dual-stream clean/noisy request pipelines.
+    3. Security Middleware  : Embeds Content Security Policies (CSP), strict CORS domain 
+                              whitelists, TrustedHost safety rules, and SlowAPI constraints.
+    4. Asset Distribution   : Automatically maps paths to serve compiled SPA frontend 
+                              assets ('frontend/dist') while blocking malicious directory probes.
+"""
 import os
 import json
 import time
@@ -68,7 +85,6 @@ async def lifespan(app: FastAPI):
         Performance warm-up: First time predict is called it might take a long time to allocate GPU memory and load the model.
         To prevent this from causing a long delay on the first user request, we run a dummy prediction during startup to "warm up" the models.
     """
-    
     num_classes = len(class_names)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     

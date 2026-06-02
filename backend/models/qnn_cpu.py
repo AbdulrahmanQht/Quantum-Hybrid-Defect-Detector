@@ -84,15 +84,14 @@ def vqc(dev: qml.Device, n_qubits: int, q_depth: int) -> qml.qnn.TorchLayer:
 
     Circuit (per forward call):
         Hadamard on all qubits                    → superposition |+>^n
-        AngleEmbedding (Y-axis, π-scaled)         → initial encoding
-        IQP ZZ(i, i+1) with 0.5π scale           → input-correlated entanglement
+        AngleEmbedding (Y-axis, π-scaled)         → initial data encoding
         For each depth layer d:
-            RX / RY / RZ per qubit                → full rotation set
-            if d even:  CNOT ring + IQP ZZ 0.25π → nearest-neighbor + input coupling
+            RX / RY / RZ per qubit                → variational parameter rotation set
+            if d even:  CNOT ring                 → nearest-neighbor linear entanglement
             if d odd:   CZ ladder + skip-1 CZ     → longer-range correlations
             if d < q_depth-1:
-                AngleEmbedding (Z-axis, 0.5π)     → orthogonal re-upload
-        Measure PauliZ, PauliX, PauliY per qubit  → 18 output values
+                AngleEmbedding (Z-axis, 0.5π)     → orthogonal feature re-uploading
+        Measure PauliZ, PauliX, PauliY per qubit  → 18 expectation output values
 
     Weight init: uniform in ±0.05π (near-zero to suppress barren plateaus).
     """
@@ -106,7 +105,7 @@ def vqc(dev: qml.Device, n_qubits: int, q_depth: int) -> qml.qnn.TorchLayer:
         # 2. Initial Y-axis angle embedding
         qml.AngleEmbedding(inputs * math.pi, wires=range(n_qubits), rotation="Y")
 
-        # 4. Variational layers
+        # 3. Variational layers
         for layer in range(q_depth):
             # Full rotation set: RX + RY + RZ
             for i in range(n_qubits):
@@ -129,7 +128,7 @@ def vqc(dev: qml.Device, n_qubits: int, q_depth: int) -> qml.qnn.TorchLayer:
                     inputs * math.pi * 0.5, wires=range(n_qubits), rotation="Z"
                 )
 
-        # 5. Multi-basis measurement: Z, X, Y → 18 values for 6 qubits
+        # 4. Multi-basis measurement: Z, X, Y → 18 values for 6 qubits
         return (
             [qml.expval(qml.PauliZ(i)) for i in range(n_qubits)]
             + [qml.expval(qml.PauliX(i)) for i in range(n_qubits)]

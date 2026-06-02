@@ -9,16 +9,20 @@ This script performs EDA on the industrial defect detection dataset to understan
 visualize sample images, and analyze pixel intensity distributions. 
 """
 current_dir = os.path.dirname(os.path.abspath(__file__))
+output_dir = os.path.join(current_dir,"eda")
+os.makedirs(output_dir, exist_ok=True)
 dataset_path = os.path.join(current_dir, "train", "Images")
 classes = os.listdir(dataset_path)
 
 # 1. Class Distribution
 counts = {c: len(os.listdir(os.path.join(dataset_path, c))) for c in classes}
 plt.figure(figsize=(10, 5))
-sns.barplot(x=list(counts.keys()), y=list(counts.values()), palette="viridis")
+sns.barplot(x=list(counts.keys()), y=list(counts.values()), palette="viridis", hue=list(counts.keys()))
 plt.title("Industrial Defect Class Distribution")
 plt.ylabel("Number of Images")
-plt.show()
+save_path = os.path.join(output_dir, "class_distribution.png")
+plt.savefig(save_path, bbox_inches='tight', dpi=300)
+plt.close()
 
 # 2. Visual Sample Grid
 fig, axes = plt.subplots(len(classes), 5, figsize=(15, 10))
@@ -32,7 +36,9 @@ for i, cls in enumerate(classes):
         if j == 0:
             axes[i, j].set_ylabel(cls, rotation=0, labelpad=50, fontweight="bold")
 plt.tight_layout()
-plt.show()
+save_path = os.path.join(output_dir, "defect_samples_grid.png")
+plt.savefig(save_path, bbox_inches='tight', dpi=300)
+plt.close()
 
 # 3. Pixel Intensity Distribution (Check for Noise/Contrast)
 sample_img = Image.open(
@@ -45,7 +51,9 @@ plt.figure(figsize=(8, 4))
 plt.hist(img_array, bins=50, color="blue", alpha=0.7)
 plt.title("Pixel Intensity Histogram (Detecting Contrast/Noise)")
 plt.xlabel("Pixel Value (0-255)")
-plt.show()
+save_path = os.path.join(output_dir, "pixel_intensity_histogram.png")
+plt.savefig(save_path, bbox_inches='tight', dpi=300)
+plt.close()
 
 # 4. Aspect Ratio and Resolution Check
 widths, heights = [], []
@@ -62,4 +70,6 @@ plt.scatter(widths, heights, alpha=0.5)
 plt.title("Native Image Resolutions")
 plt.xlabel("Width")
 plt.ylabel("Height")
-plt.show()
+save_path = os.path.join(output_dir, "image_resolutions_scatter.png")
+plt.savefig(save_path, bbox_inches='tight', dpi=300)
+plt.close()
