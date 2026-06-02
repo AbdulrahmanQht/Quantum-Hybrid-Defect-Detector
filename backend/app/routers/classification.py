@@ -62,6 +62,22 @@ async def classify_image(
     noise_level: Optional[float] = Form(None),
     noise_type: Optional[str] = Form(None)
 ) -> ClassificationResponse:
+    """
+    Ingests an image payload, applies validation rules, and dispatches parallel inference jobs.
+
+    Processing Steps:
+        1. Validates file signature headers via content-types and magic bytes checks.
+        2. Bypasses disk-bound bottlenecks by decoding raw bytes directly to a PyTorch tensor.
+        3. Enforces a maximum resolution ceiling of 4096x4096px.
+        4. Synthesizes a noisy image variant if compare_with_noise is active. If noise_type is 
+           set to 'random', chains 1-3 distinct corruptions sequentially.
+        5. Spins up parallel background threads to evaluate the image across the CNN, 
+           QNN_CPU, and QNN_GPU (conditional on CUDA) tracks simultaneously.
+
+    Returns:
+        ClassificationResponse: Verified Pydantic output model containing filenames, 
+                                base64 data URLs, scores, and execution latencies in ms.
+    """
     # Validate noise requirements
     if compare_with_noise and (noise_level is None or not 0.0 <= noise_level <= 1.0):
         raise HTTPException(status_code=400, detail="noise_level must be between 0.0 and 1.0.")
@@ -175,11 +191,10 @@ async def classify_image(
             encoded_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
             noisy_base64 = f"data:image/jpeg;base64,{encoded_str}"
             
-        futures = {}
-        
         # Handles both clean and noisy submissions
         # Submit all inference jobs to the thread pool simultaneously.
         # PyTorch releases the GIL during C++/CUDA ops, so these genuinely run in parallel.
+        futures = {}
         def submit_path(prefix, tensor):
             futures[f"{prefix}_CNN"] = inference_executor.submit(
                 cnn_setup["model"].predict, tensor, cnn_setup["device"], class_names)
